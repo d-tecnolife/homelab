@@ -1,0 +1,13 @@
+node_name    = "pve"
+core_vm_id   = 100
+core_username = "replace-me"
+
+# Defaults match scripts/proxmox/ubuntu-resolute-cloudinit.sh.
+template_vm_id = 9001
+datastore_id   = "local-lvm"
+network_bridge = "vmbr0"
+
+# DHCP is the simplest first test. For a static address, also set core_ipv4_gateway.
+core_ipv4_address = "dhcp"
+# core_ipv4_address = "192.0.2.10/24"
+# core_ipv4_gateway = "192.0.2.1"
