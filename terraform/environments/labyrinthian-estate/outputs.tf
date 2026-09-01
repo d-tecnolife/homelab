@@ -1,11 +1,11 @@
-output "core_vm_id" {
-  description = "VMID assigned to core."
-  value       = proxmox_virtual_environment_vm.core.vm_id
+output "apps_vm_id" {
+  description = "VMID assigned to apps."
+  value       = proxmox_virtual_environment_vm.apps.vm_id
 }
 
-output "core_ipv4_addresses" {
+output "apps_ipv4_addresses" {
   description = "IPv4 addresses reported by the QEMU guest agent after startup."
-  value       = proxmox_virtual_environment_vm.core.ipv4_addresses
+  value       = proxmox_virtual_environment_vm.apps.ipv4_addresses
 }
 
 output "netbird_vm_id" {

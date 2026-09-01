@@ -1,6 +1,6 @@
 # Labyrinthian Estate environment
 
-This environment creates the `core` Docker host and `netbird-router` routing peer by cloning the Ubuntu Resolute cloud-init template built by `scripts/proxmox/ubuntu-resolute-cloudinit.sh`.
+This environment creates the `apps` Docker host and `netbird-router` routing peer by cloning the Ubuntu Resolute cloud-init template built by `scripts/proxmox/ubuntu-resolute-cloudinit.sh`.
 
 ## Prerequisites
 

@@ -17,7 +17,7 @@ variable "datastore_id" {
 }
 
 variable "network_bridge" {
-  description = "Proxmox bridge connected to the core VM."
+  description = "Proxmox bridge connected to the VMs."
   type        = string
   default     = "vmbr0"
 }
@@ -41,8 +41,8 @@ variable "template_vm_id" {
   type        = number
 }
 
-variable "core_vm_id" {
-  description = "Unused VMID to assign to the core VM."
+variable "apps_vm_id" {
+  description = "Unused VMID to assign to the apps VM."
   type        = number
 }
 
@@ -51,53 +51,53 @@ variable "netbird_vm_id" {
   type        = number
 }
 
-# Core VM variables
+# Apps VM variables
 
-variable "core_cpu_cores" {
-  description = "Number of virtual CPU cores assigned to core."
+variable "apps_cpu_cores" {
+  description = "Number of virtual CPU cores assigned to apps."
   type        = number
   default     = 2
 
   validation {
-    condition     = var.core_cpu_cores >= 1
-    error_message = "core_cpu_cores must be at least 1."
+    condition     = var.apps_cpu_cores >= 1
+    error_message = "apps_cpu_cores must be at least 1."
   }
 }
 
-variable "core_memory_mb" {
-  description = "Dedicated memory assigned to core, in MiB."
+variable "apps_memory_mb" {
+  description = "Dedicated memory assigned to apps, in MiB."
   type        = number
   default     = 4096
 
   validation {
-    condition     = var.core_memory_mb >= 1024
-    error_message = "core_memory_mb must be at least 1024."
+    condition     = var.apps_memory_mb >= 1024
+    error_message = "apps_memory_mb must be at least 1024."
   }
 }
 
-variable "core_disk_size_gb" {
-  description = "Size of the core boot disk, in GiB. Must not be smaller than the template disk."
+variable "apps_disk_size_gb" {
+  description = "Size of the apps boot disk, in GiB. Must not be smaller than the template disk."
   type        = number
   default     = 32
 
   validation {
-    condition     = var.core_disk_size_gb >= 8
-    error_message = "core_disk_size_gb must be at least the template's 8 GiB disk size."
+    condition     = var.apps_disk_size_gb >= 8
+    error_message = "apps_disk_size_gb must be at least the template's 8 GiB disk size."
   }
 }
 
-variable "core_ipv4_address" {
+variable "apps_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
   default     = "dhcp"
 
   validation {
-    condition     = var.core_ipv4_address == "dhcp" || can(cidrnetmask(var.core_ipv4_address))
-    error_message = "core_ipv4_address must be dhcp or an IPv4 address in CIDR notation."
+    condition     = var.apps_ipv4_address == "dhcp" || can(cidrnetmask(var.apps_ipv4_address))
+    error_message = "apps_ipv4_address must be dhcp or an IPv4 address in CIDR notation."
   }
 }
 
-variable "core_ipv4_gateway" {
+variable "apps_ipv4_gateway" {
   description = "IPv4 gateway for a static address; leave null when using DHCP."
   type        = string
   default     = null

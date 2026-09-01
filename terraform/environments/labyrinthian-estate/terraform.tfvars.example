@@ -1,7 +1,7 @@
 node_name   = "labyrinthian-estate"
 vm_username = "replace-me"
 
-core_vm_id    = 100
+apps_vm_id    = 1100
 netbird_vm_id = 110
 
 # Defaults match scripts/proxmox/ubuntu-resolute-cloudinit.sh.
@@ -9,14 +9,14 @@ template_vm_id = 9001
 datastore_id   = "local-lvm"
 network_bridge = "vmbr0"
 
-# DHCP is the simplest first test. For a static address, also set core_ipv4_gateway.
-core_ipv4_address = "dhcp"
-# core_ipv4_address = "192.0.2.10/24"
-# core_ipv4_gateway = "192.0.2.1"
+# DHCP is the simplest first test. For a static address, also set apps_ipv4_gateway.
+apps_ipv4_address = "dhcp"
+# apps_ipv4_address = "192.0.2.100/24"
+# apps_ipv4_gateway = "192.0.2.1"
 
-core_cpu_cores    = 8
-core_memory_mb    = 8192
-core_disk_size_gb = 100
+apps_cpu_cores    = 8
+apps_memory_mb    = 8192
+apps_disk_size_gb = 100
 
 netbird_cpu_cores    = 2
 netbird_memory_mb    = 1024

@@ -1,10 +1,10 @@
-resource "proxmox_virtual_environment_vm" "core" {
-  name        = "core"
-  description = "Primary Docker host managed by Terraform"
-  tags        = ["terraform", "ubuntu", "core"]
+resource "proxmox_virtual_environment_vm" "apps" {
+  name        = "apps"
+  description = "Primary Docker application host managed by Terraform"
+  tags        = ["terraform", "ubuntu", "apps"]
 
   node_name = var.node_name
-  vm_id     = var.core_vm_id
+  vm_id     = var.apps_vm_id
 
   clone {
     vm_id        = var.template_vm_id
@@ -17,12 +17,12 @@ resource "proxmox_virtual_environment_vm" "core" {
   }
 
   cpu {
-    cores = var.core_cpu_cores
+    cores = var.apps_cpu_cores
     type  = "host"
   }
 
   memory {
-    dedicated = var.core_memory_mb
+    dedicated = var.apps_memory_mb
   }
 
   vga {
@@ -34,7 +34,7 @@ resource "proxmox_virtual_environment_vm" "core" {
     interface    = "virtio0"
     file_format  = "raw"
     discard      = "on"
-    size         = var.core_disk_size_gb
+    size         = var.apps_disk_size_gb
   }
 
   network_device {
@@ -48,8 +48,8 @@ resource "proxmox_virtual_environment_vm" "core" {
 
     ip_config {
       ipv4 {
-        address = var.core_ipv4_address
-        gateway = var.core_ipv4_address == "dhcp" ? null : var.core_ipv4_gateway
+        address = var.apps_ipv4_address
+        gateway = var.apps_ipv4_address == "dhcp" ? null : var.apps_ipv4_gateway
       }
     }
 
@@ -64,8 +64,8 @@ resource "proxmox_virtual_environment_vm" "core" {
 
   lifecycle {
     precondition {
-      condition     = var.core_ipv4_address == "dhcp" || var.core_ipv4_gateway != null
-      error_message = "core_ipv4_gateway must be set when core_ipv4_address is static."
+      condition     = var.apps_ipv4_address == "dhcp" || var.apps_ipv4_gateway != null
+      error_message = "apps_ipv4_gateway must be set when apps_ipv4_address is static."
     }
   }
 }
