@@ -1,6 +1,6 @@
 # Homelab
 
-My homelab's infrastructure-as-code.
+My home (estate) lab (labyrinth) `labyrinthian-estate`'s infrastructure-as-code.
 
 ## Bootstrap
 
