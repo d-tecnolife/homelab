@@ -1,4 +1,5 @@
 # Terraform
 
-Directory for the homelab's Terraform implementation.
-Provisions Proxmox infrastructure such as VMs, networking, and cloud-init settings.
+Provisions Proxmox VMs and their cloud-init settings. Guest configuration belongs in Ansible.
+
+[`environments/labyrinthian-estate`](environments/labyrinthian-estate) clones the Ubuntu Resolute template into the VMs hosted by the `labyrinthian-estate` Proxmox node.
