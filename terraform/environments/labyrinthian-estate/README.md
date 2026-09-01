@@ -1,6 +1,6 @@
 # Labyrinthian Estate environment
 
-This environment creates the `core` Docker host and `netbird-router` routing peer by cloning the Ubuntu Resolute cloud-init template built by `scripts/proxmox/ubuntu-resolute-cloudinit.sh`.
+This environment creates the `core` Docker host and `netbird` routing peer by cloning the Ubuntu Resolute cloud-init template built by `scripts/proxmox/ubuntu-resolute-cloudinit.sh`.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ This environment creates the `core` Docker host and `netbird-router` routing pee
 
 ## Configure
 
-Keep API credentials out of Terraform files and shell history where possible. The provider reads these environment variables:
+The provider reads these environment variables:
 
 ```bash
 export PROXMOX_VE_ENDPOINT="https://proxmox.example:8006/"
@@ -38,4 +38,4 @@ terraform plan
 terraform apply
 ```
 
-After apply, use `terraform output` to find the addresses reported by the QEMU guest agent, then verify SSH access. Guest and service configuration belong in Ansible, not in this Terraform environment or the base image.
+After apply, use `terraform output` to find the addresses reported by the QEMU guest agent, then verify SSH access.
