@@ -1,6 +1,10 @@
 # Proxmox bootstrap
 
+<<<<<<< HEAD
 Proxmox installation and the initial Terraform identity remain manual recovery steps. Run the checked-in bootstrap script as `root` on a Proxmox VE node before using `terraform/environments/labyrinthian-estate`:
+=======
+Proxmox installation and the initial Terraform identity remain manual recovery steps. Run the checked-in bootstrap script as `root` on a Proxmox VE node before using `terraform/environments/home`:
+>>>>>>> 3ac49ecdfc475368d5d3735742b3b2a2e40fc250
 
 ```bash
 ./scripts/proxmox/bootstrap-terraform-access.sh
