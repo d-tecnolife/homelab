@@ -1,0 +1,10 @@
+services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "9002:8080" 
+    restart: unless-stopped
+    command: --cleanup --interval 3600
