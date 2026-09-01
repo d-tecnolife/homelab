@@ -1,8 +1,10 @@
 node_name   = "labyrinthian-estate"
 vm_username = "replace-me"
 
+ops_vm_id     = 1010
+netbird_vm_id = 1011
+edge_vm_id    = 1099
 apps_vm_id    = 1100
-netbird_vm_id = 110
 
 # Defaults match scripts/proxmox/ubuntu-resolute-cloudinit.sh.
 template_vm_id = 9001
@@ -14,10 +16,18 @@ apps_ipv4_address = "dhcp"
 # apps_ipv4_address = "192.0.2.100/24"
 # apps_ipv4_gateway = "192.0.2.1"
 
-apps_cpu_cores    = 8
-apps_memory_mb    = 8192
-apps_disk_size_gb = 100
+ops_cpu_cores    = 2
+ops_memory_mb    = 2048
+ops_disk_size_gb = 60
 
 netbird_cpu_cores    = 2
 netbird_memory_mb    = 1024
 netbird_disk_size_gb = 16
+
+edge_cpu_cores    = 2
+edge_memory_mb    = 1024
+edge_disk_size_gb = 16
+
+apps_cpu_cores    = 8
+apps_memory_mb    = 8192
+apps_disk_size_gb = 100
