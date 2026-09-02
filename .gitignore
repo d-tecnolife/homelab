@@ -2,13 +2,10 @@
 *.tfstate
 *.tfstate.*
 *.tfvars
-!*.tfvars.example
+!*.example
 crash.log
 crash.*.log
 token.json
 credentials.json
 .env
-<<<<<<< HEAD
 terraform.exe
-=======
->>>>>>> 3ac49ecdfc475368d5d3735742b3b2a2e40fc250
