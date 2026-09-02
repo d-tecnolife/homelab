@@ -1,10 +1,13 @@
-resource "proxmox_virtual_environment_vm" "netbird" {
-  name        = "netbird"
-  description = "NetBird routing peer managed by Terraform"
-  tags        = ["terraform", "ubuntu", "netbird", "network"]
+# Copy this file to <vm-name>.tf, replace "gitea" in resource and variable
+# names, then declare the matching VM-specific variables in variables.tf.
+
+resource "proxmox_virtual_environment_vm" "gitea" {
+  name        = "gitea"
+  description = "Gitea VM managed by Terraform"
+  tags        = ["terraform", "ubuntu", "gitea"]
 
   node_name = var.node_name
-  vm_id     = var.netbird_vm_id
+  vm_id     = var.gitea_vm_id
 
   clone {
     vm_id        = var.template_vm_id
@@ -17,12 +20,12 @@ resource "proxmox_virtual_environment_vm" "netbird" {
   }
 
   cpu {
-    cores = var.netbird_cpu_cores
+    cores = var.gitea_cpu_cores
     type  = "host"
   }
 
   memory {
-    dedicated = var.netbird_memory_mb
+    dedicated = var.gitea_memory_mb
   }
 
   vga {
@@ -34,7 +37,7 @@ resource "proxmox_virtual_environment_vm" "netbird" {
     interface    = "virtio0"
     file_format  = "raw"
     discard      = "on"
-    size         = var.netbird_disk_size_gb
+    size         = var.gitea_disk_size_gb
   }
 
   network_device {
@@ -48,8 +51,8 @@ resource "proxmox_virtual_environment_vm" "netbird" {
 
     ip_config {
       ipv4 {
-        address = var.netbird_ipv4_address
-        gateway = var.netbird_ipv4_address == "dhcp" ? null : var.netbird_ipv4_gateway
+        address = var.gitea_ipv4_address
+        gateway = var.gitea_ipv4_address == "dhcp" ? null : var.gitea_ipv4_gateway
       }
     }
 
@@ -64,8 +67,9 @@ resource "proxmox_virtual_environment_vm" "netbird" {
 
   lifecycle {
     precondition {
-      condition     = var.netbird_ipv4_address == "dhcp" || var.netbird_ipv4_gateway != null
-      error_message = "netbird_ipv4_gateway must be set when netbird_ipv4_address is static."
+      condition     = var.gitea_ipv4_address == "dhcp" || var.gitea_ipv4_gateway != null
+      error_message = "gitea_ipv4_gateway must be set when gitea_ipv4_address is static."
     }
   }
 }
+
