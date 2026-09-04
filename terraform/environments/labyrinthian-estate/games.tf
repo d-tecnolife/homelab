@@ -41,8 +41,9 @@ resource "proxmox_virtual_environment_vm" "games" {
   }
 
   network_device {
-    bridge = var.network_bridge
-    model  = "virtio"
+    bridge  = proxmox_network_linux_bridge.internal.name
+    model   = "virtio"
+    vlan_id = var.services_vlan_id
   }
 
   initialization {
@@ -58,7 +59,7 @@ resource "proxmox_virtual_environment_vm" "games" {
 
     user_account {
       username = var.vm_username
-      keys     = [trimspace(file(pathexpand(var.ssh_public_key_file)))]
+      keys     = local.vm_ssh_authorized_keys
     }
   }
 

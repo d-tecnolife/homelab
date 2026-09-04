@@ -1,0 +1,60 @@
+---
+- name: Generate the Ops management key
+  hosts: ops
+  gather_facts: true
+
+  tasks:
+    - name: Ensure the Ops SSH directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.ssh"
+        state: directory
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_gid }}"
+        mode: "0700"
+
+    - name: Generate the Ops management key if absent
+      ansible.builtin.command:
+        argv:
+          - ssh-keygen
+          - -q
+          - -t
+          - ed25519
+          - -f
+          - "{{ ansible_user_dir }}/.ssh/id_ed25519"
+          - -N
+          - ""
+          - -C
+          - ops-management
+        creates: "{{ ansible_user_dir }}/.ssh/id_ed25519"
+
+    - name: Read the Ops management public key
+      ansible.builtin.slurp:
+        src: "{{ ansible_user_dir }}/.ssh/id_ed25519.pub"
+      register: ops_management_public_key_file
+
+    - name: Retain the public key for the managed hosts
+      ansible.builtin.set_fact:
+        ops_management_public_key: >-
+          {{ ops_management_public_key_file.content | b64decode | trim }}
+
+- name: Authorize Ops on every managed VM
+  hosts: managed_vms
+  gather_facts: true
+
+  tasks:
+    - name: Ensure the managed user's SSH directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.ssh"
+        state: directory
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_gid }}"
+        mode: "0700"
+
+    - name: Install the Ops management public key
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_user_dir }}/.ssh/authorized_keys"
+        line: "{{ hostvars['ops'].ops_management_public_key }}"
+        create: true
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_gid }}"
+        mode: "0600"

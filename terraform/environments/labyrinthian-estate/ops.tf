@@ -1,6 +1,35 @@
 # Copy this file to <vm-name>.tf, replace "ops" in resource and variable
 # names, then declare the matching VM-specific variables in variables.tf.
 
+resource "proxmox_virtual_environment_file" "ops_cloud_config" {
+  content_type = "snippets"
+  datastore_id = var.snippet_datastore_id
+  node_name    = var.node_name
+
+  source_raw {
+    data = join("\n", ["#cloud-config", yamlencode({
+      hostname         = "ops"
+      manage_etc_hosts = true
+      disable_root     = true
+      ssh_pwauth       = false
+      users = [{
+        name                = var.vm_username
+        groups              = ["sudo"]
+        shell               = "/bin/bash"
+        sudo                = "ALL=(ALL) NOPASSWD:ALL"
+        ssh_authorized_keys = local.vm_ssh_authorized_keys
+      }]
+      package_update = true
+      packages       = ["ansible-core", "git", "qemu-guest-agent"]
+      runcmd = [
+        ["systemctl", "enable", "--now", "qemu-guest-agent"]
+      ]
+    })])
+
+    file_name = "ops-cloud-config.yaml"
+  }
+}
+
 resource "proxmox_virtual_environment_vm" "ops" {
   name        = "ops"
   description = "ops VM managed by Terraform"
@@ -41,13 +70,15 @@ resource "proxmox_virtual_environment_vm" "ops" {
   }
 
   network_device {
-    bridge = var.network_bridge
-    model  = "virtio"
+    bridge  = proxmox_network_linux_bridge.internal.name
+    model   = "virtio"
+    vlan_id = var.management_vlan_id
   }
 
   initialization {
-    datastore_id = var.datastore_id
-    interface    = "scsi1"
+    datastore_id      = var.datastore_id
+    interface         = "scsi1"
+    user_data_file_id = proxmox_virtual_environment_file.ops_cloud_config.id
 
     ip_config {
       ipv4 {
@@ -56,10 +87,6 @@ resource "proxmox_virtual_environment_vm" "ops" {
       }
     }
 
-    user_account {
-      username = var.vm_username
-      keys     = [trimspace(file(pathexpand(var.ssh_public_key_file)))]
-    }
   }
 
   on_boot = true

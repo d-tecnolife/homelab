@@ -4,6 +4,7 @@ set -xe
 
 VMID="${VMID:-9001}"
 STORAGE="${STORAGE:-local-lvm}"
+SNIPPET_STORAGE="${SNIPPET_STORAGE:-local}"
 
 IMG="resolute-server-cloudimg-amd64.img"
 BASE_URL="https://cloud-images.ubuntu.com/resolute/current"
@@ -45,11 +46,32 @@ sudo qm set $VMID --scsihw virtio-scsi-pci --virtio0 $STORAGE:vm-$VMID-disk-1,di
 sudo qm set $VMID --boot order=virtio0
 sudo qm set $VMID --scsi1 $STORAGE:cloudinit
 
-if [ ! -d "/var/lib/vz/snippets" ]; then
-  mkdir -p "/var/lib/vz/snippets"
+storage_property() {
+    local property="$1"
+
+    sudo awk -v storage="$SNIPPET_STORAGE" -v property="$property" '
+        /^[^[:space:]]+:[[:space:]]+/ { in_storage = ($2 == storage) }
+        in_storage && $1 == property { print $2; exit }
+    ' /etc/pve/storage.cfg
+}
+
+SNIPPET_CONTENT="$(storage_property content)"
+SNIPPET_ROOT="$(storage_property path)"
+
+if [ -z "$SNIPPET_CONTENT" ] || [ -z "$SNIPPET_ROOT" ]; then
+    echo "Unable to resolve content types or path for snippet storage '$SNIPPET_STORAGE'." >&2
+    exit 1
 fi
 
-cat << EOF | sudo tee /var/lib/vz/snippets/ubuntu-resolute.yaml
+case ",$SNIPPET_CONTENT," in
+    *,snippets,*) ;;
+    *) sudo pvesm set "$SNIPPET_STORAGE" --content "$SNIPPET_CONTENT,snippets" ;;
+esac
+
+SNIPPET_DIR="$SNIPPET_ROOT/snippets"
+sudo install -d -m 0755 "$SNIPPET_DIR"
+
+cat << EOF | sudo tee "$SNIPPET_DIR/ubuntu-resolute.yaml"
 #cloud-config
 runcmd:
     - apt-get update
@@ -59,10 +81,10 @@ runcmd:
 # Taken from https://forum.proxmox.com/threads/combining-custom-cloud-init-with-auto-generated.59008/page-3#post-428772
 EOF
 
-echo "timezone: "$(cat /etc/timezone) | sudo tee -a /var/lib/vz/snippets/ubuntu-resolute.yaml
-echo "locale: "$LANG | sudo tee -a /var/lib/vz/snippets/ubuntu-resolute.yaml
+echo "timezone: "$(cat /etc/timezone) | sudo tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
+echo "locale: "$LANG | sudo tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
 
-sudo qm set $VMID --cicustom "vendor=local:snippets/ubuntu-resolute.yaml"
+sudo qm set $VMID --cicustom "vendor=$SNIPPET_STORAGE:snippets/ubuntu-resolute.yaml"
 sudo qm set $VMID --tags ubuntu-template,resolute,cloudinit
 sudo qm set $VMID --ciuser $USER
 sudo qm set $VMID --sshkeys ~/.ssh/authorized_keys

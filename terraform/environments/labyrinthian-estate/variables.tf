@@ -1,5 +1,21 @@
 # Environment-wide variables
 
+variable "proxmox_endpoint" {
+  description = "Secret storing the Proxmox host location."
+  type        = string
+}
+
+variable "proxmox_api_token" {
+  description = "Secret storing the Proxmox API key."
+  type        = string
+}
+
+variable "proxmox_ssh_username" {
+  description = "SSH account used to upload Cloud-Init snippets to the Proxmox node."
+  type        = string
+  default     = "root"
+}
+
 variable "node_name" {
   description = "Name of the Proxmox node that will host the VM."
   type        = string
@@ -18,10 +34,34 @@ variable "datastore_id" {
   default     = "local-lvm"
 }
 
+variable "snippet_datastore_id" {
+  description = "Proxmox directory datastore with snippets enabled."
+  type        = string
+  default     = "local"
+}
+
 variable "network_bridge" {
-  description = "Proxmox bridge connected to the VMs."
+  description = "Proxmox bridge used by edge's home LAN-facing NIC."
   type        = string
   default     = "vmbr0"
+}
+
+variable "internal_network_bridge" {
+  description = "VLAN-aware Proxmox bridge used only by internal VM networks."
+  type        = string
+  default     = "vmbr1"
+}
+
+variable "management_vlan_id" {
+  description = "VLAN ID for the management network."
+  type        = number
+  default     = 10
+}
+
+variable "services_vlan_id" {
+  description = "VLAN ID for the services network."
+  type        = number
+  default     = 20
 }
 
 variable "vga_type" {
@@ -45,49 +85,49 @@ variable "template_vm_id" {
 }
 
 variable "ops_vm_id" {
-  description = "Unused VMID to assign to the ops VM."
+  description = "VMID to assign to the ops VM."
   type        = number
   default     = 1010
 }
 
 variable "edge_vm_id" {
-  description = "Unused VMID to assign to the edge VM."
+  description = "VMID to assign to the edge VM."
   type        = number
-  default     = 1099
+  default     = 1999
 }
 
 variable "apps_vm_id" {
-  description = "Unused VMID to assign to the apps VM."
+  description = "VMID to assign to the apps VM."
   type        = number
   default     = 2010
 }
 
 variable "gitea_vm_id" {
-  description = "Unused VMID to assign to the Gitea VM."
+  description = "VMID to assign to the Gitea VM."
   type        = number
   default     = 1020
 }
 
 variable "monitoring_vm_id" {
-  description = "Unused VMID to assign to the monitoring VM."
+  description = "VMID to assign to the monitoring VM."
   type        = number
   default     = 1030
 }
 
 variable "k3s_vm_id" {
-  description = "Unused VMID to assign to the k3s VM."
+  description = "VMID to assign to the k3s VM."
   type        = number
   default     = 1040
 }
 
 variable "dev_vm_id" {
-  description = "Unused VMID to assign to the development VM."
+  description = "VMID to assign to the development VM."
   type        = number
   default     = 1050
 }
 
 variable "games_vm_id" {
-  description = "Unused VMID to assign to the game-server VM."
+  description = "VMID to assign to the game-server VM."
   type        = number
   default     = 2020
 }
@@ -130,7 +170,7 @@ variable "apps_disk_size_gb" {
 variable "apps_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "dhcp"
+  default     = "10.1.2.10/24"
 
   validation {
     condition     = var.apps_ipv4_address == "dhcp" || can(cidrnetmask(var.apps_ipv4_address))
@@ -141,7 +181,7 @@ variable "apps_ipv4_address" {
 variable "apps_ipv4_gateway" {
   description = "IPv4 gateway for a static address; leave null when using DHCP."
   type        = string
-  default     = null
+  default     = "10.1.2.1"
   nullable    = true
 }
 
@@ -183,7 +223,7 @@ variable "ops_disk_size_gb" {
 variable "ops_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "dhcp"
+  default     = "10.1.1.10/24"
 
   validation {
     condition     = var.ops_ipv4_address == "dhcp" || can(cidrnetmask(var.ops_ipv4_address))
@@ -194,7 +234,7 @@ variable "ops_ipv4_address" {
 variable "ops_ipv4_gateway" {
   description = "IPv4 gateway for a static address; leave null when using DHCP."
   type        = string
-  default     = null
+  default     = "10.1.1.1"
   nullable    = true
 }
 
@@ -236,7 +276,7 @@ variable "edge_disk_size_gb" {
 variable "edge_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "dhcp"
+  default     = "192.168.1.199/24"
 
   validation {
     condition     = var.edge_ipv4_address == "dhcp" || can(cidrnetmask(var.edge_ipv4_address))
@@ -247,8 +287,20 @@ variable "edge_ipv4_address" {
 variable "edge_ipv4_gateway" {
   description = "IPv4 gateway for a static address; leave null when using DHCP."
   type        = string
-  default     = null
+  default     = "192.168.1.1"
   nullable    = true
+}
+
+variable "edge_management_ipv4_address" {
+  description = "Static management-side address for Edge in CIDR notation."
+  type        = string
+  default     = "10.1.1.1/24"
+}
+
+variable "edge_services_ipv4_address" {
+  description = "Static services-side address for Edge in CIDR notation."
+  type        = string
+  default     = "10.1.2.1/24"
 }
 
 # Gitea VM variables
@@ -271,7 +323,7 @@ variable "gitea_disk_size_gb" {
 variable "gitea_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "dhcp"
+  default     = "10.1.1.20/24"
 
   validation {
     condition     = var.gitea_ipv4_address == "dhcp" || can(cidrnetmask(var.gitea_ipv4_address))
@@ -281,7 +333,7 @@ variable "gitea_ipv4_address" {
 
 variable "gitea_ipv4_gateway" {
   type     = string
-  default  = null
+  default  = "10.1.1.1"
   nullable = true
 }
 
@@ -305,7 +357,7 @@ variable "monitoring_disk_size_gb" {
 variable "monitoring_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "dhcp"
+  default     = "10.1.1.30/24"
 
   validation {
     condition     = var.monitoring_ipv4_address == "dhcp" || can(cidrnetmask(var.monitoring_ipv4_address))
@@ -315,7 +367,7 @@ variable "monitoring_ipv4_address" {
 
 variable "monitoring_ipv4_gateway" {
   type     = string
-  default  = null
+  default  = "10.1.1.1"
   nullable = true
 }
 
@@ -339,7 +391,7 @@ variable "k3s_disk_size_gb" {
 variable "k3s_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "dhcp"
+  default     = "10.1.1.40/24"
 
   validation {
     condition     = var.k3s_ipv4_address == "dhcp" || can(cidrnetmask(var.k3s_ipv4_address))
@@ -349,7 +401,7 @@ variable "k3s_ipv4_address" {
 
 variable "k3s_ipv4_gateway" {
   type     = string
-  default  = null
+  default  = "10.1.1.1"
   nullable = true
 }
 
@@ -373,7 +425,7 @@ variable "dev_disk_size_gb" {
 variable "dev_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "dhcp"
+  default     = "10.1.1.50/24"
 
   validation {
     condition     = var.dev_ipv4_address == "dhcp" || can(cidrnetmask(var.dev_ipv4_address))
@@ -383,7 +435,7 @@ variable "dev_ipv4_address" {
 
 variable "dev_ipv4_gateway" {
   type     = string
-  default  = null
+  default  = "10.1.1.1"
   nullable = true
 }
 
@@ -407,7 +459,7 @@ variable "games_disk_size_gb" {
 variable "games_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "dhcp"
+  default     = "10.1.2.20/24"
 
   validation {
     condition     = var.games_ipv4_address == "dhcp" || can(cidrnetmask(var.games_ipv4_address))
@@ -417,6 +469,6 @@ variable "games_ipv4_address" {
 
 variable "games_ipv4_gateway" {
   type     = string
-  default  = null
+  default  = "10.1.2.1"
   nullable = true
 }

@@ -1,40 +1,31 @@
 # Labyrinthian Estate environment
 
-This environment creates the `apps` Docker host and `netbird` routing peer by cloning the Ubuntu Resolute cloud-init template built by `scripts/proxmox/ubuntu-resolute-cloudinit.sh`.
+This environment provisions the VLAN-aware Proxmox network, Edge router, Ops
+controller, and workload VMs from the Ubuntu Resolute Cloud-Init template.
+
+Follow the
+[complete environment bootstrap](../../../docs/environment-bootstrap.md) for
+the required Terraform, routing, and Ansible sequence.
+
 ## Prerequisites
 
 - Terraform 1.5 or newer
 - the template exists on the target Proxmox node (VMID `9001` by default)
 - a Proxmox API token with permission to clone and manage VMs
+- the Proxmox template was built with `scripts/proxmox/ubuntu-resolute-cloudinit.sh`,
+  which enables `snippets` on the configured snippet datastore
+- the Terraform runner's SSH agent can authenticate as `root` on Proxmox
 - the SSH public key referenced by `ssh_public_key_file`
 
-## Configure
+## Network layout
 
-The provider reads these environment variables:
+VLAN 10 carries `10.1.1.0/24` management workloads and VLAN 20 carries
+`10.1.2.0/24` services workloads. Edge is attached to `vmbr0` for the Rogers
+LAN and to both internal VLANs, where it owns `.1` as the routed gateway. Its
+Edge-only Cloud-Init configuration enables IPv4 forwarding on first boot, so
+the management VLAN is reachable before Ansible is running on Ops.
 
-```bash
-export PROXMOX_VE_ENDPOINT="https://proxmox.example:8006/"
-export PROXMOX_VE_API_TOKEN="user@realm!token-id=token-secret"
-export PROXMOX_VE_INSECURE="true" # only when the API uses an untrusted certificate
-```
-
-Create the local variable file and replace its example values:
-
-```bash
-cd terraform/environments/labyrinthian-estate
-cp terraform.tfvars.example terraform.tfvars
-```
-
-`terraform.tfvars` and Terraform state are ignored by Git. The example file contains no credentials.
-
-## Provision VMs
-
-```bash
-terraform init
-terraform fmt -check
-terraform validate
-terraform plan
-terraform apply
-```
-
-After apply, use `terraform output` to find the addresses reported by the QEMU guest agent, then verify SSH access.
+The initial apply authorizes the Terraform runner's public key. After the Ops
+bootstrap, Terraform automatically adds the committed
+`keys/ops-management.pub` key to future VM creations without placing its
+private key in Terraform state.

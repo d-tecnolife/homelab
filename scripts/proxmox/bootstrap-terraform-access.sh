@@ -17,8 +17,12 @@ command -v pveum >/dev/null || {
     exit 1
 }
 
-if ! pveum user permissions "$TERRAFORM_USER" >/dev/null 2>&1; then
-    pveum user add "$TERRAFORM_USER" --comment "Terraform automation"
+if pveum user add "$TERRAFORM_USER" --comment "Terraform automation" 2>/dev/null; then
+    echo "Created user $TERRAFORM_USER."
+else
+    # An existing user makes `user add` fail; modify also verifies it exists.
+    pveum user modify "$TERRAFORM_USER" --comment "Terraform automation"
+    echo "User $TERRAFORM_USER already exists."
 fi
 
 if ! pveum role modify "$ROLE_ID" --privs "$PRIVILEGES" 2>/dev/null; then

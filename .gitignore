@@ -8,4 +8,5 @@ crash.*.log
 token.json
 credentials.json
 .env
+ansible/inventory/hosts.yml
 terraform.exe

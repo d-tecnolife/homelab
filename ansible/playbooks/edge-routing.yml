@@ -1,0 +1,31 @@
+---
+- name: Configure Edge routing prerequisites
+  hosts: edge
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Persist IPv4 forwarding
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-edge-routing.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # Managed by Ansible. Edge routes traffic between internal VLANs.
+          net.ipv4.ip_forward = 1
+      notify: Reload sysctl settings
+
+    - name: Apply changed sysctl settings before verification
+      ansible.builtin.meta: flush_handlers
+
+    - name: Verify IPv4 forwarding
+      ansible.builtin.command: sysctl -n net.ipv4.ip_forward
+      register: edge_ipv4_forwarding
+      changed_when: false
+      failed_when: edge_ipv4_forwarding.stdout | trim != "1"
+
+  handlers:
+    - name: Reload sysctl settings
+      ansible.builtin.command: sysctl --system
+      changed_when: false
