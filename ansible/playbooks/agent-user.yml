@@ -6,6 +6,8 @@
   vars:
     agent_user: agent
     agent_home: "/home/{{ agent_user }}"
+    agent_git_user_name: Ops Agent
+    agent_git_user_email: ops-agent@dscim.dev
     repository_authorized_key_files: >-
       {{ query('fileglob', playbook_dir ~ '/../../keys/*.pub') | sort }}
     # Published by GitHub at https://docs.github.com/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
@@ -93,6 +95,66 @@
           - --version
       register: codex_version
       changed_when: false
+
+    - name: Read the agent Git author name
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/runuser
+          - --user
+          - "{{ agent_user }}"
+          - --
+          - git
+          - config
+          - --global
+          - --get
+          - user.name
+      register: agent_git_name
+      changed_when: false
+      failed_when: false
+
+    - name: Configure the agent Git author name
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/runuser
+          - --user
+          - "{{ agent_user }}"
+          - --
+          - git
+          - config
+          - --global
+          - user.name
+          - "{{ agent_git_user_name }}"
+      when: agent_git_name.stdout != agent_git_user_name
+
+    - name: Read the agent Git author email
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/runuser
+          - --user
+          - "{{ agent_user }}"
+          - --
+          - git
+          - config
+          - --global
+          - --get
+          - user.email
+      register: agent_git_email
+      changed_when: false
+      failed_when: false
+
+    - name: Configure the agent Git author email
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/runuser
+          - --user
+          - "{{ agent_user }}"
+          - --
+          - git
+          - config
+          - --global
+          - user.email
+          - "{{ agent_git_user_email }}"
+      when: agent_git_email.stdout != agent_git_user_email
 
     - name: Authorize repository-managed workstation keys for the agent
       ansible.builtin.lineinfile:
