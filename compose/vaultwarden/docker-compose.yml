@@ -8,6 +8,7 @@ services:
     volumes:
       - /srv/compose/vaultwarden/data:/data
     environment:
+      DOMAIN: "https://vault.dscim.dev"
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
       ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN:?set VAULTWARDEN_ADMIN_TOKEN in .env}

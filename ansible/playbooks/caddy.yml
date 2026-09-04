@@ -4,12 +4,51 @@
   become: true
   gather_facts: true
 
+  pre_tasks:
+    - name: Check for the local Cloudflare secret
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../secrets/caddy.env"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      register: caddy_secret
+
+    - name: Require the local Cloudflare secret
+      ansible.builtin.assert:
+        that: caddy_secret.stat.isreg | default(false)
+        fail_msg: >-
+          Copy ansible/secrets/caddy.env.example to
+          ansible/secrets/caddy.env and add the Cloudflare API token first.
+      delegate_to: localhost
+      become: false
+      run_once: true
+
   tasks:
     - name: Install Caddy
       ansible.builtin.apt:
         name: caddy
         state: present
         update_cache: true
+
+    - name: Install Caddy with the Cloudflare DNS module
+      ansible.builtin.get_url:
+        url: "https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com/caddy-dns/cloudflare"
+        dest: /usr/local/bin/caddy
+        owner: root
+        group: root
+        mode: "0755"
+        force: false
+      notify: Restart Caddy
+
+    - name: Verify the Cloudflare DNS module is installed
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/caddy
+          - list-modules
+          - --packages
+      register: caddy_modules
+      changed_when: false
+      failed_when: "'dns.providers.cloudflare' not in caddy_modules.stdout"
 
     - name: Create Caddy configuration directories
       ansible.builtin.file:
@@ -27,6 +66,47 @@
           owner: caddy
           group: caddy
           mode: "0750"
+        - path: /etc/systemd/system/caddy.service.d
+          owner: root
+          group: root
+          mode: "0755"
+
+    - name: Install the Cloudflare API token
+      ansible.builtin.copy:
+        src: ../secrets/caddy.env
+        dest: /etc/caddy/cloudflare.env
+        owner: root
+        group: caddy
+        mode: "0640"
+      no_log: true
+      notify: Restart Caddy
+
+    - name: Configure systemd to use the custom Caddy build
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/caddy.service.d/override.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Service]
+          EnvironmentFile=/etc/caddy/cloudflare.env
+          ExecStart=
+          ExecStart=/usr/local/bin/caddy run --environ --config /etc/caddy/Caddyfile
+          ExecReload=
+          ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --force
+      notify:
+        - Reload systemd
+        - Restart Caddy
+
+    - name: Install Caddy sites
+      ansible.builtin.copy:
+        src: ../files/caddy/sites/
+        dest: /etc/caddy/sites/
+        owner: root
+        group: caddy
+        directory_mode: "0750"
+        mode: "0640"
+      notify: Reload Caddy
 
     - name: Stage the Caddy configuration
       ansible.builtin.copy:
@@ -40,12 +120,14 @@
     - name: Validate the staged Caddy configuration
       ansible.builtin.command:
         argv:
-          - caddy
+          - /usr/local/bin/caddy
           - validate
           - --config
           - /tmp/Caddyfile.ansible
           - --adapter
           - caddyfile
+      environment:
+        CF_API_TOKEN: validation-only
       changed_when: false
 
     - name: Install the Caddy configuration
@@ -76,6 +158,15 @@
       failed_when: caddy_health.content | trim != "ok"
 
   handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Restart Caddy
+      ansible.builtin.systemd_service:
+        name: caddy
+        state: restarted
+
     - name: Reload Caddy
       ansible.builtin.systemd_service:
         name: caddy

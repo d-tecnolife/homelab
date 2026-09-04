@@ -142,14 +142,27 @@ its current host key and the Ops management key. Run:
 ```bash
 ansible-playbook playbooks/bootstrap-ops-ssh.yml
 ansible-playbook playbooks/edge-routing.yml
-ansible-playbook playbooks/caddy.yml
 ansible-playbook playbooks/docker.yml
 ```
 
 The first playbook generates an Ed25519 key on Ops and adds its public key to
 every VM. The workstation private key is used through the forwarded agent and
-is never copied to Ops. The remaining playbooks configure Edge routing and its
-Caddy service.
+is never copied to Ops. The remaining playbooks configure Edge routing and
+Docker.
+
+Create a Cloudflare API token scoped to the `dscim.dev` zone with `Zone:Read`
+and `DNS:Edit`. Store it in the ignored Caddy environment file, then deploy
+Caddy:
+
+```bash
+cp secrets/caddy.env.example secrets/caddy.env
+nano secrets/caddy.env
+ansible-playbook playbooks/caddy.yml
+```
+
+Caddy uses the token only for DNS certificate challenges. This gives private
+NetBird services publicly trusted certificates without forwarding ports 80 or
+443 through the Rogers router.
 
 Restore each stack's ignored secret files under `compose/<stack>/` on Ops,
 then deploy the Compose applications:
