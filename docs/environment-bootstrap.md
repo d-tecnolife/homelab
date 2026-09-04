@@ -4,6 +4,11 @@ Terraform creates the network and VMs, Cloud-Init makes
 Edge route traffic and prepares Ops, Ansible then gives Ops management access
 to every VM.
 
+For replacement hardware or recovery of an existing environment, read
+[Rebuild and disaster recovery](disaster-recovery.md) first. In particular,
+restore the original age identity rather than generating a new one after
+encrypted secrets have been committed.
+
 ## 1. Prepare Proxmox
 
 **Run on: Proxmox node**
@@ -168,6 +173,8 @@ ansible-playbook playbooks/hosts-file.yml
 ansible-playbook playbooks/edge-routing.yml
 ansible-playbook playbooks/docker.yml
 ansible-playbook playbooks/maintenance-schedule.yml
+ansible-playbook playbooks/secrets.yml
+ansible-playbook playbooks/agent-user.yml
 ```
 
 The first playbook generates an Ed25519 key on Ops and adds its public key to
@@ -175,13 +182,13 @@ every VM. The workstation private key is used through the forwarded agent and
 is never copied to Ops. The remaining playbooks maintain VM hostname mappings,
 configure Edge routing, and configure Docker.
 
-Create a Cloudflare API token scoped to the `dscim.dev` zone with `Zone:Read`
-and `DNS:Edit`. Store it in the ignored Caddy environment file, then deploy
-Caddy:
+Back up the age identity printed by `secrets.yml`, create and commit
+`.sops.yaml` from `.sops.yaml.example`, then follow
+[Secrets management](../secrets/README.md) to encrypt the Cloudflare API token.
+The token should remain scoped to `dscim.dev` with `Zone:Read` and `DNS:Edit`.
+Then deploy Caddy:
 
 ```bash
-cp secrets/caddy.env.example secrets/caddy.env
-nano secrets/caddy.env
 ansible-playbook playbooks/caddy.yml
 ```
 

@@ -3,25 +3,65 @@
   hosts: edge
   become: true
   gather_facts: true
+  vars:
+    caddy_encrypted_secret_path: "{{ playbook_dir }}/../secrets/caddy.sops.env"
+    caddy_legacy_secret_path: "{{ playbook_dir }}/../secrets/caddy.env"
+    sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
 
   pre_tasks:
-    - name: Check for the local Cloudflare secret
+    - name: Check for the encrypted Cloudflare secret
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/../secrets/caddy.env"
+        path: "{{ caddy_encrypted_secret_path }}"
       delegate_to: localhost
       become: false
       run_once: true
-      register: caddy_secret
+      register: caddy_encrypted_secret
 
-    - name: Require the local Cloudflare secret
-      ansible.builtin.assert:
-        that: caddy_secret.stat.isreg | default(false)
-        fail_msg: >-
-          Copy ansible/secrets/caddy.env.example to
-          ansible/secrets/caddy.env and add the Cloudflare API token first.
+    - name: Check for the legacy plaintext Cloudflare secret
+      ansible.builtin.stat:
+        path: "{{ caddy_legacy_secret_path }}"
       delegate_to: localhost
       become: false
       run_once: true
+      register: caddy_legacy_secret
+
+    - name: Require a Cloudflare secret
+      ansible.builtin.assert:
+        that: >-
+          caddy_encrypted_secret.stat.isreg | default(false) or
+          caddy_legacy_secret.stat.isreg | default(false)
+        fail_msg: >-
+          Create ansible/secrets/caddy.sops.env with SOPS. See
+          secrets/README.md. The ignored ansible/secrets/caddy.env remains a
+          temporary migration fallback.
+      delegate_to: localhost
+      become: false
+      run_once: true
+
+    - name: Decrypt the Cloudflare secret in memory
+      ansible.builtin.command:
+        argv:
+          - sops
+          - decrypt
+          - "{{ caddy_encrypted_secret_path }}"
+      environment:
+        SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      register: caddy_decrypted_secret
+      changed_when: false
+      no_log: true
+      when: caddy_encrypted_secret.stat.isreg | default(false)
+
+    - name: Read the legacy Cloudflare secret during migration
+      ansible.builtin.set_fact:
+        caddy_secret_content: >-
+          {{ caddy_decrypted_secret.stdout
+             if caddy_encrypted_secret.stat.isreg | default(false)
+             else lookup('file', caddy_legacy_secret_path) }}
+      run_once: true
+      no_log: true
 
   tasks:
     - name: Install Caddy
@@ -82,11 +122,11 @@
 
     - name: Install the Cloudflare API token
       ansible.builtin.copy:
-        src: ../secrets/caddy.env
         dest: /etc/caddy/cloudflare.env
         owner: root
         group: caddy
         mode: "0640"
+        content: "{{ caddy_secret_content | trim }}\n"
       no_log: true
       notify: Restart Caddy
 

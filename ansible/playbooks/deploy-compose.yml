@@ -19,6 +19,8 @@
         - vaultwarden/data
     compose_data_directories: >-
       {{ compose_data_directories_by_host[inventory_hostname] }}
+    compose_secret_directory: "{{ playbook_dir }}/../../secrets/compose"
+    sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
 
   tasks:
     - name: Create stack directories
@@ -48,6 +50,45 @@
         mode: preserve
         directory_mode: "2775"
       loop: "{{ compose_stacks }}"
+
+    - name: Check for encrypted stack secrets
+      ansible.builtin.stat:
+        path: "{{ compose_secret_directory }}/{{ item }}.sops.env"
+      loop: "{{ compose_stacks }}"
+      delegate_to: localhost
+      become: false
+      register: compose_secret_files
+
+    - name: Decrypt stack secrets in memory
+      ansible.builtin.command:
+        argv:
+          - sops
+          - decrypt
+          - "{{ item.stat.path }}"
+      environment:
+        SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
+      loop: "{{ compose_secret_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.stat.isreg | default(false)
+      delegate_to: localhost
+      become: false
+      register: compose_decrypted_secrets
+      changed_when: false
+      no_log: true
+
+    - name: Install decrypted stack secrets
+      ansible.builtin.copy:
+        dest: "/opt/compose/{{ item.item.item }}/.env"
+        owner: root
+        group: docker
+        mode: "0640"
+        content: "{{ item.stdout | trim }}\n"
+      loop: "{{ compose_decrypted_secrets.results }}"
+      loop_control:
+        label: "{{ item.item.item | default('skipped') }}"
+      when: not (item.skipped | default(false))
+      no_log: true
 
     - name: Validate Compose stacks
       ansible.builtin.command:

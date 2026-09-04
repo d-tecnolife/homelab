@@ -1,0 +1,191 @@
+---
+- name: Create the dedicated agent identity on Ops
+  hosts: ops
+  become: true
+  gather_facts: true
+  vars:
+    agent_user: agent
+    agent_home: "/home/{{ agent_user }}"
+    repository_authorized_key_files: >-
+      {{ query('fileglob', playbook_dir ~ '/../../keys/*.pub') | sort }}
+    # Published by GitHub at https://docs.github.com/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+    github_known_hosts:
+      - "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+      - "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk="
+      - "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
+
+  tasks:
+    - name: Install agent workstation prerequisites
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - git
+          - openssh-client
+        state: present
+        update_cache: true
+
+    - name: Create the unprivileged agent account
+      ansible.builtin.user:
+        name: "{{ agent_user }}"
+        comment: Homelab agent execution identity
+        create_home: true
+        home: "{{ agent_home }}"
+        shell: /bin/bash
+        password_lock: true
+        groups: ""
+        append: false
+        state: present
+
+    - name: Create agent-owned directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ agent_user }}"
+        group: "{{ agent_user }}"
+        mode: "0700"
+      loop:
+        - "{{ agent_home }}/.ssh"
+        - "{{ agent_home }}/.codex"
+        - "{{ agent_home }}/.local/bin"
+        - "{{ agent_home }}/workspace"
+
+    - name: Download the official Codex installer
+      ansible.builtin.get_url:
+        url: https://chatgpt.com/codex/install.sh
+        dest: /tmp/codex-install.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Codex for the agent account
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/runuser
+          - --user
+          - "{{ agent_user }}"
+          - --
+          - env
+          - CODEX_NON_INTERACTIVE=1
+          - "CODEX_INSTALL_DIR={{ agent_home }}/.local/bin"
+          - "HOME={{ agent_home }}"
+          - /tmp/codex-install.sh
+      args:
+        creates: "{{ agent_home }}/.local/bin/codex"
+
+    - name: Add the agent-local binary directory to the login PATH
+      ansible.builtin.lineinfile:
+        path: "{{ agent_home }}/.profile"
+        line: 'export PATH="$HOME/.local/bin:$PATH"'
+        create: true
+        owner: "{{ agent_user }}"
+        group: "{{ agent_user }}"
+        mode: "0644"
+
+    - name: Verify the Codex installation
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/runuser
+          - --user
+          - "{{ agent_user }}"
+          - --
+          - "{{ agent_home }}/.local/bin/codex"
+          - --version
+      register: codex_version
+      changed_when: false
+
+    - name: Authorize repository-managed workstation keys for the agent
+      ansible.builtin.lineinfile:
+        path: "{{ agent_home }}/.ssh/authorized_keys"
+        line: "{{ lookup('file', item) | trim }}"
+        create: true
+        owner: "{{ agent_user }}"
+        group: "{{ agent_user }}"
+        mode: "0600"
+      loop: "{{ repository_authorized_key_files }}"
+      loop_control:
+        label: "{{ item | basename }}"
+
+    - name: Generate a dedicated read-only Notes deploy key
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/runuser
+          - --user
+          - "{{ agent_user }}"
+          - --
+          - ssh-keygen
+          - -q
+          - -t
+          - ed25519
+          - -f
+          - "{{ agent_home }}/.ssh/github_notes_ed25519"
+          - -N
+          - ""
+          - -C
+          - ops-agent-notes-readonly
+        creates: "{{ agent_home }}/.ssh/github_notes_ed25519"
+      no_log: true
+
+    - name: Generate a dedicated Homelab repository key
+      ansible.builtin.command:
+        argv:
+          - /usr/sbin/runuser
+          - --user
+          - "{{ agent_user }}"
+          - --
+          - ssh-keygen
+          - -q
+          - -t
+          - ed25519
+          - -f
+          - "{{ agent_home }}/.ssh/github_homelab_ed25519"
+          - -N
+          - ""
+          - -C
+          - ops-agent-homelab
+        creates: "{{ agent_home }}/.ssh/github_homelab_ed25519"
+      no_log: true
+
+    - name: Configure the dedicated Notes deploy key for GitHub
+      ansible.builtin.copy:
+        dest: "{{ agent_home }}/.ssh/config"
+        owner: "{{ agent_user }}"
+        group: "{{ agent_user }}"
+        mode: "0600"
+        content: |
+          Host github-notes
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/github_notes_ed25519
+            IdentitiesOnly yes
+          Host github-homelab
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/github_homelab_ed25519
+            IdentitiesOnly yes
+
+    - name: Trust GitHub's published SSH host keys
+      ansible.builtin.copy:
+        dest: "{{ agent_home }}/.ssh/known_hosts"
+        owner: "{{ agent_user }}"
+        group: "{{ agent_user }}"
+        mode: "0600"
+        content: "{{ github_known_hosts | join('\n') }}\n"
+
+    - name: Read the Notes deploy public key
+      ansible.builtin.slurp:
+        src: "{{ agent_home }}/.ssh/github_notes_ed25519.pub"
+      register: agent_notes_public_key_file
+
+    - name: Read the Homelab deploy public key
+      ansible.builtin.slurp:
+        src: "{{ agent_home }}/.ssh/github_homelab_ed25519.pub"
+      register: agent_homelab_public_key_file
+
+    - name: Show the agent onboarding boundary
+      ansible.builtin.debug:
+        msg:
+          - "Add this as a read-only deploy key on d-tecnolife/notes: {{ agent_notes_public_key_file.content | b64decode | trim }}"
+          - "Add this as a write-enabled deploy key on d-tecnolife/homelab: {{ agent_homelab_public_key_file.content | b64decode | trim }}"
+          - "The agent account has no sudo access and cannot read the Ops age identity."
+          - "Installed {{ codex_version.stdout }}; authenticate interactively as agent before adding Ops to the desktop app."

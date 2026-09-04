@@ -10,6 +10,10 @@ for the required execution order.
 
 - `playbooks/bootstrap-ops-ssh.yml` generates the Ops management key and adds
   its public key to every managed VM.
+- `playbooks/secrets.yml` installs SOPS and age on Ops and generates the
+  administrator-owned age identity used for deploy-time decryption.
+- `playbooks/agent-user.yml` creates the unprivileged agent account, installs
+  Codex, and creates repository-specific Notes and Homelab deploy keys.
 - `playbooks/hosts-file.yml` maintains short-name and `dscim.dev` mappings in
   `/etc/hosts` on every reachable managed VM using the inventory addresses.
 - `playbooks/edge-routing.yml` maintains persistent IPv4 forwarding on Edge.
@@ -21,8 +25,9 @@ for the required execution order.
 - `playbooks/maintenance-schedule.yml` installs Ops systemd timers for daily
   security updates, weekly safe upgrades, and monthly conditional reboots.
 - `playbooks/deploy-compose.yml` copies the stacks assigned to each host and
-  validates, pulls, and applies them with Docker Compose. Apps receives only
-  Vaultwarden, Watchtower, WannBot, and Job Ops.
+  decrypts any matching `secrets/compose/<stack>.sops.env` file in memory,
+  validates, pulls, and applies the stacks with Docker Compose. Apps receives
+  only Vaultwarden, Watchtower, WannBot, and Job Ops.
 
 `inventory/hosts.yml` is created from `inventory/hosts.yml.example` and ignored
 because it contains local network details. The repository-local `ansible.cfg`
@@ -55,7 +60,7 @@ Update a Windows workstation from an elevated PowerShell session:
 Both commands read `ansible/inventory/hosts.yml`. Update that inventory first
 whenever an address changes.
 
-Before deploying Caddy, copy `secrets/caddy.env.example` to
-`secrets/caddy.env` and add a Cloudflare token scoped to `dscim.dev` with
-`Zone:Read` and `DNS:Edit`. The populated file is ignored and must not be
-committed.
+Before deploying Caddy, follow [Secrets management](../secrets/README.md) and
+create `secrets/caddy.sops.env`. The playbook temporarily accepts the ignored
+plaintext `secrets/caddy.env` to support migration, but new deployments should
+use the encrypted file.
