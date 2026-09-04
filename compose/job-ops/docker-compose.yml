@@ -20,8 +20,8 @@ services:
       - PYTHON_PATH=/usr/bin/python3
 
       # Gmail
-      - GMAIL_OAUTH_CLIENT_ID=${GMAIL_OAUTH_CLIENT_ID}
-      - GMAIL_OAUTH_CLIENT_SECRET=${GMAIL_OAUTH_CLIENT_SECRET}
+      - GMAIL_OAUTH_CLIENT_ID=${GMAIL_OAUTH_CLIENT_ID:?set GMAIL_OAUTH_CLIENT_ID in .env}
+      - GMAIL_OAUTH_CLIENT_SECRET=${GMAIL_OAUTH_CLIENT_SECRET:?set GMAIL_OAUTH_CLIENT_SECRET in .env}
 
     env_file:
       - path: ./.env

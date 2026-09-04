@@ -1,0 +1,66 @@
+---
+- name: Deploy Compose stacks
+  hosts: ops:apps
+  become: true
+  gather_facts: false
+  vars:
+    compose_stacks_by_host:
+      ops: []
+      apps:
+        - job-ops
+        - vaultwarden
+        - wannbot
+        - watchtower
+    compose_stacks: "{{ compose_stacks_by_host[inventory_hostname] }}"
+
+  tasks:
+    - name: Create stack directories
+      ansible.builtin.file:
+        path: "/opt/compose/{{ item }}"
+        state: directory
+        owner: root
+        group: docker
+        mode: "2775"
+      loop: "{{ compose_stacks }}"
+
+    - name: Copy version-controlled stack files
+      ansible.builtin.copy:
+        src: "../../compose/{{ item }}/"
+        dest: "/opt/compose/{{ item }}/"
+        owner: root
+        group: docker
+        mode: preserve
+        directory_mode: "2775"
+      loop: "{{ compose_stacks }}"
+
+    - name: Validate Compose stacks
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-directory
+          - "/opt/compose/{{ item }}"
+          - config
+          - --quiet
+      loop: "{{ compose_stacks }}"
+      changed_when: false
+
+    - name: Pull and apply Compose stacks
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-directory
+          - "/opt/compose/{{ item }}"
+          - up
+          - --detach
+          - --pull
+          - always
+          - --remove-orphans
+      loop: "{{ compose_stacks }}"
+      register: compose_deployments
+      changed_when: >-
+        'Created' in (compose_deployments.stdout + compose_deployments.stderr) or
+        'Recreated' in (compose_deployments.stdout + compose_deployments.stderr) or
+        'Started' in (compose_deployments.stdout + compose_deployments.stderr) or
+        'Pulled' in (compose_deployments.stdout + compose_deployments.stderr)

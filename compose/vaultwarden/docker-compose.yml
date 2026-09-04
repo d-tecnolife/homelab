@@ -10,4 +10,4 @@ services:
     environment:
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
-      ADMIN_TOKEN: ""
+      ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN:?set VAULTWARDEN_ADMIN_TOKEN in .env}

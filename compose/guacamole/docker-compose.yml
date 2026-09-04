@@ -10,10 +10,10 @@ services:
     container_name: mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: cumshot25
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: guacamole
       MYSQL_USER: guacamole
-      MYSQL_PASSWORD: cumshot25
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     volumes:
       - /var/lib/docker/volumes/mysql:/var/lib/mysql
     ports:
@@ -30,7 +30,7 @@ services:
       MYSQL_HOSTNAME: mysql
       MYSQL_DATABASE: guacamole
       MYSQL_USER: guacamole
-      MYSQL_PASSWORD: cumshot25
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     volumes:
       - /var/lib/docker/volumes/guacamole:/etc/guacamole
       - /var/lib/docker/volumes/guacamole/share:/share

@@ -13,7 +13,13 @@ for the required execution order.
 - `playbooks/edge-routing.yml` maintains persistent IPv4 forwarding on Edge.
 - `playbooks/caddy.yml` installs Caddy on Edge, validates its configuration,
   and maintains its health endpoint and JSON logs.
+- `playbooks/docker.yml` installs Docker Engine and Compose on Ops and Apps,
+  grants the management user Docker access, and creates `/opt/compose`.
+- `playbooks/deploy-compose.yml` copies the stacks assigned to each host and
+  validates, pulls, and applies them with Docker Compose. Apps receives only
+  Vaultwarden, Watchtower, WannBot, and Job Ops.
 
 `inventory/hosts.yml` is created from `inventory/hosts.yml.example` and ignored
-because it contains local network details. The Ops private key remains only on
-Ops and must never be committed.
+because it contains local network details. The repository-local `ansible.cfg`
+selects it automatically when commands run from this directory. The Ops
+private key remains only on Ops and must never be committed.

@@ -140,15 +140,23 @@ powered-off VMs such as k3s. Rerun it after starting an on-demand VM to add
 its current host key and the Ops management key. Run:
 
 ```bash
-ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-ops-ssh.yml
-ansible-playbook -i inventory/hosts.yml playbooks/edge-routing.yml
-ansible-playbook -i inventory/hosts.yml playbooks/caddy.yml
+ansible-playbook playbooks/bootstrap-ops-ssh.yml
+ansible-playbook playbooks/edge-routing.yml
+ansible-playbook playbooks/caddy.yml
+ansible-playbook playbooks/docker.yml
 ```
 
 The first playbook generates an Ed25519 key on Ops and adds its public key to
 every VM. The workstation private key is used through the forwarded agent and
 is never copied to Ops. The remaining playbooks configure Edge routing and its
 Caddy service.
+
+Restore each stack's ignored secret files under `compose/<stack>/` on Ops,
+then deploy the Compose applications:
+
+```bash
+ansible-playbook playbooks/deploy-compose.yml
+```
 
 ## 6. Preserve the Ops public key
 
@@ -205,7 +213,7 @@ Verify the inventory:
 
 ```bash
 cd ~/homelab/ansible
-ansible all -i inventory/hosts.yml -m ping
+ansible all -m ping
 ```
 
 The infrastructure bootstrap is complete when every running VM returns
