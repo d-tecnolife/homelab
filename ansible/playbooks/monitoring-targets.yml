@@ -1,0 +1,14 @@
+---
+- name: Generate Prometheus targets from inventory
+  hosts: monitoring
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Render all node exporter targets
+      ansible.builtin.template:
+        src: ../files/prometheus/node-targets.yml.j2
+        dest: /opt/compose/monitoring/config/prometheus/node-targets.yml
+        owner: root
+        group: docker
+        mode: "0644"
+

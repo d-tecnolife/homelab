@@ -1,0 +1,79 @@
+---
+- name: Install metrics and log collectors on managed VMs
+  hosts: managed_vms
+  become: true
+  gather_facts: true
+  vars:
+    monitoring_address: "{{ hostvars['monitoring'].ansible_host }}"
+  tasks:
+    - name: Install node exporter and Alloy prerequisites
+      ansible.builtin.apt:
+        name: [ca-certificates, prometheus-node-exporter, python3-debian]
+        state: present
+        update_cache: true
+    - name: Configure the Grafana package repository
+      ansible.builtin.deb822_repository:
+        name: grafana
+        types: [deb]
+        uris: https://apt.grafana.com
+        suites: [stable]
+        components: [main]
+        architectures: [amd64]
+        signed_by: https://apt.grafana.com/gpg.key
+        state: present
+      register: grafana_repository
+    - name: Install Grafana Alloy
+      ansible.builtin.apt:
+        name: alloy
+        state: present
+        update_cache: "{{ grafana_repository.changed }}"
+    - name: Check for Docker
+      ansible.builtin.stat:
+        path: /var/run/docker.sock
+      register: docker_socket
+    - name: Allow Alloy to read the system journal
+      ansible.builtin.user:
+        name: alloy
+        groups: adm,systemd-journal
+        append: true
+    - name: Allow Alloy to read Docker logs when Docker is installed
+      ansible.builtin.user:
+        name: alloy
+        groups: docker
+        append: true
+      when: docker_socket.stat.exists
+    - name: Configure Alloy log forwarding
+      ansible.builtin.template:
+        src: ../files/alloy/config.alloy.j2
+        dest: /etc/alloy/config.alloy
+        owner: root
+        group: alloy
+        mode: "0640"
+      notify: Restart Alloy
+    - name: Enable host metrics and log collection
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop: [prometheus-node-exporter, alloy]
+  handlers:
+    - name: Restart Alloy
+      ansible.builtin.systemd_service:
+        name: alloy
+        state: restarted
+
+- name: Install hardware metrics collector on Proxmox
+  hosts: proxmox_hosts
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Install node exporter
+      ansible.builtin.apt:
+        name: prometheus-node-exporter
+        state: present
+        update_cache: true
+    - name: Enable Proxmox hardware metrics collection
+      ansible.builtin.systemd_service:
+        name: prometheus-node-exporter
+        enabled: true
+        state: started

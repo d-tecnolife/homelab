@@ -1,0 +1,39 @@
+groups:
+  - name: homelab-hosts
+    rules:
+      - alert: HostDown
+        expr: up{job="node"} == 0
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: "Host exporter is unavailable on {{ $labels.instance }}"
+      - alert: ProxmoxMetricsDown
+        expr: up{job="proxmox"} == 0
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: Proxmox API metrics are unavailable}
+      - alert: FilesystemNearlyFull
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} < 0.10
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: "Filesystem {{ $labels.mountpoint }} is nearly full on {{ $labels.instance }}"
+      - alert: MemoryNearlyExhausted
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: "Available memory is below 10% on {{ $labels.instance }}"
+      - alert: SustainedHighCPU
+        expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) > 0.90
+        for: 20m
+        labels: {severity: warning}
+        annotations:
+          summary: "CPU usage is above 90% on {{ $labels.instance }}"
+      - alert: HardwareTemperatureHigh
+        expr: node_hwmon_temp_celsius > 85
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Hardware temperature is above 85 C on {{ $labels.instance }}"
+

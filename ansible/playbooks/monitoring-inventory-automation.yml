@@ -1,0 +1,36 @@
+---
+- name: Update Prometheus targets whenever inventory changes
+  hosts: ops
+  become: true
+  gather_facts: true
+  vars:
+    homelab_checkout: "/home/{{ ansible_user }}/homelab"
+  tasks:
+    - name: Install the inventory target-render service
+      ansible.builtin.template:
+        src: ../files/systemd/homelab-monitoring-targets.service.j2
+        dest: /etc/systemd/system/homelab-monitoring-targets.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+    - name: Install the inventory watcher
+      ansible.builtin.template:
+        src: ../files/systemd/homelab-monitoring-targets.path.j2
+        dest: /etc/systemd/system/homelab-monitoring-targets.path
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+    - name: Apply systemd unit changes before enabling the watcher
+      ansible.builtin.meta: flush_handlers
+    - name: Enable the inventory watcher
+      ansible.builtin.systemd_service:
+        name: homelab-monitoring-targets.path
+        enabled: true
+        state: started
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+

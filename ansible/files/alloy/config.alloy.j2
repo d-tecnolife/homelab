@@ -1,0 +1,41 @@
+loki.write "central" {
+  endpoint { url = "http://{{ monitoring_address }}:3100/loki/api/v1/push" }
+  external_labels = { host = constants.hostname }
+}
+
+loki.relabel "journal" {
+  forward_to = [loki.write.central.receiver]
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+}
+
+loki.source.journal "system" {
+  max_age    = "24h"
+  labels     = { job = "journal" }
+  forward_to = [loki.relabel.journal.receiver]
+}
+
+{% if docker_socket.stat.exists %}
+discovery.docker "local" { host = "unix:///var/run/docker.sock" }
+discovery.relabel "docker" {
+  targets = discovery.docker.local.targets
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker.output
+  labels     = { job = "docker" }
+  forward_to = [loki.write.central.receiver]
+}
+{% endif %}
+

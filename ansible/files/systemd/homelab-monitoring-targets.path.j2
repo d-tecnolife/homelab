@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch Homelab inventory for Prometheus target changes
+
+[Path]
+PathChanged={{ homelab_checkout }}/ansible/inventory/hosts.yml
+Unit=homelab-monitoring-targets.service
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,6 +1,6 @@
 ---
 - name: Deploy Compose stacks
-  hosts: ops:apps
+  hosts: ops:apps:monitoring
   become: true
   gather_facts: false
   vars:
@@ -11,12 +11,19 @@
         - vaultwarden
         - wannbot
         - watchtower
+      monitoring:
+        - monitoring
     compose_stacks: "{{ compose_stacks_by_host[inventory_hostname] }}"
     compose_data_directories_by_host:
       ops: []
       apps:
         - job-ops/data
         - vaultwarden/data
+      monitoring:
+        - monitoring/prometheus
+        - monitoring/alertmanager
+        - monitoring/loki
+        - monitoring/grafana
     compose_data_directories: >-
       {{ compose_data_directories_by_host[inventory_hostname] }}
     compose_secret_directory: "{{ playbook_dir }}/../../secrets/compose"

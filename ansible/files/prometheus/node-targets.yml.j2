@@ -1,0 +1,4 @@
+- targets:
+{% for hostname in (groups['managed_vms'] + groups['proxmox_hosts']) | sort %}
+    - "{{ hostvars[hostname].ansible_host }}:9100"
+{% endfor %}

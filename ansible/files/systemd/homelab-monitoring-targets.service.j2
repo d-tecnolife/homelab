@@ -1,0 +1,10 @@
+[Unit]
+Description=Render Prometheus targets from Homelab inventory
+After=network-online.target
+
+[Service]
+Type=oneshot
+User={{ ansible_user }}
+WorkingDirectory={{ homelab_checkout }}/ansible
+ExecStart=/usr/bin/ansible-playbook playbooks/monitoring-targets.yml
+

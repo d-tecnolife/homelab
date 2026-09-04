@@ -1,0 +1,60 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+    ports: ["9090:9090"]
+    volumes:
+      - ./config/prometheus:/etc/prometheus:ro
+      - /srv/compose/monitoring/prometheus:/prometheus
+    depends_on: [alertmanager, pve-exporter]
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: alertmanager
+    restart: unless-stopped
+    command: [--config.file=/etc/alertmanager/alertmanager.yml, --storage.path=/alertmanager]
+    ports: ["9093:9093"]
+    volumes:
+      - ./config/alertmanager:/etc/alertmanager:ro
+      - /srv/compose/monitoring/alertmanager:/alertmanager
+
+  loki:
+    image: grafana/loki:3.5.5
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yml
+    ports: ["3100:3100"]
+    volumes:
+      - ./config/loki:/etc/loki:ro
+      - /srv/compose/monitoring/loki:/loki
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports: ["3000:3000"]
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - /srv/compose/monitoring/grafana:/var/lib/grafana
+    depends_on: [prometheus, loki]
+
+  pve-exporter:
+    image: prompve/prometheus-pve-exporter:3.5.5
+    container_name: pve-exporter
+    restart: unless-stopped
+    environment:
+      PVE_USER: ${PVE_USER:?set PVE_USER}
+      PVE_TOKEN_NAME: ${PVE_TOKEN_NAME:?set PVE_TOKEN_NAME}
+      PVE_TOKEN_VALUE: ${PVE_TOKEN_VALUE:?set PVE_TOKEN_VALUE}
+      PVE_VERIFY_SSL: ${PVE_VERIFY_SSL:-false}
+    ports: ["9221:9221"]
+
