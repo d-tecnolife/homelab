@@ -55,13 +55,13 @@ variable "internal_network_bridge" {
 variable "management_vlan_id" {
   description = "VLAN ID for the management network."
   type        = number
-  default     = 10
+  default     = 100
 }
 
 variable "services_vlan_id" {
   description = "VLAN ID for the services network."
   type        = number
-  default     = 20
+  default     = 200
 }
 
 variable "vga_type" {

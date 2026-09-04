@@ -141,14 +141,15 @@ its current host key and the Ops management key. Run:
 
 ```bash
 ansible-playbook playbooks/bootstrap-ops-ssh.yml
+ansible-playbook playbooks/hosts-file.yml
 ansible-playbook playbooks/edge-routing.yml
 ansible-playbook playbooks/docker.yml
 ```
 
 The first playbook generates an Ed25519 key on Ops and adds its public key to
 every VM. The workstation private key is used through the forwarded agent and
-is never copied to Ops. The remaining playbooks configure Edge routing and
-Docker.
+is never copied to Ops. The remaining playbooks maintain VM hostname mappings,
+configure Edge routing, and configure Docker.
 
 Create a Cloudflare API token scoped to the `dscim.dev` zone with `Zone:Read`
 and `DNS:Edit`. Store it in the ignored Caddy environment file, then deploy

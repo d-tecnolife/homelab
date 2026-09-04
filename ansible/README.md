@@ -10,6 +10,8 @@ for the required execution order.
 
 - `playbooks/bootstrap-ops-ssh.yml` generates the Ops management key and adds
   its public key to every managed VM.
+- `playbooks/hosts-file.yml` maintains short-name and `dscim.dev` mappings in
+  `/etc/hosts` on every managed VM using the inventory addresses.
 - `playbooks/edge-routing.yml` maintains persistent IPv4 forwarding on Edge.
 - `playbooks/caddy.yml` installs a Cloudflare-enabled Caddy build on Edge,
   deploys its sites, validates the configuration, and maintains its health
@@ -24,6 +26,21 @@ for the required execution order.
 because it contains local network details. The repository-local `ansible.cfg`
 selects it automatically when commands run from this directory. The Ops
 private key remains only on Ops and must never be committed.
+
+Update hostname mappings on the Linux VMs from Ops:
+
+```bash
+ansible-playbook playbooks/hosts-file.yml
+```
+
+Update a Windows workstation from an elevated PowerShell session:
+
+```powershell
+.\scripts\Update-HomelabHosts.ps1
+```
+
+Both commands read `ansible/inventory/hosts.yml`. Update that inventory first
+whenever an address changes.
 
 Before deploying Caddy, copy `secrets/caddy.env.example` to
 `secrets/caddy.env` and add a Cloudflare token scoped to `dscim.dev` with

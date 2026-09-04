@@ -1,0 +1,15 @@
+---
+- name: Maintain homelab hostnames on managed VMs
+  hosts: managed_vms
+  become: true
+
+  tasks:
+    - name: Add homelab hostname mappings
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        marker: "# {mark} ANSIBLE MANAGED HOMELAB HOSTS"
+        block: |-
+          {% for hostname in groups['managed_vms'] | sort %}
+          {{ hostvars[hostname].ansible_host }} {{ hostname }} {{ hostname }}.dscim.dev
+          {% endfor %}
+
