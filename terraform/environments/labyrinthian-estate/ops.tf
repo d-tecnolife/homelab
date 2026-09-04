@@ -17,7 +17,7 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
         groups              = ["sudo"]
         shell               = "/bin/bash"
         sudo                = "ALL=(ALL) NOPASSWD:ALL"
-        ssh_authorized_keys = [trimspace(file(pathexpand(var.ssh_public_key_file)))]
+        ssh_authorized_keys = local.vm_ssh_authorized_keys
       }]
       package_update = true
       packages       = ["ansible-core", "git", "qemu-guest-agent"]

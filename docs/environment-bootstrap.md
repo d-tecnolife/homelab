@@ -179,9 +179,9 @@ Copy only its public key into the repository:
 
 ```bash
 cd ~/homelab
-mkdir -p terraform/environments/labyrinthian-estate/keys
-cp ~/.ssh/id_ed25519.pub terraform/environments/labyrinthian-estate/keys/ops-management.pub
-git add terraform/environments/labyrinthian-estate/keys/ops-management.pub
+mkdir -p keys
+cp ~/.ssh/id_ed25519.pub keys/ops-management.pub
+git add keys/ops-management.pub
 git commit -m "Add Ops management public key"
 git push
 exit
@@ -205,10 +205,10 @@ terraform apply
 ```
 
 Future workload VM creations and replacements receive both the workstation
-and Ops public keys during Cloud-Init. Terraform automatically includes
-`keys/ops-management.pub` when that committed file exists. Edge and Ops keep
-the workstation key as their bootstrap key; Ansible installs the Ops key on
-them with the other existing VMs.
+and repository-managed public keys during Cloud-Init. Terraform automatically
+includes every non-empty repository-root `keys/*.pub` file. After adding another device's
+public key, commit it and rerun `bootstrap-ops-ssh.yml` so existing VMs receive
+it; private keys remain only on their originating devices.
 
 ## 7. Verify management from Ops
 

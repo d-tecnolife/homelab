@@ -15,7 +15,7 @@ the required Terraform, routing, and Ansible sequence.
 - the Proxmox template was built with `scripts/proxmox/ubuntu-resolute-cloudinit.sh`,
   which enables `snippets` on the configured snippet datastore
 - the Terraform runner's SSH agent can authenticate as `root` on Proxmox
-- the SSH public key referenced by `ssh_public_key_file`
+- the bootstrap SSH public key referenced by `ssh_public_key_file`
 
 ## Network layout
 
@@ -25,7 +25,8 @@ LAN and to both internal VLANs, where it owns `.1` as the routed gateway. Its
 Edge-only Cloud-Init configuration enables IPv4 forwarding on first boot, so
 the management VLAN is reachable before Ansible is running on Ops.
 
-The initial apply authorizes the Terraform runner's public key. After the Ops
-bootstrap, Terraform automatically adds the committed
-`keys/ops-management.pub` key to future VM creations without placing its
-private key in Terraform state.
+The initial apply authorizes the Terraform runner's public key. Terraform also
+adds every non-empty repository-root `keys/*.pub` file to each new VM. Public keys may be
+committed; private keys must never enter the repository or Terraform state.
+Rerun `ansible/playbooks/bootstrap-ops-ssh.yml` after adding a key so existing
+VMs receive it as well.
