@@ -131,8 +131,8 @@ variable "k3s_vm_id" {
   default     = 1040
 }
 
-variable "dev_vm_id" {
-  description = "VMID to assign to the development VM."
+variable "nolife_vm_id" {
+  description = "VMID to assign to the Nolife development VM."
   type        = number
   default     = 1050
 }
@@ -427,35 +427,35 @@ variable "k3s_ipv4_gateway" {
   nullable = true
 }
 
-# Development VM variables
+# Nolife development VM variables
 
-variable "dev_cpu_cores" {
+variable "nolife_cpu_cores" {
   type    = number
   default = 4
 }
 
-variable "dev_memory_mb" {
+variable "nolife_memory_mb" {
   type    = number
   default = 4096
 }
 
-variable "dev_disk_size_gb" {
+variable "nolife_disk_size_gb" {
   type    = number
   default = 80
 }
 
-variable "dev_ipv4_address" {
+variable "nolife_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
   default     = "10.100.1.50/24"
 
   validation {
-    condition     = var.dev_ipv4_address == "dhcp" || can(cidrnetmask(var.dev_ipv4_address))
-    error_message = "dev_ipv4_address must be dhcp or an IPv4 address in CIDR notation."
+    condition     = var.nolife_ipv4_address == "dhcp" || can(cidrnetmask(var.nolife_ipv4_address))
+    error_message = "nolife_ipv4_address must be dhcp or an IPv4 address in CIDR notation."
   }
 }
 
-variable "dev_ipv4_gateway" {
+variable "nolife_ipv4_gateway" {
   type     = string
   default  = "10.100.1.1"
   nullable = true

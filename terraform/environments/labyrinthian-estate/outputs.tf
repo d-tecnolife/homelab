@@ -34,8 +34,8 @@ output "monitoring_vm_id" { value = proxmox_virtual_environment_vm.monitoring.vm
 output "monitoring_ipv4_addresses" { value = proxmox_virtual_environment_vm.monitoring.ipv4_addresses }
 output "k3s_vm_id" { value = proxmox_virtual_environment_vm.k3s.vm_id }
 output "k3s_ipv4_addresses" { value = proxmox_virtual_environment_vm.k3s.ipv4_addresses }
-output "dev_vm_id" { value = proxmox_virtual_environment_vm.dev.vm_id }
-output "dev_ipv4_addresses" { value = proxmox_virtual_environment_vm.dev.ipv4_addresses }
+output "nolife_vm_id" { value = proxmox_virtual_environment_vm.nolife.vm_id }
+output "nolife_ipv4_addresses" { value = proxmox_virtual_environment_vm.nolife.ipv4_addresses }
 
 output "games_vm_id" { value = proxmox_virtual_environment_vm.games.vm_id }
 output "games_ipv4_addresses" { value = proxmox_virtual_environment_vm.games.ipv4_addresses }

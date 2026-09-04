@@ -5,6 +5,10 @@
   ignore_unreachable: true
 
   tasks:
+    - name: Set the guest hostname from inventory
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+
     - name: Add homelab hostname mappings
       ansible.builtin.blockinfile:
         path: /etc/hosts

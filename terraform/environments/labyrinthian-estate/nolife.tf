@@ -1,15 +1,12 @@
-# Copy this file to <vm-name>.tf, replace "dev" in resource and variable
-# names, then declare the matching VM-specific variables in variables.tf.
-
-resource "proxmox_virtual_environment_vm" "dev" {
+resource "proxmox_virtual_environment_vm" "nolife" {
   depends_on = [proxmox_virtual_environment_vm.edge]
 
-  name        = "dev"
-  description = "On-demand development VM managed by Terraform"
-  tags        = ["terraform", "ubuntu", "dev"]
+  name        = "nolife"
+  description = "Always-on development VM managed by Terraform"
+  tags        = ["terraform", "ubuntu", "nolife"]
 
   node_name = var.node_name
-  vm_id     = var.dev_vm_id
+  vm_id     = var.nolife_vm_id
 
   clone {
     vm_id        = var.template_vm_id
@@ -22,12 +19,12 @@ resource "proxmox_virtual_environment_vm" "dev" {
   }
 
   cpu {
-    cores = var.dev_cpu_cores
+    cores = var.nolife_cpu_cores
     type  = "host"
   }
 
   memory {
-    dedicated = var.dev_memory_mb
+    dedicated = var.nolife_memory_mb
   }
 
   vga {
@@ -39,7 +36,7 @@ resource "proxmox_virtual_environment_vm" "dev" {
     interface    = "virtio0"
     file_format  = "raw"
     discard      = "on"
-    size         = var.dev_disk_size_gb
+    size         = var.nolife_disk_size_gb
   }
 
   network_device {
@@ -58,8 +55,8 @@ resource "proxmox_virtual_environment_vm" "dev" {
 
     ip_config {
       ipv4 {
-        address = var.dev_ipv4_address
-        gateway = var.dev_ipv4_address == "dhcp" ? null : var.dev_ipv4_gateway
+        address = var.nolife_ipv4_address
+        gateway = var.nolife_ipv4_address == "dhcp" ? null : var.nolife_ipv4_gateway
       }
     }
 
@@ -74,8 +71,8 @@ resource "proxmox_virtual_environment_vm" "dev" {
 
   lifecycle {
     precondition {
-      condition     = var.dev_ipv4_address == "dhcp" || var.dev_ipv4_gateway != null
-      error_message = "dev_ipv4_gateway must be set when dev_ipv4_address is static."
+      condition     = var.nolife_ipv4_address == "dhcp" || var.nolife_ipv4_gateway != null
+      error_message = "nolife_ipv4_gateway must be set when nolife_ipv4_address is static."
     }
   }
 }
