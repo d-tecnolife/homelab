@@ -28,10 +28,18 @@ Cloud-Init template `9001`.
 
 **Run on: Windows workstation**
 
-Load the SSH key that can authenticate as `root` on Proxmox:
+Open PowerShell as Administrator and enable the Windows SSH agent:
 
 ```powershell
-ssh-add $env:USERPROFILE\.ssh\id_ed25519
+Set-Service -Name ssh-agent -StartupType Automatic
+Start-Service ssh-agent
+```
+
+Return to a normal PowerShell session and load the SSH key that can
+authenticate as `root` on Proxmox:
+
+```powershell
+ssh-add "$env:USERPROFILE\.ssh\id_ed25519"
 ssh-add -l
 ```
 

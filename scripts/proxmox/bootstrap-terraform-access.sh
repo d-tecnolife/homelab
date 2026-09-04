@@ -5,7 +5,7 @@ set -euo pipefail
 TERRAFORM_USER="${TERRAFORM_USER:-terraform@pve}"
 TOKEN_ID="${TOKEN_ID:-provider}"
 ROLE_ID="${ROLE_ID:-TerraformVM}"
-PRIVILEGES="Datastore.AllocateSpace Datastore.Audit SDN.Use Sys.Audit VM.Allocate VM.Audit VM.Clone VM.Config.CDROM VM.Config.Cloudinit VM.Config.CPU VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.GuestAgent.Audit VM.PowerMgmt"
+PRIVILEGES="Datastore.Allocate Datastore.AllocateSpace Datastore.Audit SDN.Use Sys.Audit VM.Allocate VM.Audit VM.Clone VM.Config.CDROM VM.Config.Cloudinit VM.Config.CPU VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.GuestAgent.Audit VM.PowerMgmt"
 TERRAFORM_TOKEN_VALUE=""
 
 if [[ $EUID -ne 0 ]]; then
