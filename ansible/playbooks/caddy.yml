@@ -126,8 +126,8 @@
           - /tmp/Caddyfile.ansible
           - --adapter
           - caddyfile
-      environment:
-        CF_API_TOKEN: validation-only
+          - --envfile
+          - /etc/caddy/cloudflare.env
       changed_when: false
 
     - name: Install the Caddy configuration
