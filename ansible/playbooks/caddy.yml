@@ -1,0 +1,82 @@
+---
+- name: Configure Caddy on Edge
+  hosts: edge
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Install Caddy
+      ansible.builtin.apt:
+        name: caddy
+        state: present
+        update_cache: true
+
+    - name: Create Caddy configuration directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - path: /etc/caddy/sites
+          owner: root
+          group: caddy
+          mode: "0750"
+        - path: /var/log/caddy
+          owner: caddy
+          group: caddy
+          mode: "0750"
+
+    - name: Stage the Caddy configuration
+      ansible.builtin.copy:
+        src: ../files/caddy/Caddyfile
+        dest: /tmp/Caddyfile.ansible
+        owner: root
+        group: root
+        mode: "0644"
+      changed_when: false
+
+    - name: Validate the staged Caddy configuration
+      ansible.builtin.command:
+        argv:
+          - caddy
+          - validate
+          - --config
+          - /tmp/Caddyfile.ansible
+          - --adapter
+          - caddyfile
+      changed_when: false
+
+    - name: Install the Caddy configuration
+      ansible.builtin.copy:
+        src: /tmp/Caddyfile.ansible
+        dest: /etc/caddy/Caddyfile
+        remote_src: true
+        owner: root
+        group: caddy
+        mode: "0640"
+      notify: Reload Caddy
+
+    - name: Enable and start Caddy
+      ansible.builtin.systemd_service:
+        name: caddy
+        enabled: true
+        state: started
+
+    - name: Apply configuration changes before verification
+      ansible.builtin.meta: flush_handlers
+
+    - name: Verify the private Caddy health endpoint
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/healthz
+        return_content: true
+        status_code: 200
+      register: caddy_health
+      failed_when: caddy_health.content | trim != "ok"
+
+  handlers:
+    - name: Reload Caddy
+      ansible.builtin.systemd_service:
+        name: caddy
+        state: reloaded

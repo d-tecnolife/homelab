@@ -93,8 +93,9 @@ resource "proxmox_virtual_environment_vm" "edge" {
   }
 
   network_device {
-    bridge = var.network_bridge
-    model  = "virtio"
+    bridge      = var.network_bridge
+    model       = "virtio"
+    mac_address = var.edge_wan_mac_address
   }
 
   network_device {

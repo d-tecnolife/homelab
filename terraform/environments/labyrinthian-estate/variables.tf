@@ -291,6 +291,17 @@ variable "edge_ipv4_gateway" {
   nullable    = true
 }
 
+variable "edge_wan_mac_address" {
+  description = "Stable MAC address for Edge's Rogers LAN-facing interface."
+  type        = string
+  default     = "BC:24:11:47:C7:97"
+
+  validation {
+    condition     = can(regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$", var.edge_wan_mac_address))
+    error_message = "edge_wan_mac_address must be a colon-separated MAC address."
+  }
+}
+
 variable "edge_management_ipv4_address" {
   description = "Static management-side address for Edge in CIDR notation."
   type        = string

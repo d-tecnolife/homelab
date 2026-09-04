@@ -142,12 +142,13 @@ its current host key and the Ops management key. Run:
 ```bash
 ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-ops-ssh.yml
 ansible-playbook -i inventory/hosts.yml playbooks/edge-routing.yml
+ansible-playbook -i inventory/hosts.yml playbooks/caddy.yml
 ```
 
 The first playbook generates an Ed25519 key on Ops and adds its public key to
 every VM. The workstation private key is used through the forwarded agent and
-is never copied to Ops. The second playbook makes Ansible the ongoing owner of
-Edge's forwarding setting.
+is never copied to Ops. The remaining playbooks configure Edge routing and its
+Caddy service.
 
 ## 6. Preserve the Ops public key
 
