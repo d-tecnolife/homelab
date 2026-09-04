@@ -181,10 +181,11 @@ terraform plan
 terraform apply
 ```
 
-Future VM creations and replacements now receive both the workstation and Ops
-public keys during Cloud-Init. Terraform automatically includes
-`keys/ops-management.pub` when that committed file exists. Existing VMs
-already have the Ops key from the bootstrap playbook.
+Future workload VM creations and replacements receive both the workstation
+and Ops public keys during Cloud-Init. Terraform automatically includes
+`keys/ops-management.pub` when that committed file exists. Edge and Ops keep
+the workstation key as their bootstrap key; Ansible installs the Ops key on
+them with the other existing VMs.
 
 ## 7. Verify management from Ops
 

@@ -64,6 +64,19 @@
         ops_management_public_key: >-
           {{ ops_management_public_key_file.content | b64decode | trim }}
 
+    - name: Remove previous managed VM SSH host keys
+      ansible.builtin.command:
+        argv:
+          - ssh-keygen
+          - -f
+          - "{{ ansible_user_dir }}/.ssh/known_hosts"
+          - -R
+          - "{{ hostvars[item].ansible_host }}"
+      loop: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
+      register: removed_managed_vm_host_keys
+      changed_when: "'found' in removed_managed_vm_host_keys.stdout"
+      failed_when: false
+
     - name: Scan managed VM SSH host keys
       ansible.builtin.command:
         argv:
