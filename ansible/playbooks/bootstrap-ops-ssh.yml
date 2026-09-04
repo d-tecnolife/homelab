@@ -72,7 +72,7 @@
           - "{{ ansible_user_dir }}/.ssh/known_hosts"
           - -R
           - "{{ hostvars[item].ansible_host }}"
-      loop: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
+      loop: "{{ groups['managed_vms'] | reject('in', ['ops', 'k3s']) | list }}"
       register: removed_managed_vm_host_keys
       changed_when: "'found' in removed_managed_vm_host_keys.stdout"
       failed_when: false
@@ -84,7 +84,7 @@
           - -T
           - "5"
           - "{{ hostvars[item].ansible_host }}"
-      loop: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
+      loop: "{{ groups['managed_vms'] | reject('in', ['ops', 'k3s']) | list }}"
       register: managed_vm_host_keys
       changed_when: false
 
@@ -98,8 +98,8 @@
       loop_control:
         label: "{{ item.item }}"
 
-- name: Authorize Ops on every managed VM
-  hosts: managed_vms
+- name: Authorize Ops on every running managed VM
+  hosts: managed_vms:!k3s
   gather_facts: true
 
   tasks:

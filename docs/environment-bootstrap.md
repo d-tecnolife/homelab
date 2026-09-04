@@ -135,8 +135,8 @@ cd homelab/ansible
 cp inventory/hosts.yml.example inventory/hosts.yml
 ```
 
-Start the on-demand k3s VM before the next command if it should receive the Ops
-key during this run. Then run:
+The on-demand k3s VM is excluded because it remains powered off. Its Cloud-Init
+configuration receives the committed Ops key before its first boot. Run:
 
 ```bash
 ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-ops-ssh.yml
