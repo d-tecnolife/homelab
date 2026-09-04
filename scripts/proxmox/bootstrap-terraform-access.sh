@@ -98,12 +98,11 @@ fi
 pveum acl modify / --token "$TERRAFORM_USER!$TOKEN_ID" --role "$ROLE_ID"
 
 echo
-echo "Effective token permissions:"
-pveum user token permissions "$TERRAFORM_USER" "$TOKEN_ID"
-
-echo
 if [[ -n "$TERRAFORM_TOKEN_VALUE" ]]; then
+    echo "Bootstrap complete. Copy this value now; Proxmox will not show the secret again:"
+    echo
     printf 'proxmox_api_token = "%s"\n' "$TERRAFORM_TOKEN_VALUE"
 else
-    echo "Existing token: $TERRAFORM_USER!$TOKEN_ID"
+    echo "Bootstrap complete. Existing token: $TERRAFORM_USER!$TOKEN_ID"
+    echo "Its secret cannot be displayed again. Use the saved value or create a replacement token."
 fi
