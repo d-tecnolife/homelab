@@ -41,14 +41,15 @@ as `root`:
 
 ```bash
 apt update
-apt install -y git
+apt install -y git openssh-client
 git clone https://github.com/d-tecnolife/homelab.git
 cd homelab
-./scripts/proxmox/bootstrap-terraform-access.sh
+./scripts/proxmox/bootstrap-terraform-access.sh keys/work-computer.pub
 ./scripts/proxmox/ubuntu-resolute-cloudinit.sh
 ```
 
-Save the Terraform token printed by the first script in a password manager.
+The first script creates both the restricted Linux SSH account and the Proxmox
+API identity. Save its Terraform token in a password manager.
 The second script enables snippets on the `local` datastore and builds Ubuntu
 Cloud-Init template `9001`.
 
@@ -63,24 +64,18 @@ Set-Service -Name ssh-agent -StartupType Automatic
 Start-Service ssh-agent
 ```
 
-Return to a normal PowerShell session and load the SSH key that can
-authenticate as `root` on Proxmox:
+Return to a normal PowerShell session and load the same key supplied to the
+bootstrap script:
 
 ```powershell
 ssh-add "$env:USERPROFILE\.ssh\id_ed25519"
 ssh-add -l
 ```
 
-Install the public key on Proxmox using the root password once:
+Verify the restricted account and its narrow sudo access:
 
 ```powershell
-Get-Content "$env:USERPROFILE\.ssh\id_ed25519.pub" | ssh root@192.168.1.100 "umask 077; mkdir -p /root/.ssh; cat >> /root/.ssh/authorized_keys"
-```
-
-Verify that SSH now works without a password:
-
-```powershell
-ssh -F NUL -o IdentityFile=none root@192.168.1.100
+ssh terraform@192.168.1.100 sudo pvesm apiinfo
 ```
 
 Create an automatically loaded, ignored variables file from the committed

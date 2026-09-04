@@ -13,7 +13,7 @@ variable "proxmox_api_token" {
 variable "proxmox_ssh_username" {
   description = "SSH account used to upload Cloud-Init snippets to the Proxmox node."
   type        = string
-  default     = "root"
+  default     = "terraform"
 }
 
 variable "node_name" {
