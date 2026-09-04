@@ -8,8 +8,35 @@ to every VM.
 
 **Run on: Proxmox node**
 
-Install Git, clone this repository, then run
-both preparation scripts as `root`:
+After installing Proxmox and confirming that its management network and storage
+work, run the community [PVE Post Install](https://community-scripts.org/scripts/post-pve-install?id=post-pve-install)
+tool as `root`:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/tools/pve/post-pve-install.sh)"
+```
+
+Run it interactively and select only the repository and host changes needed for
+this installation. It can change the Debian and Proxmox repositories, update the
+host, and request a reboot. The subscription-nag modification is optional because
+Proxmox package updates can overwrite it.
+
+After it finishes, reboot if prompted and verify the web interface and SSH are
+reachable. Confirm the configured repositories are healthy before continuing:
+
+```bash
+apt update
+pveversion
+```
+
+Record the selected options, Proxmox version, and run date in the rebuild notes.
+Do not place this interactive command in the guest Ansible playbooks. If Proxmox
+host bootstrapping is automated later, replace it with reviewed, pinned,
+idempotent tasks for only the selected changes instead of downloading the moving
+upstream script unattended.
+
+Install Git, clone this repository, then run both repository preparation scripts
+as `root`:
 
 ```bash
 apt update
