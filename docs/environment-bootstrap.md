@@ -144,6 +144,7 @@ ansible-playbook playbooks/bootstrap-ops-ssh.yml
 ansible-playbook playbooks/hosts-file.yml
 ansible-playbook playbooks/edge-routing.yml
 ansible-playbook playbooks/docker.yml
+ansible-playbook playbooks/maintenance-schedule.yml
 ```
 
 The first playbook generates an Ed25519 key on Ops and adds its public key to

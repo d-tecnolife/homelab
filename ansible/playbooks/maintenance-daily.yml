@@ -1,0 +1,25 @@
+---
+- name: Install daily security updates
+  hosts: managed_vms
+  become: true
+  serial: 2
+  ignore_unreachable: true
+
+  tasks:
+    - name: Install unattended-upgrades
+      ansible.builtin.apt:
+        name: unattended-upgrades
+        state: present
+        update_cache: true
+        cache_valid_time: 86400
+
+    - name: Apply updates allowed by unattended-upgrades
+      ansible.builtin.command:
+        argv:
+          - unattended-upgrade
+          - --minimal-upgrade-steps
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      register: unattended_upgrade
+      changed_when: unattended_upgrade.stdout | length > 0
+

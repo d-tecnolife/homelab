@@ -18,6 +18,8 @@ for the required execution order.
   endpoint and JSON logs.
 - `playbooks/docker.yml` installs Docker Engine and Compose on Ops and Apps,
   grants the management user Docker access, and creates `/opt/compose`.
+- `playbooks/maintenance-schedule.yml` installs Ops systemd timers for daily
+  security updates, weekly safe upgrades, and monthly conditional reboots.
 - `playbooks/deploy-compose.yml` copies the stacks assigned to each host and
   validates, pulls, and applies them with Docker Compose. Apps receives only
   Vaultwarden, Watchtower, WannBot, and Job Ops.
@@ -32,6 +34,17 @@ Update hostname mappings on the Linux VMs from Ops:
 ```bash
 ansible-playbook playbooks/hosts-file.yml
 ```
+
+Install or update the maintenance schedule on Ops:
+
+```bash
+ansible-playbook playbooks/maintenance-schedule.yml
+systemctl list-timers 'homelab-maintenance-*'
+```
+
+The monthly playbook checks `/var/run/reboot-required`; it does nothing on a
+VM that does not require a reboot. Ops schedules its own reboot one minute
+after the Ansible run exits. Timers run in the `America/Winnipeg` timezone.
 
 Update a Windows workstation from an elevated PowerShell session:
 

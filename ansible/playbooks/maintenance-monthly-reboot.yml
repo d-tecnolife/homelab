@@ -1,0 +1,39 @@
+---
+- name: Reboot managed VMs when required
+  hosts: managed_vms:!ops
+  become: true
+  serial: 1
+  ignore_unreachable: true
+
+  tasks:
+    - name: Check whether a reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Reboot when required
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+      when: reboot_required.stat.exists
+
+- name: Schedule the Ops reboot after Ansible exits
+  hosts: ops
+  become: true
+
+  tasks:
+    - name: Check whether Ops requires a reboot
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: ops_reboot_required
+
+    - name: Schedule the Ops reboot
+      ansible.builtin.command:
+        argv:
+          - systemd-run
+          - "--unit=homelab-maintenance-reboot-{{ ansible_date_time.epoch }}"
+          - --on-active=1m
+          - /usr/bin/systemctl
+          - reboot
+      when: ops_reboot_required.stat.exists
+      changed_when: true
+

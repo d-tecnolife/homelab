@@ -1,0 +1,16 @@
+---
+- name: Install weekly package upgrades
+  hosts: managed_vms
+  become: true
+  serial: 2
+  ignore_unreachable: true
+
+  tasks:
+    - name: Apply safe package upgrades
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+        upgrade: safe
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+

@@ -1,0 +1,88 @@
+---
+- name: Schedule homelab maintenance from Ops
+  hosts: ops
+  become: true
+  gather_facts: true
+  vars:
+    maintenance_playbook_directory: "{{ playbook_dir }}"
+    maintenance_working_directory: "{{ playbook_dir | dirname }}"
+    maintenance_user: "{{ ansible_user_id }}"
+    maintenance_timezone: America/Winnipeg
+
+  tasks:
+    - name: Install maintenance services
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/homelab-maintenance-{{ item.name }}.service"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Homelab {{ item.description }}
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          User={{ maintenance_user }}
+          WorkingDirectory={{ maintenance_working_directory }}
+          ExecStart=/usr/bin/ansible-playbook {{ maintenance_playbook_directory }}/{{ item.playbook }}
+      loop:
+        - name: daily
+          description: daily security updates
+          playbook: maintenance-daily.yml
+        - name: weekly
+          description: weekly package upgrades
+          playbook: maintenance-weekly.yml
+        - name: monthly-reboot
+          description: monthly conditional reboots
+          playbook: maintenance-monthly-reboot.yml
+      notify: Reload systemd
+
+    - name: Install maintenance timers
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/homelab-maintenance-{{ item.name }}.timer"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Schedule homelab {{ item.description }}
+
+          [Timer]
+          OnCalendar={{ item.calendar }}
+          Persistent=true
+          RandomizedDelaySec=10m
+          Unit=homelab-maintenance-{{ item.name }}.service
+
+          [Install]
+          WantedBy=timers.target
+      loop:
+        - name: daily
+          description: daily security updates
+          calendar: "*-*-* 03:00:00 {{ maintenance_timezone }}"
+        - name: weekly
+          description: weekly package upgrades
+          calendar: "Sun *-*-* 04:00:00 {{ maintenance_timezone }}"
+        - name: monthly-reboot
+          description: monthly conditional reboots
+          calendar: "Sun *-*-01..07 05:00:00 {{ maintenance_timezone }}"
+      notify: Reload systemd
+
+    - name: Apply systemd changes before enabling timers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable maintenance timers
+      ansible.builtin.systemd_service:
+        name: "homelab-maintenance-{{ item }}.timer"
+        enabled: true
+        state: started
+      loop:
+        - daily
+        - weekly
+        - monthly-reboot
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
