@@ -2,6 +2,7 @@
 - name: Maintain homelab hostnames on managed VMs
   hosts: managed_vms
   become: true
+  ignore_unreachable: true
 
   tasks:
     - name: Add homelab hostname mappings
@@ -10,6 +11,9 @@
         marker: "# {mark} ANSIBLE MANAGED HOMELAB HOSTS"
         block: |-
           {% for hostname in groups['managed_vms'] | sort %}
+          {% if hostvars[hostname].ansible_host is defined %}
           {{ hostvars[hostname].ansible_host }} {{ hostname }} {{ hostname }}.dscim.dev
+          {% elif hostvars[hostname].ansible_default_ipv4 is defined %}
+          {{ hostvars[hostname].ansible_default_ipv4.address }} {{ hostname }} {{ hostname }}.dscim.dev
+          {% endif %}
           {% endfor %}
-

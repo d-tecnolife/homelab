@@ -11,7 +11,7 @@ for the required execution order.
 - `playbooks/bootstrap-ops-ssh.yml` generates the Ops management key and adds
   its public key to every managed VM.
 - `playbooks/hosts-file.yml` maintains short-name and `dscim.dev` mappings in
-  `/etc/hosts` on every managed VM using the inventory addresses.
+  `/etc/hosts` on every reachable managed VM using the inventory addresses.
 - `playbooks/edge-routing.yml` maintains persistent IPv4 forwarding on Edge.
 - `playbooks/caddy.yml` installs a Cloudflare-enabled Caddy build on Edge,
   deploys its sites, validates the configuration, and maintains its health
