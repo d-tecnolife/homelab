@@ -10,7 +10,7 @@ services:
       - "3005:3001"
     volumes:
       # Persist database and generated PDFs
-      - ./data:/app/data
+      - /srv/compose/job-ops/data:/app/data
     environment:
       # Server config
       - NODE_ENV=production
@@ -57,7 +57,3 @@ services:
         - path: ./extractors/jobspy
           target: /app/extractors/jobspy
           action: sync+restart
-
-# Volumes for data persistence
-volumes:
-  data:

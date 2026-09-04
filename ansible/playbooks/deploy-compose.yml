@@ -12,6 +12,13 @@
         - wannbot
         - watchtower
     compose_stacks: "{{ compose_stacks_by_host[inventory_hostname] }}"
+    compose_data_directories_by_host:
+      ops: []
+      apps:
+        - job-ops/data
+        - vaultwarden/data
+    compose_data_directories: >-
+      {{ compose_data_directories_by_host[inventory_hostname] }}
 
   tasks:
     - name: Create stack directories
@@ -22,6 +29,15 @@
         group: docker
         mode: "2775"
       loop: "{{ compose_stacks }}"
+
+    - name: Create persistent data directories
+      ansible.builtin.file:
+        path: "/srv/compose/{{ item }}"
+        state: directory
+        owner: root
+        group: docker
+        mode: "2775"
+      loop: "{{ compose_data_directories }}"
 
     - name: Copy version-controlled stack files
       ansible.builtin.copy:

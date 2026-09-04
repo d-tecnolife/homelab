@@ -6,7 +6,7 @@ services:
     ports:
       - "8280:80"
     volumes:
-      - /var/lib/docker/volumes/vaultwarden:/data
+      - /srv/compose/vaultwarden/data:/data
     environment:
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
