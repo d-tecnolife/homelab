@@ -8,7 +8,6 @@ SNIPPET_STORAGE="${SNIPPET_STORAGE:-local}"
 
 IMG="resolute-server-cloudimg-amd64.img"
 BASE_URL="https://cloud-images.ubuntu.com/resolute/current"
-EXPECTED_SHA=$(wget -qO- "$BASE_URL/SHA256SUMS" | awk '/'$IMG'/{print $1}')
 
 download() {
     wget -q "$BASE_URL/$IMG"
@@ -18,15 +17,18 @@ verify() {
     sha256sum "$IMG" | awk '{print $1}'
 }
 
-[ ! -f "$IMG" ] && download
-
-ACTUAL_SHA=$(verify)
-
-if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
-    rm -f "$IMG"
+if [ -f "$IMG" ]; then
+    echo "Reusing existing image: $IMG"
+else
+    EXPECTED_SHA=$(wget -qO- "$BASE_URL/SHA256SUMS" | awk '/'$IMG'/{print $1}')
     download
     ACTUAL_SHA=$(verify)
-    [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ] && exit 1
+
+    if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+        rm -f "$IMG"
+        echo "Downloaded image failed checksum verification." >&2
+        exit 1
+    fi
 fi
 
 rm -f resolute-server-cloudimg-amd64-resized.img
@@ -81,8 +83,12 @@ runcmd:
 # Taken from https://forum.proxmox.com/threads/combining-custom-cloud-init-with-auto-generated.59008/page-3#post-428772
 EOF
 
-echo "timezone: "$(cat /etc/timezone) | tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
-echo "locale: "$LANG | tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
+TIMEZONE="$(timedatectl show --property=Timezone --value 2>/dev/null || true)"
+TIMEZONE="${TIMEZONE:-UTC}"
+SYSTEM_LOCALE="${LANG:-C.UTF-8}"
+
+printf 'timezone: %s\n' "$TIMEZONE" | tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
+printf 'locale: %s\n' "$SYSTEM_LOCALE" | tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
 
 qm set $VMID --cicustom "vendor=$SNIPPET_STORAGE:snippets/ubuntu-resolute.yaml"
 qm set $VMID --tags ubuntu-template,resolute,cloudinit
