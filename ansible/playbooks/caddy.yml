@@ -71,6 +71,15 @@
           group: root
           mode: "0755"
 
+    - name: Maintain Caddy log ownership
+      ansible.builtin.file:
+        path: /var/log/caddy
+        state: directory
+        owner: caddy
+        group: caddy
+        mode: "0750"
+        recurse: true
+
     - name: Install the Cloudflare API token
       ansible.builtin.copy:
         src: ../secrets/caddy.env
@@ -95,8 +104,12 @@
           ExecReload=
           ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --force
       notify:
-        - Reload systemd
         - Restart Caddy
+
+    - name: Load the Caddy systemd override
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+      changed_when: false
 
     - name: Install Caddy sites
       ansible.builtin.copy:
@@ -128,6 +141,7 @@
           - caddyfile
           - --envfile
           - /etc/caddy/cloudflare.env
+      become_user: caddy
       changed_when: false
 
     - name: Install the Caddy configuration
@@ -158,10 +172,6 @@
       failed_when: caddy_health.content | trim != "ok"
 
   handlers:
-    - name: Reload systemd
-      ansible.builtin.systemd_service:
-        daemon_reload: true
-
     - name: Restart Caddy
       ansible.builtin.systemd_service:
         name: caddy

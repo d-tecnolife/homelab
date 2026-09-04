@@ -76,6 +76,17 @@ variable "ssh_public_key_file" {
   default     = "~/.ssh/id_ed25519.pub"
 }
 
+variable "dns_servers" {
+  description = "DNS resolvers supplied persistently to every VM by Cloud-Init."
+  type        = list(string)
+  default     = ["1.1.1.1", "1.0.0.1"]
+
+  validation {
+    condition     = length(var.dns_servers) > 0
+    error_message = "dns_servers must contain at least one resolver."
+  }
+}
+
 # VM IDs
 
 variable "template_vm_id" {
@@ -170,7 +181,7 @@ variable "apps_disk_size_gb" {
 variable "apps_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.1.2.10/24"
+  default     = "10.200.1.10/24"
 
   validation {
     condition     = var.apps_ipv4_address == "dhcp" || can(cidrnetmask(var.apps_ipv4_address))
@@ -181,7 +192,7 @@ variable "apps_ipv4_address" {
 variable "apps_ipv4_gateway" {
   description = "IPv4 gateway for a static address; leave null when using DHCP."
   type        = string
-  default     = "10.1.2.1"
+  default     = "10.200.1.1"
   nullable    = true
 }
 
@@ -223,7 +234,7 @@ variable "ops_disk_size_gb" {
 variable "ops_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.1.1.10/24"
+  default     = "10.100.1.10/24"
 
   validation {
     condition     = var.ops_ipv4_address == "dhcp" || can(cidrnetmask(var.ops_ipv4_address))
@@ -234,7 +245,7 @@ variable "ops_ipv4_address" {
 variable "ops_ipv4_gateway" {
   description = "IPv4 gateway for a static address; leave null when using DHCP."
   type        = string
-  default     = "10.1.1.1"
+  default     = "10.100.1.1"
   nullable    = true
 }
 
@@ -305,13 +316,13 @@ variable "edge_wan_mac_address" {
 variable "edge_management_ipv4_address" {
   description = "Static management-side address for Edge in CIDR notation."
   type        = string
-  default     = "10.1.1.1/24"
+  default     = "10.100.1.1/24"
 }
 
 variable "edge_services_ipv4_address" {
   description = "Static services-side address for Edge in CIDR notation."
   type        = string
-  default     = "10.1.2.1/24"
+  default     = "10.200.1.1/24"
 }
 
 # Gitea VM variables
@@ -334,7 +345,7 @@ variable "gitea_disk_size_gb" {
 variable "gitea_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.1.1.20/24"
+  default     = "10.100.1.20/24"
 
   validation {
     condition     = var.gitea_ipv4_address == "dhcp" || can(cidrnetmask(var.gitea_ipv4_address))
@@ -344,7 +355,7 @@ variable "gitea_ipv4_address" {
 
 variable "gitea_ipv4_gateway" {
   type     = string
-  default  = "10.1.1.1"
+  default  = "10.100.1.1"
   nullable = true
 }
 
@@ -368,7 +379,7 @@ variable "monitoring_disk_size_gb" {
 variable "monitoring_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.1.1.30/24"
+  default     = "10.100.1.30/24"
 
   validation {
     condition     = var.monitoring_ipv4_address == "dhcp" || can(cidrnetmask(var.monitoring_ipv4_address))
@@ -378,7 +389,7 @@ variable "monitoring_ipv4_address" {
 
 variable "monitoring_ipv4_gateway" {
   type     = string
-  default  = "10.1.1.1"
+  default  = "10.100.1.1"
   nullable = true
 }
 
@@ -402,7 +413,7 @@ variable "k3s_disk_size_gb" {
 variable "k3s_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.1.1.40/24"
+  default     = "10.100.1.40/24"
 
   validation {
     condition     = var.k3s_ipv4_address == "dhcp" || can(cidrnetmask(var.k3s_ipv4_address))
@@ -412,7 +423,7 @@ variable "k3s_ipv4_address" {
 
 variable "k3s_ipv4_gateway" {
   type     = string
-  default  = "10.1.1.1"
+  default  = "10.100.1.1"
   nullable = true
 }
 
@@ -436,7 +447,7 @@ variable "dev_disk_size_gb" {
 variable "dev_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.1.1.50/24"
+  default     = "10.100.1.50/24"
 
   validation {
     condition     = var.dev_ipv4_address == "dhcp" || can(cidrnetmask(var.dev_ipv4_address))
@@ -446,7 +457,7 @@ variable "dev_ipv4_address" {
 
 variable "dev_ipv4_gateway" {
   type     = string
-  default  = "10.1.1.1"
+  default  = "10.100.1.1"
   nullable = true
 }
 
@@ -470,7 +481,7 @@ variable "games_disk_size_gb" {
 variable "games_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.1.2.20/24"
+  default     = "10.200.1.20/24"
 
   validation {
     condition     = var.games_ipv4_address == "dhcp" || can(cidrnetmask(var.games_ipv4_address))
@@ -480,6 +491,6 @@ variable "games_ipv4_address" {
 
 variable "games_ipv4_gateway" {
   type     = string
-  default  = "10.1.2.1"
+  default  = "10.200.1.1"
   nullable = true
 }

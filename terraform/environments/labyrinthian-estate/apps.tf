@@ -49,6 +49,10 @@ resource "proxmox_virtual_environment_vm" "apps" {
     datastore_id = var.datastore_id
     interface    = "scsi1"
 
+    dns {
+      servers = var.dns_servers
+    }
+
     ip_config {
       ipv4 {
         address = var.apps_ipv4_address

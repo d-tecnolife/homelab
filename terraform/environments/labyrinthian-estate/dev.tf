@@ -52,6 +52,10 @@ resource "proxmox_virtual_environment_vm" "dev" {
     datastore_id = var.datastore_id
     interface    = "scsi1"
 
+    dns {
+      servers = var.dns_servers
+    }
+
     ip_config {
       ipv4 {
         address = var.dev_ipv4_address

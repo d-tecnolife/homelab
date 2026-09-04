@@ -99,18 +99,18 @@ not know them. Open PowerShell as Administrator and use edge's stable
 LAN address as the next hop:
 
 ```powershell
-route -p add 10.1.1.0 mask 255.255.255.0 192.168.1.199
-route -p add 10.1.2.0 mask 255.255.255.0 192.168.1.199
+route -p add 10.100.1.0 mask 255.255.255.0 192.168.1.199
+route -p add 10.200.1.0 mask 255.255.255.0 192.168.1.199
 ```
 
 Disconnect any VPN before connecting to the private subnets; a VPN may route
-`10.1.1.0/24` through its virtual interface instead of Edge.
+`10.100.1.0/24` through its virtual interface instead of Edge.
 
 Verify Ops is reachable, then wait for its Cloud-Init setup to finish:
 
 ```powershell
-Test-NetConnection 10.1.1.10 -Port 22
-ssh dtec@10.1.1.10 "cloud-init status --wait"
+Test-NetConnection 10.100.1.10 -Port 22
+ssh dtec@10.100.1.10 "cloud-init status --wait"
 ```
 
 ## 5. Bootstrap Ops with agent forwarding
@@ -121,7 +121,7 @@ Ensure the workstation key is still loaded, then forward its agent to Ops:
 
 ```powershell
 ssh-add -l
-ssh -A dtec@10.1.1.10
+ssh -A dtec@10.100.1.10
 ```
 
 **Continue on: Ops VM**
@@ -217,7 +217,7 @@ them with the other existing VMs.
 Reconnect without agent forwarding:
 
 ```powershell
-ssh dtec@10.1.1.10
+ssh dtec@10.100.1.10
 ```
 
 **Continue on: Ops VM**

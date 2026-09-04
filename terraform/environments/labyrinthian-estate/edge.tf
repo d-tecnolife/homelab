@@ -36,7 +36,7 @@ resource "proxmox_virtual_environment_file" "edge_cloud_config" {
             table ip edge_nat {
               chain postrouting {
                 type nat hook postrouting priority srcnat; policy accept;
-                ip saddr { 10.1.1.0/24, 10.1.2.0/24 } oifname "eth0" masquerade
+                ip saddr { 10.100.1.0/24, 10.200.1.0/24 } oifname "eth0" masquerade
               }
             }
           EOT
@@ -115,6 +115,10 @@ resource "proxmox_virtual_environment_vm" "edge" {
     interface         = "scsi1"
     user_data_file_id = proxmox_virtual_environment_file.edge_cloud_config.id
 
+    dns {
+      servers = var.dns_servers
+    }
+
     ip_config {
       ipv4 {
         address = var.edge_ipv4_address
@@ -139,6 +143,8 @@ resource "proxmox_virtual_environment_vm" "edge" {
   started = true
 
   lifecycle {
+    ignore_changes = [initialization[0].user_data_file_id]
+
     precondition {
       condition     = var.edge_ipv4_address == "dhcp" || var.edge_ipv4_gateway != null
       error_message = "edge_ipv4_gateway must be set when edge_ipv4_address is static."

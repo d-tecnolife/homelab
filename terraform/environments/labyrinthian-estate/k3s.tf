@@ -52,6 +52,10 @@ resource "proxmox_virtual_environment_vm" "k3s" {
     datastore_id = var.datastore_id
     interface    = "scsi1"
 
+    dns {
+      servers = var.dns_servers
+    }
+
     ip_config {
       ipv4 {
         address = var.k3s_ipv4_address

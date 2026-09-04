@@ -19,8 +19,8 @@ the required Terraform, routing, and Ansible sequence.
 
 ## Network layout
 
-VLAN 10 carries `10.1.1.0/24` management workloads and VLAN 20 carries
-`10.1.2.0/24` services workloads. Edge is attached to `vmbr0` for the Rogers
+VLAN 10 carries `10.100.1.0/24` management workloads and VLAN 20 carries
+`10.200.1.0/24` services workloads. Edge is attached to `vmbr0` for the Rogers
 LAN and to both internal VLANs, where it owns `.1` as the routed gateway. Its
 Edge-only Cloud-Init configuration enables IPv4 forwarding on first boot, so
 the management VLAN is reachable before Ansible is running on Ops.

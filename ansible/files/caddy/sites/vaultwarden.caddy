@@ -4,7 +4,7 @@ vault.dscim.dev {
 		resolvers 1.1.1.1
 	}
 
-	reverse_proxy 10.1.2.10:8280
+	reverse_proxy 10.200.1.10:8280
 
 	log {
 		output file /var/log/caddy/vaultwarden-access.json {

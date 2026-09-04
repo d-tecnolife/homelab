@@ -82,6 +82,10 @@ resource "proxmox_virtual_environment_vm" "ops" {
     interface         = "scsi1"
     user_data_file_id = proxmox_virtual_environment_file.ops_cloud_config.id
 
+    dns {
+      servers = var.dns_servers
+    }
+
     ip_config {
       ipv4 {
         address = var.ops_ipv4_address
@@ -95,6 +99,8 @@ resource "proxmox_virtual_environment_vm" "ops" {
   started = true
 
   lifecycle {
+    ignore_changes = [initialization[0].user_data_file_id]
+
     precondition {
       condition     = var.ops_ipv4_address == "dhcp" || var.ops_ipv4_gateway != null
       error_message = "ops_ipv4_gateway must be set when ops_ipv4_address is static."

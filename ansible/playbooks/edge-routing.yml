@@ -35,7 +35,7 @@
           table ip edge_nat {
             chain postrouting {
               type nat hook postrouting priority srcnat; policy accept;
-              ip saddr { 10.1.1.0/24, 10.1.2.0/24 } oifname "eth0" masquerade
+              ip saddr { 10.100.1.0/24, 10.200.1.0/24 } oifname "eth0" masquerade
             }
           }
       notify: Reload nftables
