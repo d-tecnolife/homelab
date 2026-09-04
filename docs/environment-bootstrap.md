@@ -30,10 +30,6 @@ pveversion
 ```
 
 Record the selected options, Proxmox version, and run date in the rebuild notes.
-Do not place this interactive command in the guest Ansible playbooks. If Proxmox
-host bootstrapping is automated later, replace it with reviewed, pinned,
-idempotent tasks for only the selected changes instead of downloading the moving
-upstream script unattended.
 
 Install Git, clone this repository, then run both repository preparation scripts
 as `root`:
