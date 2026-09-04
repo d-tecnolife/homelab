@@ -37,6 +37,28 @@
         ops_management_public_key: >-
           {{ ops_management_public_key_file.content | b64decode | trim }}
 
+    - name: Scan managed VM SSH host keys
+      ansible.builtin.command:
+        argv:
+          - ssh-keyscan
+          - -T
+          - "5"
+          - "{{ hostvars[item].ansible_host }}"
+      loop: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
+      register: managed_vm_host_keys
+      changed_when: false
+
+    - name: Trust managed VM SSH host keys
+      ansible.builtin.known_hosts:
+        path: "{{ ansible_user_dir }}/.ssh/known_hosts"
+        name: "{{ hostvars[item.item].ansible_host }}"
+        key: "{{ item.stdout }}"
+        hash_host: true
+        state: present
+      loop: "{{ managed_vm_host_keys.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
 - name: Authorize Ops on every managed VM
   hosts: managed_vms
   gather_facts: true

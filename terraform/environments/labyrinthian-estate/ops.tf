@@ -31,6 +31,8 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
 }
 
 resource "proxmox_virtual_environment_vm" "ops" {
+  depends_on = [proxmox_virtual_environment_vm.edge]
+
   name        = "ops"
   description = "ops VM managed by Terraform"
   tags        = ["terraform", "ubuntu", "ops"]

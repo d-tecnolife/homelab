@@ -2,6 +2,8 @@
 # names, then declare the matching VM-specific variables in variables.tf.
 
 resource "proxmox_virtual_environment_vm" "monitoring" {
+  depends_on = [proxmox_virtual_environment_vm.edge]
+
   name        = "monitoring"
   description = "Monitoring VM managed by Terraform"
   tags        = ["terraform", "ubuntu", "monitoring"]

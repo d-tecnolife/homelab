@@ -43,6 +43,18 @@ ssh-add "$env:USERPROFILE\.ssh\id_ed25519"
 ssh-add -l
 ```
 
+Install the public key on Proxmox using the root password once:
+
+```powershell
+Get-Content "$env:USERPROFILE\.ssh\id_ed25519.pub" | ssh root@192.168.1.100 "umask 077; mkdir -p /root/.ssh; cat >> /root/.ssh/authorized_keys"
+```
+
+Verify that SSH now works without a password:
+
+```powershell
+ssh -F NUL -o IdentityFile=none root@192.168.1.100
+```
+
 Create an automatically loaded, ignored variables file from the committed
 example:
 
@@ -90,6 +102,9 @@ LAN address as the next hop:
 route -p add 10.1.1.0 mask 255.255.255.0 192.168.1.199
 route -p add 10.1.2.0 mask 255.255.255.0 192.168.1.199
 ```
+
+Disconnect any VPN before connecting to the private subnets; a VPN may route
+`10.1.1.0/24` through its virtual interface instead of Edge.
 
 Verify Ops is reachable, then wait for its Cloud-Init setup to finish:
 

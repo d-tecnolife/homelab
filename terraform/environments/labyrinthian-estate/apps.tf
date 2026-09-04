@@ -1,4 +1,6 @@
 resource "proxmox_virtual_environment_vm" "apps" {
+  depends_on = [proxmox_virtual_environment_vm.edge]
+
   name        = "apps"
   description = "Primary Docker application host managed by Terraform"
   tags        = ["terraform", "ubuntu", "apps"]

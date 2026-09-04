@@ -17,16 +17,35 @@ resource "proxmox_virtual_environment_file" "edge_cloud_config" {
         ssh_authorized_keys = local.vm_ssh_authorized_keys
       }]
       package_update = true
-      packages       = ["qemu-guest-agent"]
-      write_files = [{
-        path        = "/etc/sysctl.d/99-edge-routing.conf"
-        owner       = "root:root"
-        permissions = "0644"
-        content     = "# Managed by Cloud-Init; maintained later by Ansible.\nnet.ipv4.ip_forward = 1\n"
-      }]
+      packages       = ["nftables", "qemu-guest-agent"]
+      write_files = [
+        {
+          path        = "/etc/sysctl.d/99-edge-routing.conf"
+          owner       = "root:root"
+          permissions = "0644"
+          content     = "# Managed by Cloud-Init; maintained later by Ansible.\nnet.ipv4.ip_forward = 1\n"
+        },
+        {
+          path        = "/etc/nftables.conf"
+          owner       = "root:root"
+          permissions = "0644"
+          content     = <<-EOT
+            # Managed by Cloud-Init; maintained later by Ansible.
+            flush ruleset
+
+            table ip edge_nat {
+              chain postrouting {
+                type nat hook postrouting priority srcnat; policy accept;
+                ip saddr { 10.1.1.0/24, 10.1.2.0/24 } oifname "eth0" masquerade
+              }
+            }
+          EOT
+        }
+      ]
       runcmd = [
-        ["systemctl", "enable", "--now", "qemu-guest-agent"],
-        ["sysctl", "--system"]
+        ["sysctl", "--system"],
+        ["systemctl", "enable", "--now", "nftables"],
+        ["systemctl", "enable", "--now", "qemu-guest-agent"]
       ]
     })])
 
