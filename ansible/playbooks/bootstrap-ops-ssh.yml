@@ -2,8 +2,35 @@
 - name: Generate the Ops management key
   hosts: ops
   gather_facts: true
+  vars:
+    ops_git_user_name: Russell
+    ops_git_user_email: dtecnolife@proton.me
 
   tasks:
+    - name: Read the configured Git name
+      ansible.builtin.command:
+        argv: [git, config, --global, --get, user.name]
+      register: configured_git_name
+      changed_when: false
+      failed_when: false
+
+    - name: Configure the Git name
+      ansible.builtin.command:
+        argv: [git, config, --global, user.name, "{{ ops_git_user_name }}"]
+      when: configured_git_name.stdout != ops_git_user_name
+
+    - name: Read the configured Git email
+      ansible.builtin.command:
+        argv: [git, config, --global, --get, user.email]
+      register: configured_git_email
+      changed_when: false
+      failed_when: false
+
+    - name: Configure the Git email
+      ansible.builtin.command:
+        argv: [git, config, --global, user.email, "{{ ops_git_user_email }}"]
+      when: configured_git_email.stdout != ops_git_user_email
+
     - name: Ensure the Ops SSH directory exists
       ansible.builtin.file:
         path: "{{ ansible_user_dir }}/.ssh"
