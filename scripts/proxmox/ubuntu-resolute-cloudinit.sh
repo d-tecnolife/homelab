@@ -33,23 +33,23 @@ rm -f resolute-server-cloudimg-amd64-resized.img
 cp resolute-server-cloudimg-amd64.img resolute-server-cloudimg-amd64-resized.img
 qemu-img resize resolute-server-cloudimg-amd64-resized.img 8G
 
-sudo qm destroy $VMID || true
-sudo qm create $VMID --name "ubuntu-resolute-template" --ostype l26 \
+qm destroy $VMID || true
+qm create $VMID --name "ubuntu-resolute-template" --ostype l26 \
     --memory 1024 --balloon 0 \
     --agent 1 \
     --bios ovmf --machine q35 --efidisk0 $STORAGE:0,pre-enrolled-keys=0 \
     --cpu host --socket 1 --cores 1 \
     --vga serial0 --serial0 socket  \
     --net0 virtio,bridge=vmbr0
-sudo qm importdisk $VMID resolute-server-cloudimg-amd64-resized.img $STORAGE
-sudo qm set $VMID --scsihw virtio-scsi-pci --virtio0 $STORAGE:vm-$VMID-disk-1,discard=on
-sudo qm set $VMID --boot order=virtio0
-sudo qm set $VMID --scsi1 $STORAGE:cloudinit
+qm importdisk $VMID resolute-server-cloudimg-amd64-resized.img $STORAGE
+qm set $VMID --scsihw virtio-scsi-pci --virtio0 $STORAGE:vm-$VMID-disk-1,discard=on
+qm set $VMID --boot order=virtio0
+qm set $VMID --scsi1 $STORAGE:cloudinit
 
 storage_property() {
     local property="$1"
 
-    sudo awk -v storage="$SNIPPET_STORAGE" -v property="$property" '
+    awk -v storage="$SNIPPET_STORAGE" -v property="$property" '
         /^[^[:space:]]+:[[:space:]]+/ { in_storage = ($2 == storage) }
         in_storage && $1 == property { print $2; exit }
     ' /etc/pve/storage.cfg
@@ -65,13 +65,13 @@ fi
 
 case ",$SNIPPET_CONTENT," in
     *,snippets,*) ;;
-    *) sudo pvesm set "$SNIPPET_STORAGE" --content "$SNIPPET_CONTENT,snippets" ;;
+    *) pvesm set "$SNIPPET_STORAGE" --content "$SNIPPET_CONTENT,snippets" ;;
 esac
 
 SNIPPET_DIR="$SNIPPET_ROOT/snippets"
-sudo install -d -m 0755 "$SNIPPET_DIR"
+install -d -m 0755 "$SNIPPET_DIR"
 
-cat << EOF | sudo tee "$SNIPPET_DIR/ubuntu-resolute.yaml"
+cat << EOF | tee "$SNIPPET_DIR/ubuntu-resolute.yaml"
 #cloud-config
 runcmd:
     - apt-get update
@@ -81,12 +81,12 @@ runcmd:
 # Taken from https://forum.proxmox.com/threads/combining-custom-cloud-init-with-auto-generated.59008/page-3#post-428772
 EOF
 
-echo "timezone: "$(cat /etc/timezone) | sudo tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
-echo "locale: "$LANG | sudo tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
+echo "timezone: "$(cat /etc/timezone) | tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
+echo "locale: "$LANG | tee -a "$SNIPPET_DIR/ubuntu-resolute.yaml"
 
-sudo qm set $VMID --cicustom "vendor=$SNIPPET_STORAGE:snippets/ubuntu-resolute.yaml"
-sudo qm set $VMID --tags ubuntu-template,resolute,cloudinit
-sudo qm set $VMID --ciuser $USER
-sudo qm set $VMID --sshkeys ~/.ssh/authorized_keys
-sudo qm set $VMID --ipconfig0 ip=dhcp,ip6=dhcp
-sudo qm template $VMID
+qm set $VMID --cicustom "vendor=$SNIPPET_STORAGE:snippets/ubuntu-resolute.yaml"
+qm set $VMID --tags ubuntu-template,resolute,cloudinit
+qm set $VMID --ciuser $USER
+qm set $VMID --sshkeys ~/.ssh/authorized_keys
+qm set $VMID --ipconfig0 ip=dhcp,ip6=dhcp
+qm template $VMID
