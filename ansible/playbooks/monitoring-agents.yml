@@ -61,19 +61,3 @@
       ansible.builtin.systemd_service:
         name: alloy
         state: restarted
-
-- name: Install hardware metrics collector on Proxmox
-  hosts: proxmox_hosts
-  become: true
-  gather_facts: true
-  tasks:
-    - name: Install node exporter
-      ansible.builtin.apt:
-        name: prometheus-node-exporter
-        state: present
-        update_cache: true
-    - name: Enable Proxmox hardware metrics collection
-      ansible.builtin.systemd_service:
-        name: prometheus-node-exporter
-        enabled: true
-        state: started

@@ -1,6 +1,6 @@
 ---
 - name: Configure Docker hosts
-  hosts: ops:apps:monitoring
+  hosts: ops:apps:games:monitoring
   become: true
   gather_facts: true
 

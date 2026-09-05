@@ -17,7 +17,8 @@ for the required execution order.
 - `playbooks/agent-user.yml` creates the unprivileged agent account, installs
   Codex, and creates repository-specific Notes and Homelab deploy keys.
 - `playbooks/monitoring-agents.yml` installs node_exporter and Alloy across
-  managed VMs and node_exporter on the Proxmox host.
+  managed VMs. Proxmox metrics come from its API through pve-exporter, avoiding
+  a root SSH dependency on the hypervisor.
 - `playbooks/monitoring-targets.yml` renders Prometheus file-discovery targets
   from inventory. `playbooks/monitoring-inventory-automation.yml` installs the
   Ops watcher that runs it whenever the private inventory changes.
@@ -27,14 +28,16 @@ for the required execution order.
 - `playbooks/caddy.yml` installs a Cloudflare-enabled Caddy build on Edge,
   deploys its sites, validates the configuration, and maintains its health
   endpoint and JSON logs.
-- `playbooks/docker.yml` installs Docker Engine and Compose on Ops and Apps,
+- `playbooks/docker.yml` installs Docker Engine and Compose on Ops, Apps,
+  Games, and Monitoring,
   grants the management user Docker access, and creates `/opt/compose`.
 - `playbooks/maintenance-schedule.yml` installs Ops systemd timers for daily
   security updates, weekly safe upgrades, and monthly conditional reboots.
 - `playbooks/deploy-compose.yml` copies the stacks assigned to each host and
   decrypts any matching `secrets/compose/<stack>.sops.env` file in memory,
   validates, pulls, and applies the stacks with Docker Compose. Apps receives
-  only Vaultwarden, Watchtower, WannBot, and Job Ops.
+  only Vaultwarden, Watchtower, WannBot, and Job Ops; Games receives only
+  Minecraft, and Monitoring receives only the monitoring stack.
 
 `inventory/hosts.yml` is created from `inventory/hosts.yml.example` and ignored
 because it contains local network details. The repository-local `ansible.cfg`

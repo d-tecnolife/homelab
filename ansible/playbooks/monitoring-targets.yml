@@ -12,3 +12,10 @@
         group: docker
         mode: "0644"
 
+    - name: Render Minecraft metrics target
+      ansible.builtin.template:
+        src: ../files/prometheus/minecraft-targets.yml.j2
+        dest: /opt/compose/monitoring/config/prometheus/minecraft-targets.yml
+        owner: root
+        group: docker
+        mode: "0644"

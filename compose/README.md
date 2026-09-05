@@ -12,4 +12,7 @@ Compose definitions are deployed under `/opt/compose/<stack>`. Persistent
 bind-mounted application data is created under `/srv/compose/<stack>` for
 consistent backup and recovery.
 
-The `monitoring` stack runs only on the Monitoring VM.
+The `monitoring` stack runs only on the Monitoring VM. The `minecraft` stack
+runs only on Games and uses the official Craft to Exile 2 server pack. Its
+RCON and forward-compatible management-server credentials come from
+`secrets/compose/minecraft.sops.env`; neither control port is published.
