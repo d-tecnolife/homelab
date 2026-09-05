@@ -55,7 +55,9 @@
         owner: root
         group: docker
         mode: "2775"
-      loop: "{{ compose_data_directories }}"
+      loop: >-
+        {{ compose_data_directories |
+           difference(compose_data_owners | map(attribute='path') | list) }}
 
     - name: Allow non-root containers to write persistent data
       ansible.builtin.file:
@@ -64,7 +66,6 @@
         owner: "{{ item.owner }}"
         group: docker
         mode: "2770"
-        recurse: true
       loop: "{{ compose_data_owners }}"
 
     - name: Copy version-controlled stack files
