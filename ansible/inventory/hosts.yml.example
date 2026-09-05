@@ -4,6 +4,7 @@ all:
       hosts:
         edge:
           ansible_host: 10.100.1.1
+          minecraft_wan_listener_address: 192.0.2.10
         ops:
           ansible_host: 10.100.1.10
           ansible_connection: local

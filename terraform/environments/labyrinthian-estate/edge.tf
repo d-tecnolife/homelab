@@ -34,6 +34,11 @@ resource "proxmox_virtual_environment_file" "edge_cloud_config" {
             flush ruleset
 
             table ip edge_nat {
+              chain prerouting {
+                type nat hook prerouting priority dstnat; policy accept;
+                iifname "eth0" ip daddr ${split("/", var.edge_ipv4_address)[0]} tcp dport 25565 dnat to ${split("/", var.games_ipv4_address)[0]}:25565
+              }
+
               chain postrouting {
                 type nat hook postrouting priority srcnat; policy accept;
                 ip saddr { 10.100.1.0/24, 10.200.1.0/24 } oifname "eth0" masquerade
