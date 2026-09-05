@@ -1,0 +1,3 @@
+creation_rules:
+  - path_regex: (^|/)secrets/.*\.sops\.(env|ya?ml|json)$
+    age: age1s2en9ucsw487rylh3uuuvxvlel3tesdpzljfkuwfft0ufa5kdp4ql6m33j
