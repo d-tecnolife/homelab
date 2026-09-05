@@ -1,0 +1,45 @@
+---
+- name: Configure Codex for the existing dtec operator on Ops
+  hosts: ops
+  become: true
+  gather_facts: false
+  vars:
+    ops_homelab_checkout: /home/dtec/homelab
+  tasks:
+    - name: Verify the existing operator account
+      ansible.builtin.getent:
+        database: passwd
+        key: dtec
+
+    - name: Verify the saved Homelab checkout
+      ansible.builtin.stat:
+        path: "{{ ops_homelab_checkout }}/AGENTS.md"
+      register: ops_project
+
+    - name: Require the saved project before configuring it
+      ansible.builtin.assert:
+        that: ops_project.stat.exists
+        fail_msg: Clone Homelab as dtec at ops_homelab_checkout first.
+
+    - name: Create the project configuration directories
+      ansible.builtin.file:
+        path: "{{ ops_homelab_checkout }}/.codex/agents"
+        state: directory
+        owner: dtec
+        group: dtec
+        mode: "0755"
+
+    - name: Install project model routing
+      ansible.builtin.copy:
+        src: ../files/codex/
+        dest: "{{ ops_homelab_checkout }}/.codex/"
+        owner: dtec
+        group: dtec
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Report the operator setup
+      ansible.builtin.debug:
+        msg: >-
+          Open the saved /home/dtec/homelab project as dtec. Use the existing
+          Codex installation and authenticate interactively as dtec if needed.

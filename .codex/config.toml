@@ -1,0 +1,17 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "low"
+
+[agents]
+enabled = true
+
+[agents.architect]
+description = "Exceptional-use architecture and design decisions with consequential cross-layer trade-offs."
+config_file = "agents/architect.toml"
+
+[agents.implementation]
+description = "Focused Ansible, Compose, configuration, tests, and scripts after the primary agent defines the approach."
+config_file = "agents/implementation.toml"
+
+[agents.routine]
+description = "Status checks, bounded log summaries, simple configuration, and explicitly authorized known deployments."
+config_file = "agents/routine.toml"

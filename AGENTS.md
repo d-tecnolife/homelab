@@ -4,10 +4,12 @@ This repository is the desired state for the homelab. Terraform owns Proxmox
 resources, Ansible owns guest configuration, and Compose files own application
 deployment.
 
-Before working, read `../notes/AGENTS.md` and follow its router to exactly the
-context relevant to the task. Run `bash scripts/context-sync.sh` first when the
-Notes checkout is clean and network access is available. If the Notes checkout
-is missing or dirty, report that condition instead of replacing local work.
+Before reading Notes context, inspect the sibling Notes checkout. When it is
+clean and network access is available, run `bash scripts/context-sync.sh` and
+require its fast-forward pull to succeed; then read `../notes/AGENTS.md` and
+follow its router to exactly the context relevant to the task. If the checkout
+is missing, dirty, read-only, or cannot be updated, report that condition and
+the context's freshness is unverified. Never replace or overwrite local work.
 
 ## Change boundary
 
@@ -19,9 +21,82 @@ is missing or dirty, report that condition instead of replacing local work.
   change.
 - Require a separate explicit confirmation for deletion, destruction, rebuilds,
   storage changes, and network changes after showing their exact impact.
-- Never print, commit, or paste decrypted secrets. The agent account does not
-  own the SOPS age identity.
+- Never print, commit, or paste decrypted secrets. Use secrets only through
+  the existing deployment workflow; never expose the SOPS age identity.
 
 Preserve unrelated changes, prefer the smallest complete implementation, run
 the closest validation available, and show the resulting diff before live
 deployment.
+
+After a requested repository change is complete and its relevant validation
+passes, create a task-scoped Conventional Commit and push the current branch.
+Never bundle unrelated existing work. If validation fails, ownership is
+uncertain, or the push is rejected, report the blocker instead of forcing it.
+This standing Git authorization does not authorize deployment, publication,
+destructive operations, or bypassing branch protection.
+
+## Infrastructure-as-code and reproducibility
+
+- Treat this repository as the authoritative desired state. Implement lasting
+  homelab changes as code so a clean environment can reproduce them without
+  relying on remembered shell commands or undocumented host state.
+- Use Terraform for Proxmox resources and infrastructure lifecycle, Ansible for
+  operating-system and guest configuration, and Compose for application stacks.
+  Keep ownership in the appropriate layer and avoid managing the same setting
+  from multiple layers.
+- Decide whether a step belongs in infrastructure as code based on whether it
+  represents reusable or persistent desired state. Prefer a reproducible task
+  when a change may need to be repeated after rebuild, disaster recovery, host
+  replacement, or deployment to another applicable VM.
+- One-off inspection, diagnosis, validation, emergency containment, and data
+  recovery may use direct commands when encoding them would add no reusable
+  value. If a direct change becomes part of the intended steady state, reconcile
+  it into Terraform, Ansible, or Compose before considering the work complete.
+- Make automation idempotent where practical, parameterize environment-specific
+  values, keep secrets in the existing SOPS workflow, and add only the concise
+  documentation needed to reproduce and verify the result.
+- Validate the nearest infrastructure-as-code layer before proposing deployment:
+  format and validate Terraform, syntax-check or check Ansible where meaningful,
+  and render or validate Compose configuration without exposing secrets.
+
+## Homelab execution policy
+
+- Work directly from the saved Homelab project on Ops (`/home/dtec/homelab`).
+- Use `dtec` for repository inspection, edits, VM connections, and authorized
+  deployments.
+- Default network probes to five seconds. Use longer waits only while installs,
+  pulls, backups, or playbooks show progress.
+- Batch independent VM checks through one Ansible invocation.
+- Stop diagnosis at the first broken dependency, prepare its fix, apply only
+  within the deployment authorization above, and verify it once.
+
+## Model routing and delegation
+
+- Default primary: `gpt-5.6-sol`, low reasoning, for normal investigation,
+  coordination, planning within an established design, and review. It is the
+  usual task model and should route bounded work to a cheaper suitable role.
+- Architecture: `gpt-5.6-sol`, high reasoning (custom `architect` role), is
+  deliberately exceptional. Use it only when a task genuinely requires
+  demanding architectural or design decisions, such as selecting a durable
+  system boundary, resolving consequential trade-offs, or designing a new
+  cross-layer approach. Do not use it for routine planning or implementation.
+- Implementation: `gpt-5.6-terra`, medium reasoning, for focused Ansible,
+  Compose, configuration, tests, and scripts (custom `implementation` role).
+- Exploration, testing, and security review: prefer the built-in specialist
+  roles with `gpt-5.6-terra`, medium reasoning. If a security task also requires
+  genuinely demanding architectural design, escalate that design question to
+  the Sol-high architect.
+- Cheap routine work: `gpt-5.6-luna`, low reasoning (custom `routine` role), for
+  status checks, known deployments, log summaries, and simple config changes.
+  Deployment authorization is required regardless of model.
+- Favor token-efficient delegation. Use the least expensive model and reasoning
+  level that can reliably complete each bounded task. Delegate independent
+  discovery, review, implementation, testing, and routine processes; assign
+  clear ownership, preserve in-flight edits, and review results in the primary
+  task. Escalate to the Sol-high architect role only when its higher-level
+  design judgment is genuinely needed.
+- If the available spawn tool selects models directly instead of named roles,
+  pass the model and reasoning explicitly with a bounded context fork; do not
+  use a full-history fork when it prevents model overrides.
+- Use separate Codex tasks only for independent, long-running projects and only
+  when requested. Within one incident or change, use subagents.

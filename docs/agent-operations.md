@@ -1,71 +1,46 @@
-# Agent identity on Ops
+# Codex operations on Ops
 
-The `agent` account is an unprivileged execution identity for remote agent
-sessions. It is separate from the `dtec` administrator, is not a sudoer, and
-cannot read the administrator's SOPS age identity. The playbook also installs
-Codex from OpenAI's standalone Linux installer into `~/.local/bin`.
+Use the saved Homelab project at `/home/dtec/homelab` on Ops as `dtec`.
+Repository work, VM connections, and authorized deployment commands all use
+that account. The inventory already selects `dtec` for managed VMs.
 
-## Create or repair the account
+The root `AGENTS.md` contains the persistent execution and delegation policy.
+It also requires lasting homelab changes to be reproducible through the owning
+infrastructure-as-code layer: Terraform for Proxmox resources, Ansible for guest
+configuration, and Compose for application deployment. Direct diagnostic or
+recovery commands are acceptable when they do not represent desired state; any
+persistent live change must be reconciled into the repository before completion.
+Project `.codex/config.toml` selects `gpt-5.6-sol` with low reasoning for the
+normal primary task. The `architect` role selects Sol with high reasoning, but
+is intentionally reserved for genuinely demanding architecture and design
+decisions with consequential cross-layer trade-offs. The implementation role
+uses `gpt-5.6-terra` with medium reasoning, and the routine role uses
+`gpt-5.6-luna` with low reasoning. Exploration, testing, and security review use
+Terra with medium reasoning. The primary task should delegate bounded work to
+the least expensive suitable specialist and review the result; it should
+escalate to the architect role only when its higher-level design judgment is
+needed. Explicit task model selections can override the project default;
+existing tasks do not switch models retroactively.
 
-From `~/homelab/ansible` on Ops:
+The configuration uses the documented [Codex agent settings](https://learn.chatgpt.com/docs/config-file/config-reference)
+and [subagent model selection](https://learn.chatgpt.com/docs/agent-configuration/subagents).
+The deployment source is `ansible/files/codex/`; keep it identical to `.codex/`
+when changing routing. It does not replace the operator's global configuration
+or authentication. Codex must trust the project to load project configuration.
 
-```bash
-ansible-playbook playbooks/agent-user.yml
-```
-
-The playbook installs repository-managed workstation public keys in the
-account's `authorized_keys` and prints two repository-specific deploy keys.
-Add each under the matching GitHub repository's
-**Settings > Deploy keys > Add deploy key**:
-
-- Add the Notes key to `d-tecnolife/notes` with write access disabled.
-- Add the Homelab key to `d-tecnolife/homelab` with write access enabled so the
-  agent can push reviewed branches. Repository write access does not grant
-  deployment or host privileges.
-
-As `agent`, verify GitHub's presented SSH host-key fingerprint, establish the
-connection, and clone the context repository:
-
-```bash
-ssh -T git@github-notes
-ssh -T git@github-homelab
-git clone git@github-notes:d-tecnolife/notes.git ~/workspace/notes
-git clone git@github-homelab:d-tecnolife/homelab.git ~/workspace/homelab
-```
-
-Synchronize and verify the provider-neutral context entry point:
+After reviewing the diff and explicitly authorizing deployment, run on Ops:
 
 ```bash
-cd ~/workspace/homelab
-bash scripts/context-sync.sh
-test -f ../notes/AGENTS.md
+cd /home/dtec/homelab/ansible
+ansible-playbook playbooks/ops-codex.yml
 ```
 
-Authenticate Codex interactively as the agent user:
+Use the existing Codex installation; authenticate interactively with `codex login`
+as `dtec` if needed. Authentication and the SOPS age identity remain outside Git.
+Open the saved project with an SSH connection using `dtec@10.100.1.10`.
+Keep the sibling Notes checkout at `/home/dtec/notes` and follow its context router.
 
-```bash
-codex login
-```
-
-Codex authentication is stored under `~/.codex` and must remain outside Git.
-The root `AGENTS.md` sends Codex and future compatible agents through the same
-Notes context router.
-
-Connect from the workstation:
-
-```bash
-ssh agent@10.100.1.10
-```
-
-After verifying SSH access, add the same host and user to the Codex desktop
-app's SSH connections and select `~/workspace/homelab` as the remote project.
-Future agent providers remain separate adapters; their login sessions are
-runtime state and must not be committed.
-
-## Operating boundary
-
-The agent may inspect repositories, prepare changes, and run local validation.
-It cannot use sudo, decrypt deployment secrets, or SSH to managed VMs by
-default. A human administrator reviews the diff and runs privileged Terraform
-or Ansible deployment commands. Add narrowly scoped deployment automation only
-after its exact commands and approval behavior are defined.
+The `dtec` account's privileges do not authorize deployment implicitly. Apply
+only named changes explicitly authorized by the user, and obtain separate
+confirmation for deletion, rebuilds, storage, or network changes as required by
+`AGENTS.md`. Never print decrypted secrets.
