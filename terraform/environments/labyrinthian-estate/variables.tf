@@ -287,7 +287,7 @@ variable "edge_disk_size_gb" {
 variable "edge_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "192.168.1.199/24"
+  default     = "192.0.2.10/24"
 
   validation {
     condition     = var.edge_ipv4_address == "dhcp" || can(cidrnetmask(var.edge_ipv4_address))
