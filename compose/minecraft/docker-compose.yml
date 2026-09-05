@@ -25,6 +25,8 @@ services:
       LEVEL: Backshots Central
       OPS: |-
         ratcho19
+      ENABLE_WHITELIST: "true"
+      ENFORCE_WHITELIST: "true"
       SERVER_NAME: Backshots Central
       LOG_TIMESTAMP: "true"
       ENABLE_RCON: "true"
