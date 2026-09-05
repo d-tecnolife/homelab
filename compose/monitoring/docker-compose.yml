@@ -10,7 +10,7 @@ services:
     ports: ["9090:9090"]
     volumes:
       - ./config/prometheus:/etc/prometheus:ro
-      - /srv/compose/monitoring/prometheus-targets:/etc/prometheus/targets:ro
+      - /srv/compose/monitoring/prometheus-targets:/etc/prometheus-targets:ro
       - /srv/compose/monitoring/prometheus:/prometheus
     depends_on: [alertmanager, pve-exporter]
 

@@ -18,10 +18,10 @@ scrape_configs:
       - targets: [loki:3100]
   - job_name: node
     file_sd_configs:
-      - files: [/etc/prometheus/targets/node-targets.yml]
+      - files: [/etc/prometheus-targets/node-targets.yml]
   - job_name: minecraft
     file_sd_configs:
-      - files: [/etc/prometheus/targets/minecraft-targets.yml]
+      - files: [/etc/prometheus-targets/minecraft-targets.yml]
   - job_name: proxmox
     metrics_path: /pve
     params:
