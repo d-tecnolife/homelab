@@ -32,8 +32,11 @@ After a requested repository change is complete and its relevant validation
 passes, create a task-scoped Conventional Commit and push the current branch.
 Never bundle unrelated existing work. If validation fails, ownership is
 uncertain, or the push is rejected, report the blocker instead of forcing it.
-This standing Git authorization does not authorize deployment, publication,
-destructive operations, or bypassing branch protection.
+This is standing authorization to run `git push origin main` for completed,
+validated, task-scoped commits in this public repository without requesting
+separate approval. It does not authorize releases or other publication,
+deployment, destructive operations, force-pushes, or bypassing branch
+protection.
 
 ## Infrastructure-as-code and reproducibility
 
