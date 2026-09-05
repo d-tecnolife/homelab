@@ -1,9 +1,15 @@
 # Agent identity on Ops
 
-The `agent` account is an unprivileged execution identity for remote agent
-sessions. It is separate from the `dtec` administrator, is not a sudoer, and
-cannot read the administrator's SOPS age identity. The playbook also installs
-Codex from OpenAI's standalone Linux installer into `~/.local/bin`.
+The `agent` account is the default execution identity for work on public
+repositories and other tasks that do not require private-repository access,
+secret decryption, or host privilege. It keeps agent-authored commits separate
+from human commits with `Ops Agent <ops-agent@dscim.dev>`.
+
+It is separate from the `dtec` administrator, is not a sudoer, and cannot read
+the administrator's SOPS age identity. Use `dtec` only for private repositories,
+SOPS/age and other secret handling, or privileged deployment and host changes.
+The playbook also installs Codex from OpenAI's standalone Linux installer into
+`~/.local/bin`.
 
 ## Create or repair the account
 
@@ -64,8 +70,13 @@ runtime state and must not be committed.
 
 ## Operating boundary
 
-The agent may inspect repositories, prepare changes, and run local validation.
-It cannot use sudo, decrypt deployment secrets, or SSH to managed VMs by
-default. A human administrator reviews the diff and runs privileged Terraform
-or Ansible deployment commands. Add narrowly scoped deployment automation only
-after its exact commands and approval behavior are defined.
+Use `agent` by default to inspect and edit public repositories, run local
+validation, create branches, and commit and push reviewed changes. Its Git
+author must remain `Ops Agent <ops-agent@dscim.dev>`.
+
+The agent cannot use sudo, decrypt deployment secrets, access private
+repositories unless separately authorized, or SSH to managed VMs by default.
+Use `dtec` for those restricted steps. A human administrator reviews the diff
+and runs privileged Terraform or Ansible deployment commands. Add narrowly
+scoped deployment automation only after its exact commands and approval
+behavior are defined.
