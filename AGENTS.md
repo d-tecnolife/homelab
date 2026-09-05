@@ -11,6 +11,12 @@ follow its router to exactly the context relevant to the task. If the checkout
 is missing, dirty, read-only, or cannot be updated, report that condition and
 the context's freshness is unverified. Never replace or overwrite local work.
 
+After a repository or deployed infrastructure change alters the homelab's
+current state, recovery path, deployment order, or operating procedures, update
+the routed Homelab IaC context in the sibling Notes repository as part of the
+same task. Follow the Notes repository's own authoring, validation, commit, and
+push rules, and never mix its commit with the Homelab repository commit.
+
 ## Change boundary
 
 - Inspection, explanation, diagnosis, plans, and status requests are read-only.
