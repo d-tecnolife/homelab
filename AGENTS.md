@@ -8,6 +8,8 @@ Before working, read `../notes/AGENTS.md` and follow its router to exactly the
 context relevant to the task. Run `bash scripts/context-sync.sh` first when the
 Notes checkout is clean and network access is available. If the Notes checkout
 is missing or dirty, report that condition instead of replacing local work.
+Read `docs/expected-state.md` before auditing drift, cleaning artifacts, or
+correcting unexpected files or behavior.
 
 ## Change boundary
 
