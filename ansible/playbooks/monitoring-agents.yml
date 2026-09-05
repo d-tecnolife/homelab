@@ -42,6 +42,14 @@
         groups: docker
         append: true
       when: docker_socket.stat.exists
+      notify: Restart Alloy
+    - name: Allow Alloy to read Minecraft server logs on Games
+      ansible.builtin.user:
+        name: alloy
+        groups: minecraft-data
+        append: true
+      when: inventory_hostname == 'games'
+      notify: Restart Alloy
     - name: Configure Alloy log forwarding
       ansible.builtin.template:
         src: ../files/alloy/config.alloy.j2
