@@ -11,7 +11,9 @@ for the required execution order.
 - `playbooks/bootstrap-ops-ssh.yml` generates the Ops management key and adds
   its public key to every managed VM.
 - `playbooks/secrets.yml` installs SOPS and age on Ops and generates the
-  administrator-owned age identity used for deploy-time decryption.
+  administrator-owned age identity used for deploy-time decryption. Run it
+  before creating `*.sops.*` files; it distinguishes actual SOPS ciphertext
+  from plaintext files that merely use the naming convention.
 - `playbooks/agent-user.yml` creates the unprivileged agent account, installs
   Codex, and creates repository-specific Notes and Homelab deploy keys.
 - `playbooks/monitoring-agents.yml` installs node_exporter and Alloy across

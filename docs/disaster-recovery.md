@@ -39,9 +39,10 @@ credentials when their former host is lost or compromised.
      -e sops_age_recovery_source=/secure/path/keys.txt
    ```
 
-   The playbook refuses to generate a replacement key when encrypted repository
-   files already exist and verifies that the restored identity decrypts every
-   committed SOPS file.
+   The playbook checks candidate `*.sops.*` files with `sops filestatus`, refuses
+   to generate a replacement key when any are actually encrypted, and verifies
+   that the restored identity decrypts each encrypted file. A filename alone is
+   not treated as proof that a file is encrypted.
 7. Run the remaining bootstrap playbooks, including `agent-user.yml`. Register
    the newly generated GitHub deploy keys and remove the obsolete deploy keys.
 8. Restore persistent application data before starting its Compose stack, then

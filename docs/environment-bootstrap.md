@@ -177,11 +177,16 @@ every VM. The workstation private key is used through the forwarded agent and
 is never copied to Ops. The remaining playbooks maintain VM hostname mappings,
 configure Edge routing, and configure Docker.
 
-Back up the age identity printed by `secrets.yml`, create and commit
-`.sops.yaml` from `.sops.yaml.example`, then follow
-[Secrets management](../secrets/README.md) to encrypt the Cloudflare API token.
-The token should remain scoped to `dscim.dev` with `Zone:Read` and `DNS:Edit`.
-Then deploy Caddy:
+Run `secrets.yml` before creating files with a `.sops.*` name. It installs SOPS
+and age and creates the administrator identity at
+`~/.config/sops/age/keys.txt`. Back up that file outside the homelab, create and
+commit `.sops.yaml` from `.sops.yaml.example`, then create or edit encrypted
+files with `sops secrets/<path>.sops.env`. SOPS automatically discovers the age
+identity in its default location.
+
+Follow [Secrets management](../secrets/README.md) to encrypt the Cloudflare API
+token. The token should remain scoped to `dscim.dev` with `Zone:Read` and
+`DNS:Edit`. Then deploy Caddy:
 
 ```bash
 ansible-playbook playbooks/caddy.yml
