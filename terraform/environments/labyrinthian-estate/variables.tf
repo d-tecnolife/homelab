@@ -104,7 +104,7 @@ variable "ops_vm_id" {
 variable "edge_vm_id" {
   description = "VMID to assign to the edge VM."
   type        = number
-  default     = 1999
+  default     = 2000
 }
 
 variable "apps_vm_id" {
