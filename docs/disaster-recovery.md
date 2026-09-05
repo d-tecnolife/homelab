@@ -42,8 +42,9 @@ credentials when their former host is lost or compromised.
    The playbook refuses to generate a replacement key when encrypted repository
    files already exist and verifies that the restored identity decrypts every
    committed SOPS file.
-7. Run the remaining bootstrap playbooks, including `agent-user.yml`. Register
-   the newly generated GitHub deploy keys and remove the obsolete deploy keys.
+7. Run the remaining bootstrap playbooks, including `ops-codex.yml`, using
+   `dtec`. Restore the operator's repository access and authenticate Codex
+   interactively if needed.
 8. Restore persistent application data before starting its Compose stack, then
    deploy Caddy and the application stacks through Ansible.
 9. Verify routing, DNS, TLS, application health, backups, monitoring, and a test

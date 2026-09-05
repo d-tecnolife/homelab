@@ -169,7 +169,7 @@ ansible-playbook playbooks/edge-routing.yml
 ansible-playbook playbooks/docker.yml
 ansible-playbook playbooks/maintenance-schedule.yml
 ansible-playbook playbooks/secrets.yml
-ansible-playbook playbooks/agent-user.yml
+ansible-playbook playbooks/ops-codex.yml
 ```
 
 The first playbook generates an Ed25519 key on Ops and adds its public key to

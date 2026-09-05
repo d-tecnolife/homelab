@@ -12,8 +12,7 @@ for the required execution order.
   its public key to every managed VM.
 - `playbooks/secrets.yml` installs SOPS and age on Ops and generates the
   administrator-owned age identity used for deploy-time decryption.
-- `playbooks/agent-user.yml` creates the unprivileged agent account, installs
-  Codex, and creates repository-specific Notes and Homelab deploy keys.
+- `playbooks/ops-codex.yml` configures project model routing for `dtec`.
 - `playbooks/monitoring-agents.yml` installs node_exporter and Alloy across
   managed VMs and node_exporter on the Proxmox host.
 - `playbooks/monitoring-targets.yml` renders Prometheus file-discovery targets
