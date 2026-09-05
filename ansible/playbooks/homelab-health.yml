@@ -1,0 +1,30 @@
+---
+- name: Install the homelab health collector on Ops
+  hosts: ops
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Create the local helper directory
+      ansible.builtin.file:
+        path: /usr/local/libexec
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the per-VM health probe
+      ansible.builtin.copy:
+        src: ../files/scripts/homelab-health-probe.py
+        dest: /usr/local/libexec/homelab-health-probe.py
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the homelab health command
+      ansible.builtin.copy:
+        src: ../files/scripts/homelab-health.py
+        dest: /usr/local/bin/homelab-health
+        owner: root
+        group: root
+        mode: "0755"

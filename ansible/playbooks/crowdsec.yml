@@ -1,0 +1,214 @@
+---
+- name: Configure CrowdSec on Edge
+  hosts: edge
+  become: true
+  gather_facts: true
+  vars:
+    service_operator_users: [dtec]
+    crowdsec_operator_group: crowdsec-data
+
+  tasks:
+    - name: Install CrowdSec repository prerequisites
+      ansible.builtin.apt:
+        name: [ca-certificates, gnupg, python3-debian]
+        state: present
+        update_cache: true
+
+    - name: Configure the official CrowdSec repository
+      ansible.builtin.deb822_repository:
+        name: crowdsec
+        types: [deb]
+        uris: https://packagecloud.io/crowdsec/crowdsec/any
+        suites: [any]
+        components: [main]
+        architectures: [amd64]
+        signed_by: https://packagecloud.io/crowdsec/crowdsec/gpgkey
+        state: present
+      register: crowdsec_repository
+
+    - name: Install CrowdSec and its nftables bouncer
+      ansible.builtin.apt:
+        name:
+          - crowdsec
+          - crowdsec-firewall-bouncer-nftables
+        state: present
+        update_cache: "{{ crowdsec_repository.changed }}"
+        policy_rc_d: 101
+
+    - name: Move the CrowdSec local API off Caddy's port
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/config.yaml
+        regexp: '^    listen_uri:'
+        line: '    listen_uri: 127.0.0.1:8081'
+      notify: Restart CrowdSec
+
+    - name: Point the CrowdSec agent at its local API port
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/local_api_credentials.yaml
+        regexp: '^url:'
+        line: 'url: http://127.0.0.1:8081'
+      no_log: true
+      notify: Restart CrowdSec
+
+    - name: Create the firewall bouncer local configuration
+      ansible.builtin.file:
+        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local
+        state: touch
+        owner: root
+        group: root
+        mode: "0640"
+        modification_time: preserve
+        access_time: preserve
+
+    - name: Remove superseded unmanaged bouncer settings
+      ansible.builtin.replace:
+        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local
+        regexp: '(?s)\A.*?(?=# BEGIN ANSIBLE MANAGED BOUNCER SETTINGS)'
+        replace: ''
+      no_log: true
+      notify: Restart CrowdSec firewall bouncer
+
+    - name: Configure the firewall bouncer for Ansible-owned nftables sets
+      ansible.builtin.blockinfile:
+        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local
+        marker: '# {mark} ANSIBLE MANAGED BOUNCER SETTINGS'
+        block: |
+          api_url: http://127.0.0.1:8081/
+          mode: nftables
+          disable_ipv6: true
+          blacklists_ipv4: crowdsec-blacklists
+          nftables:
+            ipv4:
+              enabled: true
+              set-only: true
+              table: crowdsec
+              chain: crowdsec-input
+            ipv6:
+              enabled: false
+      notify: Restart CrowdSec firewall bouncer
+
+    - name: Create CrowdSec acquisition overrides
+      ansible.builtin.file:
+        path: /etc/crowdsec/acquis.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Acquire Caddy JSON access logs
+      ansible.builtin.copy:
+        dest: /etc/crowdsec/acquis.d/caddy.yaml
+        owner: root
+        group: root
+        mode: "0640"
+        content: |
+          filenames:
+            - /var/log/caddy/*.json
+          labels:
+            type: caddy
+      notify: Restart CrowdSec
+
+    - name: Install CrowdSec Linux and Caddy collections
+      ansible.builtin.command:
+        argv: [cscli, collections, install, "{{ item }}"]
+      loop:
+        - crowdsecurity/linux
+        - crowdsecurity/caddy
+      register: crowdsec_collection_install
+      changed_when: "'Nothing to do' not in crowdsec_collection_install.stdout"
+      notify: Restart CrowdSec
+
+    - name: Create the CrowdSec data access group
+      ansible.builtin.group:
+        name: "{{ crowdsec_operator_group }}"
+        state: present
+
+    - name: Add operators to the CrowdSec data access group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: "{{ crowdsec_operator_group }}"
+        append: true
+      loop: "{{ service_operator_users }}"
+
+    - name: Create the CrowdSec log directory
+      ansible.builtin.file:
+        path: /var/log/crowdsec
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Grant operators access to existing CrowdSec logs
+      ansible.posix.acl:
+        path: /var/log/crowdsec
+        entity: "{{ crowdsec_operator_group }}"
+        etype: group
+        permissions: rwX
+        recursive: true
+        state: present
+
+    - name: Inherit operator access on new CrowdSec logs
+      ansible.posix.acl:
+        path: /var/log/crowdsec
+        entity: "{{ crowdsec_operator_group }}"
+        etype: group
+        permissions: rwX
+        default: true
+        state: present
+
+    - name: Enable and start CrowdSec
+      ansible.builtin.systemd_service:
+        name: crowdsec
+        enabled: true
+        state: started
+
+    - name: Apply configuration changes before starting the bouncer
+      ansible.builtin.meta: flush_handlers
+
+    - name: Check whether the firewall bouncer is registered
+      ansible.builtin.command: cscli bouncers list -o json
+      register: crowdsec_registered_bouncers
+      changed_when: false
+
+    - name: Register the firewall bouncer
+      ansible.builtin.command:
+        argv: [cscli, bouncers, add, crowdsec-firewall-bouncer, -o, raw]
+      register: crowdsec_bouncer_registration
+      when: "'crowdsec-firewall-bouncer' not in crowdsec_registered_bouncers.stdout"
+      no_log: true
+
+    - name: Install the firewall bouncer API key
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local
+        regexp: '^api_key:'
+        line: "api_key: {{ crowdsec_bouncer_registration.stdout | trim }}"
+      when: crowdsec_bouncer_registration is changed
+      no_log: true
+
+    - name: Enable and start the CrowdSec firewall bouncer
+      ansible.builtin.systemd_service:
+        name: crowdsec-firewall-bouncer
+        enabled: true
+        state: started
+
+    - name: Verify CrowdSec can reach the community API
+      ansible.builtin.command: cscli capi status
+      changed_when: false
+
+    - name: Verify the firewall bouncer is registered
+      ansible.builtin.command: cscli bouncers list -o json
+      register: crowdsec_bouncers
+      changed_when: false
+      failed_when: "'crowdsec-firewall-bouncer' not in crowdsec_bouncers.stdout"
+
+  handlers:
+    - name: Restart CrowdSec
+      ansible.builtin.systemd_service:
+        name: crowdsec
+        state: restarted
+
+    - name: Restart CrowdSec firewall bouncer
+      ansible.builtin.command: systemctl try-restart crowdsec-firewall-bouncer.service
+      register: crowdsec_bouncer_restart
+      changed_when: crowdsec_bouncer_restart.rc == 0
+      failed_when: false

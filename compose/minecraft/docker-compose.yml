@@ -1,0 +1,59 @@
+services:
+  minecraft:
+    image: itzg/minecraft-server:java17
+    container_name: minecraft
+    restart: unless-stopped
+    # The Forge pack does not answer the legacy status ping used by the image healthcheck.
+    healthcheck:
+      disable: true
+    stop_grace_period: 2m
+    tty: true
+    stdin_open: true
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      TYPE: CURSEFORGE
+      VERSION: "1.20.1"
+      CF_SERVER_MOD: "https://mediafilez.forgecdn.net/files/8619/337/Craft%20to%20Exile%202%20SERVER-2.0.4.zip"
+      MEMORY: 8G
+      MOTD: |-
+        §d§lEVENT §f✦ §eDouble Backshots XP
+        §7Lasts for all of §aSeptember§7!
+      ICON: /data/server-icon.png
+      OVERRIDE_ICON: "true"
+      USE_MEOWICE_FLAGS: "true"
+      TZ: America/Winnipeg
+      DIFFICULTY: normal
+      LEVEL: Backshots Central
+      OPS: |-
+        ratcho19
+      ENABLE_WHITELIST: "true"
+      ENFORCE_WHITELIST: "true"
+      SERVER_NAME: Backshots Central
+      LOG_TIMESTAMP: "true"
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
+      MANAGEMENT_SERVER_ENABLED: "true"
+      MANAGEMENT_SERVER_HOST: localhost
+      MANAGEMENT_SERVER_PORT: "6767"
+      MANAGEMENT_SERVER_ALLOWED_ORIGINS: localhost
+      MANAGEMENT_SERVER_SECRET: "${MANAGEMENT_SERVER_SECRET:?set MANAGEMENT_SERVER_SECRET}"
+    volumes:
+      - /srv/compose/minecraft/data:/data
+
+  minecraft-exporter:
+    image: ghcr.io/dirien/minecraft-exporter:0.16.0
+    container_name: minecraft-exporter
+    restart: unless-stopped
+    environment:
+      MC_RCON_ADDRESS: minecraft:25575
+      MC_RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
+      MC_WORLD: /minecraft/world
+      MC_MOD_SERVER_STATS: forge
+    ports:
+      - "10.200.1.20:9150:9150"
+    volumes:
+      - /srv/compose/minecraft/data/Backshots Central:/minecraft/world:ro
+    depends_on:
+      - minecraft

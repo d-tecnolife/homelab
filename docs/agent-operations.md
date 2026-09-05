@@ -33,12 +33,21 @@ After reviewing the diff and explicitly authorizing deployment, run on Ops:
 ```bash
 cd /home/dtec/homelab/ansible
 ansible-playbook playbooks/ops-codex.yml
+ansible-playbook playbooks/homelab-health.yml
 ```
 
 Use the existing Codex installation; authenticate interactively with `codex login`
 as `dtec` if needed. Authentication and the SOPS age identity remain outside Git.
 Open the saved project with an SSH connection using `dtec@10.100.1.10`.
 Keep the sibling Notes checkout at `/home/dtec/notes` and follow its context router.
+
+`homelab-health` is discretionary when an infrastructure implementation or fix
+benefits from a baseline or verification. Consume its one-document JSON summary;
+it is neither a startup hook nor a scheduled job. Run it as `dtec`; its batched
+Ansible probes use the existing sudo configuration for read-only service checks.
+Use `homelab-health --strict` when a degraded result should exit nonzero.
+It reports VM reachability,
+containers, exporters, Prometheus targets, Caddy, Minecraft, CrowdSec, and nftables.
 
 The `dtec` account's privileges do not authorize deployment implicitly. Apply
 only named changes explicitly authorized by the user, and obtain separate

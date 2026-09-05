@@ -3,6 +3,11 @@
   hosts: edge
   become: true
   gather_facts: false
+  vars:
+    minecraft_listener_address: "{{ minecraft_wan_listener_address | mandatory }}"
+    minecraft_target_address: "{{ hostvars['games'].ansible_host | mandatory }}"
+    minecraft_connection_rate: 12/minute
+    minecraft_connection_burst: 20
 
   tasks:
     - name: Install nftables
@@ -22,9 +27,9 @@
           net.ipv4.ip_forward = 1
       notify: Reload sysctl settings
 
-    - name: Configure outbound NAT for internal networks
+    - name: Stage the Edge firewall configuration
       ansible.builtin.copy:
-        dest: /etc/nftables.conf
+        dest: /tmp/nftables.conf.ansible
         owner: root
         group: root
         mode: "0644"
@@ -33,13 +38,59 @@
           flush ruleset
 
           table ip edge_nat {
+            chain prerouting {
+              type nat hook prerouting priority dstnat; policy accept;
+              iifname "ens18" ip daddr {{ minecraft_listener_address }} tcp dport 25565 dnat to {{ minecraft_target_address }}:25565
+            }
+
             chain postrouting {
               type nat hook postrouting priority srcnat; policy accept;
-              ip saddr { 10.100.1.0/24, 10.200.1.0/24 } oifname "eth0" masquerade
+              ip saddr { 10.100.1.0/24, 10.200.1.0/24 } oifname "ens18" masquerade
               iifname "wt0" oifname "eth1" ip daddr 10.100.1.0/24 masquerade
               iifname "wt0" oifname "eth2" ip daddr 10.200.1.0/24 masquerade
             }
           }
+
+          table ip crowdsec {
+            set crowdsec-blacklists {
+              type ipv4_addr
+              flags timeout
+            }
+
+            set trusted-private-sources {
+              type ipv4_addr
+              flags interval
+              elements = { 192.168.1.0/24, 100.64.0.0/10 }
+            }
+
+            chain crowdsec-input {
+              type filter hook input priority filter; policy accept;
+              ip saddr @trusted-private-sources return
+              ip saddr @crowdsec-blacklists counter drop
+            }
+
+            chain crowdsec-forward {
+              type filter hook forward priority filter; policy accept;
+              ip saddr @trusted-private-sources return
+              ip saddr @crowdsec-blacklists counter drop
+              iifname "ens18" ip daddr {{ minecraft_target_address }} tcp dport 25565 ct state new meter minecraft-connection-rate { ip saddr timeout 1m limit rate over {{ minecraft_connection_rate }} burst {{ minecraft_connection_burst }} packets } counter drop
+            }
+          }
+      changed_when: false
+
+    - name: Validate the staged Edge firewall configuration
+      ansible.builtin.command:
+        argv: [nft, --check, --file, /tmp/nftables.conf.ansible]
+      changed_when: false
+
+    - name: Install the Edge firewall configuration
+      ansible.builtin.copy:
+        src: /tmp/nftables.conf.ansible
+        dest: /etc/nftables.conf
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
       notify: Reload nftables
 
     - name: Enable nftables
@@ -65,3 +116,10 @@
     - name: Reload nftables
       ansible.builtin.command: nft -f /etc/nftables.conf
       changed_when: false
+      notify: Refresh CrowdSec firewall decisions
+
+    - name: Refresh CrowdSec firewall decisions
+      ansible.builtin.command: systemctl try-restart crowdsec-firewall-bouncer.service
+      register: crowdsec_bouncer_restart
+      changed_when: crowdsec_bouncer_restart.rc == 0
+      failed_when: false

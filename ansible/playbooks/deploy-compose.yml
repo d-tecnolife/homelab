@@ -1,6 +1,6 @@
 ---
 - name: Deploy Compose stacks
-  hosts: ops:apps:monitoring
+  hosts: ops:apps:games:monitoring
   become: true
   gather_facts: false
   vars:
@@ -13,6 +13,8 @@
         - watchtower
       monitoring:
         - monitoring
+      games:
+        - minecraft
     compose_stacks: "{{ compose_stacks_by_host[inventory_hostname] }}"
     compose_data_directories_by_host:
       ops: []
@@ -21,15 +23,60 @@
         - vaultwarden/data
       monitoring:
         - monitoring/prometheus
+        - monitoring/prometheus-targets
         - monitoring/alertmanager
         - monitoring/loki
         - monitoring/grafana
+      games:
+        - minecraft/data
     compose_data_directories: >-
       {{ compose_data_directories_by_host[inventory_hostname] }}
+    compose_data_owners_by_host:
+      ops: []
+      apps: []
+      monitoring:
+        - {path: monitoring/prometheus, owner: "65534"}
+        - {path: monitoring/prometheus-targets, owner: "root"}
+        - {path: monitoring/alertmanager, owner: "65534"}
+        - {path: monitoring/loki, owner: "10001"}
+        - {path: monitoring/grafana, owner: "472"}
+      games:
+        - {path: minecraft/data, owner: "1000"}
+    compose_data_owners: "{{ compose_data_owners_by_host[inventory_hostname] }}"
+    compose_data_access_by_host:
+      ops: []
+      apps:
+        - {path: job-ops/data, group: job-ops-data}
+        - {path: vaultwarden/data, group: vaultwarden-data}
+      monitoring:
+        - {path: monitoring/prometheus, group: prometheus-data}
+        - {path: monitoring/prometheus-targets, group: prometheus-data}
+        - {path: monitoring/alertmanager, group: alertmanager-data}
+        - {path: monitoring/loki, group: loki-data}
+        - {path: monitoring/grafana, group: grafana-data}
+      games:
+        - {path: minecraft/data, group: minecraft-data}
+    compose_data_access: "{{ compose_data_access_by_host[inventory_hostname] }}"
+    service_operator_users: [dtec]
     compose_secret_directory: "{{ playbook_dir }}/../../secrets/compose"
     sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
 
   tasks:
+    - name: Create service data access groups
+      ansible.builtin.group:
+        name: "{{ item.group }}"
+        state: present
+      loop: "{{ compose_data_access }}"
+
+    - name: Add operators to service data access groups
+      ansible.builtin.user:
+        name: "{{ item.1 }}"
+        groups: "{{ item.0.group }}"
+        append: true
+      loop: "{{ compose_data_access | product(service_operator_users) | list }}"
+      loop_control:
+        label: "{{ item.1 }} -> {{ item.0.group }}"
+
     - name: Create stack directories
       ansible.builtin.file:
         path: "/opt/compose/{{ item }}"
@@ -46,7 +93,38 @@
         owner: root
         group: docker
         mode: "2775"
-      loop: "{{ compose_data_directories }}"
+      loop: >-
+        {{ compose_data_directories |
+           difference(compose_data_owners | map(attribute='path') | list) }}
+
+    - name: Allow non-root containers to write persistent data
+      ansible.builtin.file:
+        path: "/srv/compose/{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: docker
+        mode: "2770"
+      loop: "{{ compose_data_owners }}"
+
+    - name: Grant operators access to existing service data
+      ansible.posix.acl:
+        path: "/srv/compose/{{ item.path }}"
+        entity: "{{ item.group }}"
+        etype: group
+        permissions: rwX
+        recursive: true
+        state: present
+      loop: "{{ compose_data_access }}"
+
+    - name: Inherit operator access on new service data
+      ansible.posix.acl:
+        path: "/srv/compose/{{ item.path }}"
+        entity: "{{ item.group }}"
+        etype: group
+        permissions: rwX
+        default: true
+        state: present
+      loop: "{{ compose_data_access }}"
 
     - name: Copy version-controlled stack files
       ansible.builtin.copy:

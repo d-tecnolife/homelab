@@ -1,0 +1,82 @@
+---
+- name: Configure Minecraft backups
+  hosts: games
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Create the Minecraft data access group
+      ansible.builtin.group:
+        name: minecraft-data
+        state: present
+
+    - name: Create the Minecraft backup directory
+      ansible.builtin.file:
+        path: /srv/backups/minecraft
+        state: directory
+        owner: root
+        group: minecraft-data
+        mode: "2770"
+
+    - name: Grant operators access to existing Minecraft backups
+      ansible.posix.acl:
+        path: /srv/backups/minecraft
+        entity: minecraft-data
+        etype: group
+        permissions: rwX
+        recursive: true
+        state: present
+
+    - name: Inherit operator access on new Minecraft backups
+      ansible.posix.acl:
+        path: /srv/backups/minecraft
+        entity: minecraft-data
+        etype: group
+        permissions: rwX
+        default: true
+        state: present
+
+    - name: Install backup compression support
+      ansible.builtin.apt:
+        name: zstd
+        state: present
+        update_cache: true
+
+    - name: Install the Minecraft backup script
+      ansible.builtin.copy:
+        src: ../files/scripts/minecraft-backup.sh
+        dest: /usr/local/sbin/homelab-minecraft-backup
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Install the Minecraft backup service
+      ansible.builtin.copy:
+        src: ../files/systemd/homelab-minecraft-backup.service
+        dest: /etc/systemd/system/homelab-minecraft-backup.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Install the Minecraft backup timer
+      ansible.builtin.copy:
+        src: ../files/systemd/homelab-minecraft-backup.timer
+        dest: /etc/systemd/system/homelab-minecraft-backup.timer
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Apply unit changes before enabling the timer
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable the daily backup timer
+      ansible.builtin.systemd_service:
+        name: homelab-minecraft-backup.timer
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

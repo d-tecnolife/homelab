@@ -166,10 +166,12 @@ its current host key and the Ops management key. Run:
 ansible-playbook playbooks/bootstrap-ops-ssh.yml
 ansible-playbook playbooks/hosts-file.yml
 ansible-playbook playbooks/edge-routing.yml
+ansible-playbook playbooks/crowdsec.yml
 ansible-playbook playbooks/docker.yml
 ansible-playbook playbooks/maintenance-schedule.yml
 ansible-playbook playbooks/secrets.yml
 ansible-playbook playbooks/ops-codex.yml
+ansible-playbook playbooks/homelab-health.yml
 ```
 
 The first playbook generates an Ed25519 key on Ops and adds its public key to
@@ -191,11 +193,16 @@ Caddy uses the token only for DNS certificate challenges. This gives private
 NetBird services publicly trusted certificates without forwarding ports 80 or
 443 through the Rogers router.
 
-Restore each stack's ignored secret files under `compose/<stack>/` on Ops,
-then deploy the Compose applications:
+Create or restore each stack's SOPS-encrypted environment file under
+`secrets/compose/` on Ops, then deploy the Compose applications, monitoring
+collectors, generated scrape targets, and Minecraft backups:
 
 ```bash
 ansible-playbook playbooks/deploy-compose.yml
+ansible-playbook playbooks/monitoring-agents.yml
+ansible-playbook playbooks/monitoring-targets.yml
+ansible-playbook playbooks/monitoring-inventory-automation.yml
+ansible-playbook playbooks/minecraft-backups.yml
 ```
 
 ## 6. Preserve the Ops public key

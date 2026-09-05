@@ -4,8 +4,8 @@ monitor.dscim.dev {
 		resolvers 1.1.1.1
 	}
 
-	@outside_netbird not remote_ip 100.64.0.0/10
-	respond @outside_netbird "VPN access required" 403
+	@outside_private_networks not remote_ip 100.64.0.0/10 192.168.1.0/24
+	respond @outside_private_networks "Private network access required" 403
 
 	reverse_proxy 10.100.1.30:3000
 

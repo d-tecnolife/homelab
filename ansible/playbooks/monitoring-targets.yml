@@ -4,11 +4,26 @@
   become: true
   gather_facts: false
   tasks:
+    - name: Create generated Prometheus target directory
+      ansible.builtin.file:
+        path: /srv/compose/monitoring/prometheus-targets
+        state: directory
+        owner: root
+        group: prometheus-data
+        mode: "2770"
+
     - name: Render all node exporter targets
       ansible.builtin.template:
         src: ../files/prometheus/node-targets.yml.j2
-        dest: /opt/compose/monitoring/config/prometheus/node-targets.yml
+        dest: /srv/compose/monitoring/prometheus-targets/node-targets.yml
         owner: root
-        group: docker
+        group: prometheus-data
         mode: "0644"
 
+    - name: Render Minecraft metrics target
+      ansible.builtin.template:
+        src: ../files/prometheus/minecraft-targets.yml.j2
+        dest: /srv/compose/monitoring/prometheus-targets/minecraft-targets.yml
+        owner: root
+        group: prometheus-data
+        mode: "0644"

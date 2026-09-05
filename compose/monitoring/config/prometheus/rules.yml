@@ -36,4 +36,15 @@ groups:
         labels: {severity: warning}
         annotations:
           summary: "Hardware temperature is above 85 C on {{ $labels.instance }}"
-
+      - alert: MinecraftServerDown
+        expr: absent(minecraft_tps_total)
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: "The Minecraft server is not responding"
+      - alert: MinecraftMetricsDown
+        expr: up{job="minecraft"} == 0
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "Minecraft metrics are unavailable"

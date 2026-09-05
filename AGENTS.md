@@ -64,6 +64,11 @@ destructive operations, or bypassing branch protection.
 - Work directly from the saved Homelab project on Ops (`/home/dtec/homelab`).
 - Use `dtec` for repository inspection, edits, VM connections, and authorized
   deployments.
+- Run `homelab-health` at your discretion when infrastructure implementations
+  or fixes would benefit from a baseline or verification. It is not a mandatory
+  first step and must not run automatically on every request.
+- Consume its compact JSON summary; request selected fields and bounded logs.
+  Never dump complete container inspections.
 - Default network probes to five seconds. Use longer waits only while installs,
   pulls, backups, or playbooks show progress.
 - Batch independent VM checks through one Ansible invocation.

@@ -4,6 +4,8 @@
   become: true
   gather_facts: true
   vars:
+    service_operator_users: [dtec]
+    caddy_operator_group: caddy-data
     caddy_encrypted_secret_path: "{{ playbook_dir }}/../secrets/caddy.sops.env"
     caddy_legacy_secret_path: "{{ playbook_dir }}/../secrets/caddy.env"
     sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
@@ -64,11 +66,25 @@
       no_log: true
 
   tasks:
-    - name: Install Caddy
+    - name: Install Caddy prerequisites
       ansible.builtin.apt:
-        name: caddy
+        name:
+          - acl
+          - caddy
         state: present
         update_cache: true
+
+    - name: Create the Caddy data access group
+      ansible.builtin.group:
+        name: "{{ caddy_operator_group }}"
+        state: present
+
+    - name: Add operators to the Caddy data access group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: "{{ caddy_operator_group }}"
+        append: true
+      loop: "{{ service_operator_users }}"
 
     - name: Install Caddy with the Cloudflare DNS module
       ansible.builtin.get_url:
@@ -119,6 +135,24 @@
         group: caddy
         mode: "0750"
         recurse: true
+
+    - name: Grant operators access to existing Caddy logs
+      ansible.posix.acl:
+        path: /var/log/caddy
+        entity: "{{ caddy_operator_group }}"
+        etype: group
+        permissions: rwX
+        recursive: true
+        state: present
+
+    - name: Inherit operator access on new Caddy logs
+      ansible.posix.acl:
+        path: /var/log/caddy
+        entity: "{{ caddy_operator_group }}"
+        etype: group
+        permissions: rwX
+        default: true
+        state: present
 
     - name: Install the Cloudflare API token
       ansible.builtin.copy:

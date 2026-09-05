@@ -1,6 +1,6 @@
 ---
 - name: Configure Docker hosts
-  hosts: ops:apps:monitoring
+  hosts: ops:apps:games:monitoring
   become: true
   gather_facts: true
 
@@ -8,6 +8,7 @@
     - name: Install Docker repository prerequisites
       ansible.builtin.apt:
         name:
+          - acl
           - ca-certificates
           - python3-debian
         state: present
