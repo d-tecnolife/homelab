@@ -25,6 +25,13 @@ push rules, and never mix its commit with the Homelab repository commit.
 - Run live Ansible playbooks, Terraform apply, restarts, or other infrastructure
   mutations only when the user explicitly asks to deploy or apply the named
   change.
+- After the user explicitly requests deployment or apply, delegate one quick,
+  independent pre-deployment validation pass to the low-cost `routine` role.
+  Give it the exact proposed change and deployment scope, have it run the
+  nearest bounded repository checks, and require a concise pass/fail result.
+  Deploy without another routine approval when it passes; stop and report the
+  blocker when it fails. Use a stronger test or security specialist instead
+  when the change's risk cannot be validated reliably by the routine role.
 - Require a separate explicit confirmation for deletion, destruction, rebuilds,
   storage changes, and network changes after showing their exact impact.
 - Never print, commit, or paste decrypted secrets. Use secrets only through
