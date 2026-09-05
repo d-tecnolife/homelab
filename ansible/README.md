@@ -34,8 +34,8 @@ for the required execution order.
 - `playbooks/maintenance-schedule.yml` installs Ops systemd timers for daily
   security updates, weekly safe upgrades, and monthly conditional reboots.
 - `playbooks/minecraft-backups.yml` installs a daily, RCON-quiesced Minecraft
-  archive job on Games. It refuses to write unless `/mnt/game-backups` is a
-  separate mounted filesystem and retains exactly the five newest archives.
+  archive job on Games under `/srv/backups/minecraft` and retains exactly the
+  five newest archives.
 - `playbooks/deploy-compose.yml` copies the stacks assigned to each host and
   decrypts any matching `secrets/compose/<stack>.sops.env` file in memory,
   validates, pulls, and applies the stacks with Docker Compose. Apps receives

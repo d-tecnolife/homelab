@@ -1,6 +1,5 @@
 [Unit]
 Description=Create a quiesced Minecraft backup
-RequiresMountsFor=/mnt/game-backups
 After=docker.service
 
 [Service]

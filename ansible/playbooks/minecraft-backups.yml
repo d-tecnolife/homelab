@@ -10,11 +10,6 @@
         state: present
         update_cache: true
 
-    - name: Verify the dedicated backup filesystem is mounted
-      ansible.builtin.command:
-        argv: [mountpoint, --quiet, /mnt/game-backups]
-      changed_when: false
-
     - name: Install the Minecraft backup script
       ansible.builtin.copy:
         src: ../files/scripts/minecraft-backup.sh

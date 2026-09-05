@@ -2,15 +2,10 @@
 set -euo pipefail
 
 readonly data_dir=/srv/compose/minecraft/data
-readonly backup_root=/mnt/game-backups
-readonly backup_dir="${backup_root}/minecraft"
+readonly backup_dir=/srv/backups/minecraft
 readonly stamp="$(date --utc +%Y%m%dT%H%M%SZ)"
 readonly archive="${backup_dir}/minecraft-${stamp}.tar.zst"
 
-mountpoint -q "${backup_root}" || {
-  echo "Refusing backup: ${backup_root} is not a separate mounted filesystem" >&2
-  exit 1
-}
 test -d "${data_dir}/FeedTheBeast"
 install -d -m 0750 "${backup_dir}"
 
