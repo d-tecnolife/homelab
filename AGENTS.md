@@ -23,6 +23,12 @@ correcting unexpected files or behavior.
   storage changes, and network changes after showing their exact impact.
 - Never print, commit, or paste decrypted secrets. The agent account does not
   own the SOPS age identity.
+- The user grants standing authorization to commit and push SOPS-encrypted
+  files matching `secrets/**/*.sops.*` to this public repository. Before every
+  such publication, verify each file with `sops filestatus`, confirm no
+  plaintext secret or age identity is staged, and inspect the staged diff for
+  accidental disclosure. This authorization covers ciphertext only and never
+  authorizes printing, copying, or committing decrypted values or age keys.
 
 Preserve unrelated changes, prefer the smallest complete implementation, run
 the closest validation available, and show the resulting diff before live
