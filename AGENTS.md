@@ -93,7 +93,7 @@ protection.
 
 ## Model routing and delegation
 
-- Default primary: `gpt-5.6-sol`, low reasoning, for normal investigation,
+- Default primary: `gpt-5.6-terra`, medium reasoning, for normal investigation,
   coordination, planning within an established design, and review. It is the
   usual task model and should route bounded work to a cheaper suitable role.
 - Architecture: `gpt-5.6-sol`, high reasoning (custom `architect` role), is
