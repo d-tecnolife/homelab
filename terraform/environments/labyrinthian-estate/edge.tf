@@ -29,24 +29,25 @@ resource "proxmox_virtual_environment_file" "edge_cloud_config" {
           path        = "/etc/nftables.conf"
           owner       = "root:root"
           permissions = "0644"
-          content     = <<-EOT
-            # Managed by Cloud-Init; maintained later by Ansible.
-            flush ruleset
-
-            table ip edge_nat {
-              chain prerouting {
-                type nat hook prerouting priority dstnat; policy accept;
-                iifname "eth0" ip daddr ${split("/", var.edge_ipv4_address)[0]} tcp dport 25565 dnat to ${split("/", var.games_ipv4_address)[0]}:25565
-              }
-
-              chain postrouting {
-                type nat hook postrouting priority srcnat; policy accept;
-                ip saddr { 10.100.1.0/24, 10.200.1.0/24 } oifname "eth0" masquerade
-                iifname "wt0" oifname "eth1" ip daddr 10.100.1.0/24 masquerade
-                iifname "wt0" oifname "eth2" ip daddr 10.200.1.0/24 masquerade
-              }
-            }
-          EOT
+          content = join("\n", [
+            "# Managed by Cloud-Init; maintained later by Ansible.",
+            "flush ruleset",
+            "",
+            "table ip edge_nat {",
+            "  chain prerouting {",
+            "    type nat hook prerouting priority dstnat; policy accept;",
+            "    iifname \"ens18\" ip daddr ${split("/", var.edge_ipv4_address)[0]} tcp dport 25565 dnat to ${split("/", var.games_ipv4_address)[0]}:25565",
+            "  }",
+            "",
+            "  chain postrouting {",
+            "    type nat hook postrouting priority srcnat; policy accept;",
+            "    ip saddr { 10.100.1.0/24, 10.200.1.0/24 } oifname \"ens18\" masquerade",
+            "    iifname \"wt0\" oifname \"eth1\" ip daddr 10.100.1.0/24 masquerade",
+            "    iifname \"wt0\" oifname \"eth2\" ip daddr 10.200.1.0/24 masquerade",
+            "  }",
+            "}",
+            ""
+          ])
         }
       ]
       runcmd = [

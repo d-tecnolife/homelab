@@ -64,9 +64,11 @@
       no_log: true
 
   tasks:
-    - name: Install Caddy
+    - name: Install Caddy prerequisites
       ansible.builtin.apt:
-        name: caddy
+        name:
+          - acl
+          - caddy
         state: present
         update_cache: true
 
