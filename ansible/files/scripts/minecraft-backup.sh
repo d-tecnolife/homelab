@@ -23,7 +23,7 @@ save_enabled=true
 docker exec minecraft rcon-cli save-all flush >/dev/null
 
 tar --create --directory="${data_dir}" --exclude='*.lock' --file=- . |
-  zstd --quiet --threads=0 --long=27 --output="${archive}.partial"
+  zstd --quiet --threads=0 --long=27 -o "${archive}.partial"
 mv -- "${archive}.partial" "${archive}"
 docker exec minecraft rcon-cli save-on >/dev/null
 save_enabled=false
