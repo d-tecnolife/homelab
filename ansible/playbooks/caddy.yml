@@ -174,7 +174,7 @@
           [Service]
           EnvironmentFile=/etc/caddy/cloudflare.env
           ExecStart=
-          ExecStart=/usr/local/bin/caddy run --environ --config /etc/caddy/Caddyfile
+          ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile
           ExecReload=
           ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --force
       notify:

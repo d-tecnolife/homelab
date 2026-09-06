@@ -10,13 +10,4 @@ ssh-ca.dscim.dev {
 		reverse_proxy 10.200.1.10:8200
 	}
 	respond "VPN access required" 403
-
-	log {
-		output file /var/log/caddy/vault-ssh-ca-access.json {
-			roll_size 25MiB
-			roll_keep 5
-			roll_keep_for 168h
-		}
-		format json
-	}
 }
