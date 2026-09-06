@@ -120,6 +120,24 @@ protection.
   clear ownership, preserve in-flight edits, and review results in the primary
   task. Escalate to the Sol-high architect role only when its higher-level
   design judgment is genuinely needed.
+- Route deliberately rather than reflexively. Keep a short, sequential task in
+  the primary agent when delegation would only add a context handoff. Delegate
+  when at least two bounded activities are independent (for example, discovery
+  and validation), or when a routine check can run while the primary agent
+  plans or edits. Use `routine` for read-only status, known deployments, and
+  deterministic validation; use `implementation` for an isolated file set;
+  reserve `architect` for a material design decision. Give a delegated agent
+  the smallest context that preserves its task, normally no more than the
+  relevant files, commands, and acceptance criteria.
+- Default to at most two delegated agents. The primary agent owns scope,
+  decisions, edits that cross ownership boundaries, deployment authorization,
+  and final verification. Do not delegate the same files concurrently or add
+  agents merely to repeat a check already covered by a passing preflight.
+- For changes that can mutate infrastructure, complete one batched preflight
+  before editing or deploying: connectivity and credentials, required
+  inventory/targets, service permissions, and the nearest syntax/render check.
+  After deployment, run one end-to-end smoke test of the requested outcome;
+  repeat checks only when that test exposes a new dependency.
 - If the available spawn tool selects models directly instead of named roles,
   pass the model and reasoning explicitly with a bounded context fork; do not
   use a full-history fork when it prevents model overrides.
