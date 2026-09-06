@@ -74,7 +74,7 @@
         body_format: json
         body:
           generate_signing_key: true
-        status_code: 204
+        status_code: [200, 204]
         validate_certs: true
       when: vault_ssh_ca_key_status.status != 200
       no_log: true
