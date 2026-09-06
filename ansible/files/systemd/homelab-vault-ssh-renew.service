@@ -1,0 +1,10 @@
+[Unit]
+Description=Renew homelab SSH host certificates through Vault
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=dtec
+WorkingDirectory=/home/dtec/homelab/ansible
+ExecStart=/usr/bin/ansible-playbook playbooks/vault-ssh-host-ca.yml --tags renew

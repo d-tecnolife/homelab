@@ -8,6 +8,7 @@
       ops: []
       apps:
         - job-ops
+        - vault
         - vaultwarden
         - wannbot
         - watchtower
@@ -20,6 +21,7 @@
       ops: []
       apps:
         - job-ops/data
+        - vault/data
         - vaultwarden/data
       monitoring:
         - monitoring/prometheus
@@ -33,7 +35,8 @@
       {{ compose_data_directories_by_host[inventory_hostname] }}
     compose_data_owners_by_host:
       ops: []
-      apps: []
+      apps:
+        - {path: vault/data, owner: "100"}
       monitoring:
         - {path: monitoring/prometheus, owner: "65534"}
         - {path: monitoring/prometheus-targets, owner: "root"}
@@ -47,6 +50,7 @@
       ops: []
       apps:
         - {path: job-ops/data, group: job-ops-data}
+        - {path: vault/data, group: vault-data}
         - {path: vaultwarden/data, group: vaultwarden-data}
       monitoring:
         - {path: monitoring/prometheus, group: prometheus-data}

@@ -1,0 +1,118 @@
+---
+- name: Configure the Vault SSH host certificate authority
+  hosts: ops
+  gather_facts: false
+  vars:
+    vault_ssh_ca_addr: https://ssh-ca.dscim.dev
+    vault_ssh_ca_mount: ssh-host-signer
+    vault_ssh_ca_role: homelab-hosts
+    vault_ssh_ca_admin_token: "{{ lookup('env', 'VAULT_TOKEN') }}"
+
+  pre_tasks:
+    - name: Require an administrator Vault token
+      ansible.builtin.assert:
+        that: vault_ssh_ca_admin_token | length > 0
+        fail_msg: >-
+          Set VAULT_TOKEN to a temporary Vault administrator token before
+          running this bootstrap playbook.
+      no_log: true
+
+    - name: Require an initialized, unsealed Vault
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/sys/health"
+        method: GET
+        status_code: 200
+        validate_certs: true
+      changed_when: false
+
+  tasks:
+    - name: Check whether the SSH host signer is mounted
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/sys/mounts/{{ vault_ssh_ca_mount }}"
+        method: GET
+        headers:
+          X-Vault-Token: "{{ vault_ssh_ca_admin_token }}"
+        status_code: [200, 404]
+        validate_certs: true
+      register: vault_ssh_ca_mount_status
+      changed_when: false
+      no_log: true
+
+    - name: Mount the SSH secrets engine
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/sys/mounts/{{ vault_ssh_ca_mount }}"
+        method: POST
+        headers:
+          X-Vault-Token: "{{ vault_ssh_ca_admin_token }}"
+        body_format: json
+        body:
+          type: ssh
+        status_code: 204
+        validate_certs: true
+      when: vault_ssh_ca_mount_status.status == 404
+      no_log: true
+
+    - name: Check whether the dedicated SSH host CA exists
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/{{ vault_ssh_ca_mount }}/config/ca"
+        method: GET
+        headers:
+          X-Vault-Token: "{{ vault_ssh_ca_admin_token }}"
+        status_code: [200, 404]
+        validate_certs: true
+      register: vault_ssh_ca_key_status
+      changed_when: false
+      no_log: true
+
+    - name: Generate the dedicated SSH host CA once
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/{{ vault_ssh_ca_mount }}/config/ca"
+        method: POST
+        headers:
+          X-Vault-Token: "{{ vault_ssh_ca_admin_token }}"
+        body_format: json
+        body:
+          generate_signing_key: true
+        status_code: 204
+        validate_certs: true
+      when: vault_ssh_ca_key_status.status == 404
+      no_log: true
+
+    - name: Restrict the host certificate signing role
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/{{ vault_ssh_ca_mount }}/roles/{{ vault_ssh_ca_role }}"
+        method: POST
+        headers:
+          X-Vault-Token: "{{ vault_ssh_ca_admin_token }}"
+        body_format: json
+        body:
+          key_type: ca
+          allow_host_certificates: true
+          allow_user_certificates: false
+          allowed_domains: dscim.dev
+          allow_subdomains: true
+          allow_bare_domains: false
+          ttl: 8760h
+          max_ttl: 8760h
+        status_code: 204
+        validate_certs: true
+      no_log: true
+
+    - name: Create the signing-only policy
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/sys/policies/acl/homelab-ssh-host-signer"
+        method: PUT
+        headers:
+          X-Vault-Token: "{{ vault_ssh_ca_admin_token }}"
+        body_format: json
+        body:
+          policy: |-
+            path "{{ vault_ssh_ca_mount }}/sign/{{ vault_ssh_ca_role }}" {
+              capabilities = ["create", "update"]
+            }
+            path "{{ vault_ssh_ca_mount }}/public_key" {
+              capabilities = ["read"]
+            }
+        status_code: 204
+        validate_certs: true
+      no_log: true

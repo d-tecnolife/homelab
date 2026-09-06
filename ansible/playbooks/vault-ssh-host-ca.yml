@@ -1,0 +1,199 @@
+---
+- name: Install the Vault host-signing credential and renewal timer on Ops
+  hosts: ops
+  become: true
+  gather_facts: false
+  tags: [always]
+  vars:
+    vault_ssh_ca_secret_path: "{{ playbook_dir }}/../../secrets/vault-ssh-ca.sops.env"
+    vault_ssh_ca_token_path: /etc/homelab/vault-ssh-ca.env
+    sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
+
+  tasks:
+    - name: Require the encrypted Vault signing credential
+      ansible.builtin.stat:
+        path: "{{ vault_ssh_ca_secret_path }}"
+      delegate_to: localhost
+      become: false
+      register: vault_ssh_ca_secret
+
+    - name: Refuse to run without the Vault signing credential
+      ansible.builtin.assert:
+        that: vault_ssh_ca_secret.stat.isreg | default(false)
+        fail_msg: >-
+          Create secrets/vault-ssh-ca.sops.env from its example with a
+          signing-only Vault token, then encrypt it with SOPS.
+      delegate_to: localhost
+      become: false
+
+    - name: Decrypt the Vault signing credential in memory
+      ansible.builtin.command:
+        argv: [sops, decrypt, "{{ vault_ssh_ca_secret_path }}"]
+      environment:
+        SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
+      delegate_to: localhost
+      become: false
+      register: vault_ssh_ca_secret_content
+      changed_when: false
+      no_log: true
+
+    - name: Install the Vault signing credential on Ops
+      ansible.builtin.copy:
+        dest: "{{ vault_ssh_ca_token_path }}"
+        content: "{{ vault_ssh_ca_secret_content.stdout | trim }}\n"
+        owner: dtec
+        group: dtec
+        mode: "0600"
+      no_log: true
+
+    - name: Install the certificate renewal service
+      ansible.builtin.copy:
+        src: ../files/systemd/homelab-vault-ssh-renew.service
+        dest: /etc/systemd/system/homelab-vault-ssh-renew.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install the certificate renewal timer
+      ansible.builtin.copy:
+        src: ../files/systemd/homelab-vault-ssh-renew.timer
+        dest: /etc/systemd/system/homelab-vault-ssh-renew.timer
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Enable Vault SSH certificate renewal
+
+  handlers:
+    - name: Enable Vault SSH certificate renewal
+      ansible.builtin.systemd_service:
+        name: homelab-vault-ssh-renew.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+- name: Sign and install SSH host certificates
+  hosts: managed_vms
+  become: true
+  gather_facts: false
+  ignore_unreachable: true
+  tags: [renew]
+  vars:
+    vault_ssh_ca_addr: https://ssh-ca.dscim.dev
+    vault_ssh_ca_mount: ssh-host-signer
+    vault_ssh_ca_role: homelab-hosts
+    vault_ssh_ca_token_path: /etc/homelab/vault-ssh-ca.env
+    ansible_ssh_common_args: "-o HostKeyAlias={{ inventory_hostname }}.dscim.dev"
+
+  pre_tasks:
+    - name: Read the Ops signing credential
+      ansible.builtin.slurp:
+        src: "{{ vault_ssh_ca_token_path }}"
+      delegate_to: ops
+      run_once: true
+      register: vault_ssh_ca_token_file
+      no_log: true
+
+    - name: Retain the signing token for certificate requests
+      ansible.builtin.set_fact:
+        vault_ssh_ca_token: >-
+          {{ vault_ssh_ca_token_file.content | b64decode |
+             regex_search('(?m)^VAULT_TOKEN=(.+)$', '\\1') | first }}
+      run_once: true
+      delegate_to: ops
+      delegate_facts: true
+      no_log: true
+
+    - name: Read the trusted Vault host CA public key
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/{{ vault_ssh_ca_mount }}/public_key"
+        method: GET
+        headers:
+          X-Vault-Token: "{{ hostvars['ops'].vault_ssh_ca_token }}"
+        status_code: 200
+        validate_certs: true
+      delegate_to: ops
+      run_once: true
+      register: vault_ssh_ca_public_key
+      changed_when: false
+      no_log: true
+
+    - name: Trust the Vault host CA on Ops
+      ansible.builtin.blockinfile:
+        path: /home/dtec/.ssh/known_hosts
+        create: true
+        owner: dtec
+        group: dtec
+        mode: "0600"
+        marker: "# {mark} ANSIBLE MANAGED VAULT SSH HOST CA"
+        block: |
+          @cert-authority *.dscim.dev {{ vault_ssh_ca_public_key.json.data.public_key }}
+      delegate_to: ops
+      run_once: true
+
+    - name: Renew the periodic signing token
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/auth/token/renew-self"
+        method: POST
+        headers:
+          X-Vault-Token: "{{ vault_ssh_ca_token }}"
+        status_code: 200
+        validate_certs: true
+      delegate_to: ops
+      run_once: true
+      changed_when: false
+      no_log: true
+
+  tasks:
+    - name: Read the host Ed25519 public key
+      ansible.builtin.slurp:
+        src: /etc/ssh/ssh_host_ed25519_key.pub
+      register: vault_ssh_host_public_key
+
+    - name: Sign the host public key through Vault
+      ansible.builtin.uri:
+        url: "{{ vault_ssh_ca_addr }}/v1/{{ vault_ssh_ca_mount }}/sign/{{ vault_ssh_ca_role }}"
+        method: POST
+        headers:
+          X-Vault-Token: "{{ hostvars['ops'].vault_ssh_ca_token }}"
+        body_format: json
+        body:
+          cert_type: host
+          public_key: "{{ vault_ssh_host_public_key.content | b64decode | trim }}"
+          valid_principals: "{{ inventory_hostname }}.dscim.dev"
+        status_code: 200
+        validate_certs: true
+      delegate_to: ops
+      register: vault_ssh_host_certificate
+      no_log: true
+
+    - name: Install the signed host certificate
+      ansible.builtin.copy:
+        dest: /etc/ssh/ssh_host_ed25519_key-cert.pub
+        content: "{{ vault_ssh_host_certificate.json.data.signed_key | trim }}\n"
+        owner: root
+        group: root
+        mode: "0644"
+      register: vault_ssh_host_certificate_file
+      no_log: true
+
+    - name: Configure sshd to present the signed host certificate
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/90-vault-host-certificate.conf
+        content: |
+          HostCertificate /etc/ssh/ssh_host_ed25519_key-cert.pub
+        owner: root
+        group: root
+        mode: "0644"
+      register: vault_ssh_host_sshd_config
+
+    - name: Validate sshd before reloading it
+      ansible.builtin.command:
+        argv: [sshd, -t]
+      changed_when: false
+      when: vault_ssh_host_certificate_file.changed or vault_ssh_host_sshd_config.changed
+
+    - name: Reload sshd after the certificate update
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: reloaded
+      when: vault_ssh_host_certificate_file.changed or vault_ssh_host_sshd_config.changed

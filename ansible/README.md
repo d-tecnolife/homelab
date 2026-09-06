@@ -13,6 +13,10 @@ for the required execution order.
   keys.
 - `playbooks/secrets.yml` installs SOPS and age on Ops and generates the
   administrator-owned age identity used for deploy-time decryption.
+- `playbooks/vault-ssh-host-ca-bootstrap.yml` configures Vault's restricted
+  SSH host-signing role after manual Vault initialization.
+- `playbooks/vault-ssh-host-ca.yml` installs and renews signed SSH host
+  certificates from Ops; it uses a SOPS-encrypted, signing-only Vault token.
 - `playbooks/ops-codex.yml` configures project model routing for `dtec`.
 - `playbooks/homelab-health.yml` installs the discretionary JSON health command on Ops.
 - `playbooks/monitoring-agents.yml` installs node_exporter and Alloy across

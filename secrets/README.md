@@ -87,6 +87,13 @@ sops encrypt --in-place secrets/compose/vaultwarden.sops.env
 it as `/opt/compose/<stack>/.env` with mode `0640`. Stacks without an encrypted
 file retain their existing `.env` during migration.
 
+## Vault SSH host-CA token
+
+After initializing HashiCorp Vault and creating its limited host-signing token,
+copy `secrets/vault-ssh-ca.env.example` to `secrets/vault-ssh-ca.sops.env`, set
+`VAULT_TOKEN`, and encrypt it with SOPS. The host-certificate playbook decrypts
+it only on Ops with mode `0600`. Do not store Vault root or unseal tokens here.
+
 ## Secret classes
 
 - Commit with SOPS encryption: service environment values, API tokens, webhook
