@@ -4,8 +4,12 @@ ssh-ca.dscim.dev {
 		resolvers 1.1.1.1
 	}
 
-	# Vault authenticates every API request. Keep the backend private to Apps.
-	reverse_proxy 10.200.1.10:8200
+	# NetBird clients retain a 100.64.0.0/10 source address at Edge.
+	@vpn remote_ip 100.64.0.0/10
+	handle @vpn {
+		reverse_proxy 10.200.1.10:8200
+	}
+	respond "VPN access required" 403
 
 	log {
 		output file /var/log/caddy/vault-ssh-ca-access.json {

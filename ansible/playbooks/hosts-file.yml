@@ -21,3 +21,4 @@
           {{ hostvars[hostname].ansible_default_ipv4.address }} {{ hostname }} {{ hostname }}.dscim.dev
           {% endif %}
           {% endfor %}
+          {{ hostvars['edge'].ansible_host }} ssh-ca.dscim.dev
