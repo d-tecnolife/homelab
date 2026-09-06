@@ -11,11 +11,13 @@ follow its router to exactly the context relevant to the task. If the checkout
 is missing, dirty, read-only, or cannot be updated, report that condition and
 the context's freshness is unverified. Never replace or overwrite local work.
 
-After a repository or deployed infrastructure change alters the homelab's
-current state, recovery path, deployment order, or operating procedures, update
-the routed Homelab IaC context in the sibling Notes repository as part of the
-same task. Follow the Notes repository's own authoring, validation, commit, and
-push rules, and never mix its commit with the Homelab repository commit.
+Update the routed Homelab IaC context in the sibling Notes repository only when
+the `architect` role (`gpt-5.6-sol`, high reasoning) was needed and its outcome
+creates a material, reusable architectural or operational decision. Do not
+update Notes for routine, localized implementation, configuration, or repair
+work. When an update is required, follow the Notes repository's own authoring,
+validation, commit, and push rules, and never mix its commit with the Homelab
+repository commit.
 
 ## Change boundary
 
@@ -25,13 +27,12 @@ push rules, and never mix its commit with the Homelab repository commit.
 - Run live Ansible playbooks, Terraform apply, restarts, or other infrastructure
   mutations only when the user explicitly asks to deploy or apply the named
   change.
-- After the user explicitly requests deployment or apply, delegate one quick,
-  independent pre-deployment validation pass to the low-cost `routine` role.
-  Give it the exact proposed change and deployment scope, have it run the
-  nearest bounded repository checks, and require a concise pass/fail result.
-  Deploy without another routine approval when it passes; stop and report the
-  blocker when it fails. Use a stronger test or security specialist instead
-  when the change's risk cannot be validated reliably by the routine role.
+- Require an independent pre-deployment validation pass only when the
+  `architect` role (`gpt-5.6-sol`, high reasoning) was needed because the
+  proposed deployment is significant or could break dependent systems. Give the
+  validator the exact change and scope, require a concise pass/fail result, and
+  stop on failure. Routine localized deployments still require the nearest
+  local validation, but do not require a separate agent pass.
 - Require a separate explicit confirmation for deletion, destruction, rebuilds,
   storage changes, and network changes after showing their exact impact.
 - Never print, commit, or paste decrypted secrets. Use secrets only through
@@ -80,6 +81,8 @@ protection.
 - Work directly from the saved Homelab project on Ops (`/home/dtec/homelab`).
 - Use `dtec` for repository inspection, edits, VM connections, and authorized
   deployments.
+- Run Ansible commands from `/home/dtec/homelab/ansible` so the repository
+  configuration supplies writable temporary and SSH control-socket paths.
 - Run `homelab-health` at your discretion when infrastructure implementations
   or fixes would benefit from a baseline or verification. It is not a mandatory
   first step and must not run automatically on every request.
@@ -108,8 +111,9 @@ protection.
   genuinely demanding architectural design, escalate that design question to
   the Sol-high architect.
 - Cheap routine work: `gpt-5.6-luna`, low reasoning (custom `routine` role), for
-  status checks, known deployments, log summaries, and simple config changes.
-  Deployment authorization is required regardless of model.
+  status checks, known deployments, log summaries, simple config changes, and
+  other well-understood localized changes. Route these tasks to `routine` by default;
+  deployment authorization is required regardless of model.
 - Favor token-efficient delegation. Use the least expensive model and reasoning
   level that can reliably complete each bounded task. Delegate independent
   discovery, review, implementation, testing, and routine processes; assign

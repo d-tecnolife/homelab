@@ -41,8 +41,10 @@ for the required execution order.
 
 `inventory/hosts.yml` is created from `inventory/hosts.yml.example` and ignored
 because it contains local network details. The repository-local `ansible.cfg`
-selects it automatically when commands run from this directory. The Ops
-private key remains only on Ops and must never be committed.
+selects it automatically when commands run from this directory. It also keeps
+Ansible temporary files and SSH control sockets in `/tmp`, so sandboxed runs do
+not need write access to `~/.ansible`. The Ops private key remains only on Ops
+and must never be committed.
 
 Update hostname mappings on the Linux VMs from Ops:
 
