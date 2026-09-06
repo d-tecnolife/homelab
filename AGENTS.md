@@ -96,39 +96,10 @@ protection.
 
 ## Model routing and delegation
 
-- Default primary: `gpt-5.6-terra`, medium reasoning, for normal investigation,
-  coordination, planning within an established design, and review. It is the
-  usual task model and should route bounded work to a cheaper suitable role.
-- Architecture: `gpt-5.6-sol`, high reasoning (custom `architect` role), is
-  deliberately exceptional. Use it only when a task genuinely requires
-  demanding architectural or design decisions, such as selecting a durable
-  system boundary, resolving consequential trade-offs, or designing a new
-  cross-layer approach. Do not use it for routine planning or implementation.
-- Implementation: `gpt-5.6-terra`, medium reasoning, for focused Ansible,
-  Compose, configuration, tests, and scripts (custom `implementation` role).
-- Exploration, testing, and security review: prefer the built-in specialist
-  roles with `gpt-5.6-terra`, medium reasoning. If a security task also requires
-  genuinely demanding architectural design, escalate that design question to
-  the Sol-high architect.
-- Cheap routine work: `gpt-5.6-luna`, low reasoning (custom `routine` role), for
-  status checks, known deployments, log summaries, simple config changes, and
-  other well-understood localized changes. Route these tasks to `routine` by default;
-  deployment authorization is required regardless of model.
-- Favor token-efficient delegation. Use the least expensive model and reasoning
-  level that can reliably complete each bounded task. Delegate independent
-  discovery, review, implementation, testing, and routine processes; assign
-  clear ownership, preserve in-flight edits, and review results in the primary
-  task. Escalate to the Sol-high architect role only when its higher-level
-  design judgment is genuinely needed.
-- Route deliberately rather than reflexively. Keep a short, sequential task in
-  the primary agent when delegation would only add a context handoff. Delegate
-  when at least two bounded activities are independent (for example, discovery
-  and validation), or when a routine check can run while the primary agent
-  plans or edits. Use `routine` for read-only status, known deployments, and
-  deterministic validation; use `implementation` for an isolated file set;
-  reserve `architect` for a material design decision. Give a delegated agent
-  the smallest context that preserves its task, normally no more than the
-  relevant files, commands, and acceptance criteria.
+- The sibling Notes repository's root `AGENTS.md` is the canonical model-routing
+  and delegation policy. Read and apply it before choosing a primary or
+  specialist. This project adds only the infrastructure-specific constraints
+  below; it must not redefine global agent behavior.
 - Default to at most two delegated agents. The primary agent owns scope,
   decisions, edits that cross ownership boundaries, deployment authorization,
   and final verification. Do not delegate the same files concurrently or add
