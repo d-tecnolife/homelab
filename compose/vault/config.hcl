@@ -14,5 +14,6 @@ listener "tcp" {
 api_addr     = "https://ssh-ca.dscim.dev"
 cluster_addr = "http://127.0.0.1:8201"
 
-disable_mlock = false
+# Integrated Storage recommends disabling mlock to avoid VM memory-lock limits.
+disable_mlock = true
 disable_cache = true

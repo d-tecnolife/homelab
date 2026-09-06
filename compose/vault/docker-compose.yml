@@ -5,9 +5,13 @@ services:
     restart: unless-stopped
     cap_add:
       - IPC_LOCK
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     ports:
       - "10.200.1.10:8200:8200"
-    command: server -config=/vault/config/config.hcl
+    command: server
     volumes:
       - ./config.hcl:/vault/config/config.hcl:ro
       - /srv/compose/vault/data:/vault/data
