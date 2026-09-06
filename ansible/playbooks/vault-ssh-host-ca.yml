@@ -37,6 +37,14 @@
       changed_when: false
       no_log: true
 
+    - name: Create the Vault signing credential directory
+      ansible.builtin.file:
+        path: "{{ vault_ssh_ca_token_path | dirname }}"
+        state: directory
+        owner: dtec
+        group: dtec
+        mode: "0700"
+
     - name: Install the Vault signing credential on Ops
       ansible.builtin.copy:
         dest: "{{ vault_ssh_ca_token_path }}"
@@ -83,7 +91,6 @@
     vault_ssh_ca_role: homelab-hosts
     vault_ssh_ca_token_path: /etc/homelab/vault-ssh-ca.env
     ansible_ssh_common_args: >-
-      -o HostKeyAlias={{ inventory_hostname }}.dscim.dev
       {{ '-o ProxyJump=10.100.1.1' if ansible_host is match('^10\\.200\\.') else '' }}
 
   pre_tasks:
@@ -112,6 +119,7 @@
         headers:
           X-Vault-Token: "{{ hostvars['ops'].vault_ssh_ca_token }}"
         status_code: 200
+        return_content: true
         validate_certs: true
       delegate_to: ops
       run_once: true
@@ -128,7 +136,7 @@
         mode: "0600"
         marker: "# {mark} ANSIBLE MANAGED VAULT SSH HOST CA"
         block: |
-          @cert-authority *.dscim.dev {{ vault_ssh_ca_public_key.json.data.public_key }}
+          @cert-authority *.dscim.dev {{ vault_ssh_ca_public_key.content | trim }}
       delegate_to: ops
       run_once: true
 
@@ -137,7 +145,7 @@
         url: "{{ vault_ssh_ca_addr }}/v1/auth/token/renew-self"
         method: POST
         headers:
-          X-Vault-Token: "{{ vault_ssh_ca_token }}"
+          X-Vault-Token: "{{ hostvars['ops'].vault_ssh_ca_token }}"
         status_code: 200
         validate_certs: true
       delegate_to: ops
