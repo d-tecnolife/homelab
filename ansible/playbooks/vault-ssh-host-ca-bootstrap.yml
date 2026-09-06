@@ -58,7 +58,8 @@
         method: GET
         headers:
           X-Vault-Token: "{{ vault_ssh_ca_admin_token }}"
-        status_code: [200, 404]
+        # A new SSH mount returns 400 (rather than 404) until its CA exists.
+        status_code: [200, 400, 404]
         validate_certs: true
       register: vault_ssh_ca_key_status
       changed_when: false
@@ -75,7 +76,7 @@
           generate_signing_key: true
         status_code: 204
         validate_certs: true
-      when: vault_ssh_ca_key_status.status == 404
+      when: vault_ssh_ca_key_status.status != 200
       no_log: true
 
     - name: Restrict the host certificate signing role
