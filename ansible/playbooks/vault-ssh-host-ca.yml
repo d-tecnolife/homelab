@@ -98,8 +98,8 @@
     - name: Retain the signing token for certificate requests
       ansible.builtin.set_fact:
         vault_ssh_ca_token: >-
-          {{ vault_ssh_ca_token_file.content | b64decode |
-             regex_search('(?m)^VAULT_TOKEN=(.+)$', '\\1') | first }}
+          {{ vault_ssh_ca_token_file.content | b64decode | trim |
+             split('=', 1) | last }}
       run_once: true
       delegate_to: ops
       delegate_facts: true
