@@ -65,10 +65,10 @@ protection.
   represents reusable or persistent desired state. Prefer a reproducible task
   when a change may need to be repeated after rebuild, disaster recovery, host
   replacement, or deployment to another applicable VM.
-- One-off inspection, diagnosis, validation, emergency containment, and data
-  recovery may use direct commands when encoding them would add no reusable
-  value. If a direct change becomes part of the intended steady state, reconcile
-  it into Terraform, Ansible, or Compose before considering the work complete.
+- Follow the sibling Notes root `AGENTS.md` direct-repair workflow for an
+  explicitly authorized, localized, reversible deployment. This repository adds
+  only the project constraints below; direct repair is incomplete until its
+  exact result is reconciled to Terraform, Ansible, or Compose.
 - Make automation idempotent where practical, parameterize environment-specific
   values, keep secrets in the existing SOPS workflow, and add only the concise
   documentation needed to reproduce and verify the result.
