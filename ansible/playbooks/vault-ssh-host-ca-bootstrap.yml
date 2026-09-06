@@ -26,13 +26,13 @@
       changed_when: false
 
   tasks:
-    - name: Check whether the SSH host signer is mounted
+    - name: List mounted secrets engines
       ansible.builtin.uri:
-        url: "{{ vault_ssh_ca_addr }}/v1/sys/mounts/{{ vault_ssh_ca_mount }}"
+        url: "{{ vault_ssh_ca_addr }}/v1/sys/mounts"
         method: GET
         headers:
           X-Vault-Token: "{{ vault_ssh_ca_admin_token }}"
-        status_code: [200, 404]
+        status_code: 200
         validate_certs: true
       register: vault_ssh_ca_mount_status
       changed_when: false
@@ -49,7 +49,7 @@
           type: ssh
         status_code: 204
         validate_certs: true
-      when: vault_ssh_ca_mount_status.status == 404
+      when: vault_ssh_ca_mount ~ '/' not in vault_ssh_ca_mount_status.json.data
       no_log: true
 
     - name: Check whether the dedicated SSH host CA exists
