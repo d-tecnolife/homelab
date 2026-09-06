@@ -132,8 +132,8 @@
         dest: "/opt/compose/{{ item }}/"
         owner: root
         group: docker
-        mode: preserve
-        directory_mode: "2775"
+        mode: "0644"
+        directory_mode: "0755"
       loop: "{{ compose_stacks }}"
 
     - name: Remove retired standalone Logs dashboard
