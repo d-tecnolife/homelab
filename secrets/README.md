@@ -58,6 +58,23 @@ SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" sops ansible/secrets/caddy.s
 Ansible decrypts the file in memory and writes the destination with restricted
 permissions. Tasks handling plaintext use `no_log: true`.
 
+## NetBird Edge enrollment
+
+Create a one-off NetBird setup key assigned to the Edge routing-peer group,
+then create `ansible/secrets/netbird-edge.sops.env` from its example and
+encrypt it. The setup key is used only when Edge is not already connected;
+the playbook never writes it to Edge. Run:
+
+```bash
+cd ~/homelab/ansible
+ansible-playbook playbooks/netbird-edge.yml --limit edge
+```
+
+Edge continues to advertise the routed homelab subnets to NetBird clients. The
+Vault endpoint itself remains on Edge's management address so it works through
+that route and from the home LAN. `caddy.yml` maintains the DNS-only
+`ssh-ca.dscim.dev` A record at that management address.
+
 ## Terraform
 
 Copy `secrets/infrastructure.env.example` to

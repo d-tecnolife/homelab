@@ -30,6 +30,8 @@ for the required execution order.
   CrowdSec nftables sets, and per-source Minecraft connection limits on Edge.
 - `playbooks/netbird-networks.yml` keeps Ops from accepting the Services
   NetBird route because Apps is directly reachable through Edge.
+- `playbooks/netbird-edge.yml` enrolls Edge as the NetBird routing peer using
+  an encrypted one-off setup key.
 - `playbooks/crowdsec.yml` installs CrowdSec and its nftables bouncer on Edge,
   consumes community decisions, and parses Linux and Caddy logs.
 - `playbooks/minecraft-backups.yml` installs the daily Minecraft backup service

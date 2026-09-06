@@ -9,6 +9,9 @@
     caddy_encrypted_secret_path: "{{ playbook_dir }}/../secrets/caddy.sops.env"
     caddy_legacy_secret_path: "{{ playbook_dir }}/../secrets/caddy.env"
     sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
+    cloudflare_zone_name: dscim.dev
+    vault_dns_name: ssh-ca.dscim.dev
+    vault_dns_address: "{{ ansible_host }}"
 
   pre_tasks:
     - name: Check for the encrypted Cloudflare secret
@@ -65,7 +68,68 @@
       run_once: true
       no_log: true
 
+    - name: Extract the Cloudflare API token
+      ansible.builtin.set_fact:
+        cloudflare_api_token: >-
+          {{ caddy_secret_content | trim | split('=', 1) | last }}
+      run_once: true
+      no_log: true
+
   tasks:
+    - name: Find the Cloudflare zone
+      ansible.builtin.uri:
+        url: "https://api.cloudflare.com/client/v4/zones?name={{ cloudflare_zone_name }}&status=active"
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+        return_content: true
+        status_code: 200
+      delegate_to: localhost
+      become: false
+      register: cloudflare_zone
+      no_log: true
+
+    - name: Require the Cloudflare zone
+      ansible.builtin.assert:
+        that: cloudflare_zone.json.result | length == 1
+        fail_msg: "Cloudflare did not return exactly one active {{ cloudflare_zone_name }} zone."
+      delegate_to: localhost
+      become: false
+      no_log: true
+
+    - name: Find the Vault DNS record
+      ansible.builtin.uri:
+        url: >-
+          https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone.json.result[0].id }}/dns_records?type=A&name={{ vault_dns_name }}
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+        return_content: true
+        status_code: 200
+      delegate_to: localhost
+      become: false
+      register: cloudflare_vault_record
+      no_log: true
+
+    - name: Publish the routed-subnet Vault DNS record
+      ansible.builtin.uri:
+        url: >-
+          https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone.json.result[0].id }}/dns_records{{
+          '/' ~ cloudflare_vault_record.json.result[0].id if cloudflare_vault_record.json.result | length else '' }}
+        method: "{{ 'PUT' if cloudflare_vault_record.json.result | length else 'POST' }}"
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+        body_format: json
+        body:
+          type: A
+          name: "{{ vault_dns_name }}"
+          content: "{{ vault_dns_address }}"
+          ttl: 1
+          proxied: false
+          comment: Routed-subnet Vault endpoint managed by Ansible
+        status_code: 200
+      delegate_to: localhost
+      become: false
+      no_log: true
+
     - name: Install Caddy prerequisites
       ansible.builtin.apt:
         name:

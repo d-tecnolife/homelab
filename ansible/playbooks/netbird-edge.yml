@@ -1,0 +1,118 @@
+---
+- name: Connect Edge to NetBird as a redundant routing peer
+  hosts: edge
+  become: true
+  gather_facts: false
+  vars:
+    netbird_edge_secret_path: "{{ playbook_dir }}/../secrets/netbird-edge.sops.env"
+    sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
+
+  pre_tasks:
+    - name: Require the encrypted Edge NetBird setup key
+      ansible.builtin.stat:
+        path: "{{ netbird_edge_secret_path }}"
+      delegate_to: localhost
+      become: false
+      register: netbird_edge_secret
+
+    - name: Refuse to enroll Edge without an encrypted setup key
+      ansible.builtin.assert:
+        that: netbird_edge_secret.stat.isreg | default(false)
+        fail_msg: Create and encrypt ansible/secrets/netbird-edge.sops.env first.
+      delegate_to: localhost
+      become: false
+
+    - name: Decrypt the Edge NetBird setup key in memory
+      ansible.builtin.command:
+        argv: [sops, decrypt, "{{ netbird_edge_secret_path }}"]
+      environment:
+        SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
+      delegate_to: localhost
+      become: false
+      register: netbird_edge_secret_content
+      changed_when: false
+      no_log: true
+
+    - name: Extract the Edge NetBird setup key
+      ansible.builtin.set_fact:
+        netbird_setup_key: >-
+          {{ netbird_edge_secret_content.stdout | trim | split('=', 1) | last }}
+      no_log: true
+
+    - name: Require a non-empty Edge NetBird setup key
+      ansible.builtin.assert:
+        that: netbird_setup_key | length > 0
+        fail_msg: NETBIRD_SETUP_KEY is missing from the encrypted secret.
+      no_log: true
+
+  tasks:
+    - name: Install NetBird repository prerequisites
+      ansible.builtin.apt:
+        name: [ca-certificates, curl, gnupg]
+        state: present
+        update_cache: true
+
+    - name: Download the NetBird APT signing key
+      ansible.builtin.get_url:
+        url: https://pkgs.netbird.io/debian/public.key
+        dest: /tmp/netbird-public.key
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install the NetBird APT signing key
+      ansible.builtin.command:
+        argv:
+          - gpg
+          - --dearmor
+          - --yes
+          - --output
+          - /usr/share/keyrings/netbird-archive-keyring.gpg
+          - /tmp/netbird-public.key
+      changed_when: false
+
+    - name: Configure the NetBird APT repository
+      ansible.builtin.apt_repository:
+        repo: deb [signed-by=/usr/share/keyrings/netbird-archive-keyring.gpg] https://pkgs.netbird.io/debian stable main
+        filename: netbird
+        state: present
+
+    - name: Install the NetBird client
+      ansible.builtin.apt:
+        name: netbird
+        state: present
+        update_cache: true
+
+    - name: Start the NetBird service
+      ansible.builtin.systemd_service:
+        name: netbird
+        enabled: true
+        state: started
+
+    - name: Read the NetBird connection state
+      ansible.builtin.command:
+        argv: [netbird, status, --json]
+      register: netbird_status
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Enroll Edge when it is not already connected
+      ansible.builtin.command:
+        argv: [netbird, up, --setup-key, "{{ netbird_setup_key }}"]
+      when: >-
+        netbird_status.rc != 0 or
+        (netbird_status.stdout | from_json).daemonStatus | default('') != 'Connected'
+      no_log: true
+
+    - name: Wait for Edge to connect to NetBird
+      ansible.builtin.command:
+        argv: [netbird, status, --json]
+      register: netbird_connected_status
+      changed_when: false
+      until: >-
+        netbird_connected_status.rc == 0 and
+        (netbird_connected_status.stdout | from_json).daemonStatus | default('') == 'Connected'
+      retries: 12
+      delay: 5
+      no_log: true
