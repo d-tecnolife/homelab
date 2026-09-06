@@ -79,11 +79,6 @@ Update a Windows workstation from an elevated PowerShell session:
 Both commands read `ansible/inventory/hosts.yml`. Update that inventory first
 whenever an address changes.
 
-The Windows script also keeps an active-only `/32` route for Ops through Edge
-while the workstation is on the home `192.168.1.0/24` LAN. It installs a
-network-change task that removes the route off-site, allowing NetBird to reach
-Ops normally without manual route selection.
-
 Before deploying Caddy, follow [Secrets management](../secrets/README.md) and
 create `secrets/caddy.sops.env`. The playbook temporarily accepts the ignored
 plaintext `secrets/caddy.env` to support migration, but new deployments should

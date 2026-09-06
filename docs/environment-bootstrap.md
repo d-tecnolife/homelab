@@ -117,16 +117,17 @@ Where 192.168.1.199 is edge's IP.
 
 **Run on: Windows workstation as Administrator**
 
-Use the Windows hosts updater from the repository root:
+Windows needs routes to the internal networks because the LAN router does
+not know them. Open PowerShell as Administrator and use edge's stable
+LAN address as the next hop:
 
 ```powershell
-.\scripts\Update-HomelabHosts.ps1
+route -p add 10.100.1.0 mask 255.255.255.0 192.168.1.199
+route -p add 10.200.1.0 mask 255.255.255.0 192.168.1.199
 ```
 
-It manages hostname mappings and installs a network-change task. On the home
-LAN, the task adds only the more-specific Ops route (`10.100.1.10/32`) through
-Edge; off-site, it removes that route so NetBird remains the path to Ops. Do
-not add persistent routes for the entire internal subnets on a NetBird client.
+Disconnect any VPN before connecting to the private subnets; a VPN may route
+`10.100.1.0/24` through its virtual interface instead of Edge.
 
 Verify Ops is reachable, then wait for its Cloud-Init setup to finish:
 
