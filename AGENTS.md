@@ -4,12 +4,15 @@ This repository is the desired state for the homelab. Terraform owns Proxmox
 resources, Ansible owns guest configuration, and Compose files own application
 deployment.
 
-Before reading Notes context, inspect the sibling Notes checkout. When it is
-clean and network access is available, run `bash scripts/context-sync.sh` and
-require its fast-forward pull to succeed; then read `../notes/AGENTS.md` and
-follow its router to exactly the context relevant to the task. If the checkout
-is missing, dirty, read-only, or cannot be updated, report that condition and
-the context's freshness is unverified. Never replace or overwrite local work.
+Before reading Notes context, inspect the sibling Notes checkout. When its
+worktree is clean and network access is available, sync it with
+`git -C ../notes pull --no-rebase`; this fast-forwards when possible and creates
+a normal merge commit when committed local history has diverged. Do not use
+`scripts/context-sync.sh`. Then read `../notes/AGENTS.md` and follow its router
+to exactly the context relevant to the task. If the checkout is missing,
+read-only, has uncommitted changes, or cannot be updated, report that condition
+and the context's freshness is unverified. Never stash, replace, or overwrite
+local work to make a pull succeed.
 
 Update the routed Homelab IaC context in the sibling Notes repository only when
 the `architect` role (`gpt-5.6-sol`, high reasoning) was needed and its outcome
