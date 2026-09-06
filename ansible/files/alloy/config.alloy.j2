@@ -10,6 +10,10 @@ loki.relabel "journal" {
     target_label  = "unit"
   }
   rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "workload"
+  }
+  rule {
     source_labels = ["__journal_priority_keyword"]
     target_label  = "level"
   }
@@ -17,7 +21,7 @@ loki.relabel "journal" {
 
 loki.source.journal "system" {
   max_age    = "24h"
-  labels     = { job = "journal" }
+  labels     = { job = "journal", source_type = "system" }
   forward_to = [loki.relabel.journal.receiver]
 }
 
@@ -30,11 +34,16 @@ discovery.relabel "docker" {
     regex         = "/(.*)"
     target_label  = "container"
   }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "workload"
+  }
 }
 loki.source.docker "containers" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.relabel.docker.output
-  labels     = { job = "docker" }
+  labels     = { job = "docker", source_type = "container" }
   forward_to = [loki.write.central.receiver]
 }
 {% endif %}
@@ -47,12 +56,16 @@ local.file_match "minecraft_server" {
       job        = "minecraft"
       service    = "minecraft"
       log_type   = "server"
+      workload   = "minecraft"
+      source_type = "application"
     },
     {
       __path__ = "/srv/compose/minecraft/data/*/logs/latest.log"
       job        = "minecraft"
       service    = "minecraft"
       log_type   = "server"
+      workload   = "minecraft"
+      source_type = "application"
     },
   ]
   sync_period = "10s"

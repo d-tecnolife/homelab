@@ -16,6 +16,7 @@
     ]
   },
   "editable": false,
+  "description": "Fleet health and centrally collected logs. Use the log filters to identify the originating VM, source type, and application or systemd unit.",
   "graphTooltip": 1,
   "id": null,
   "links": [],
@@ -797,13 +798,13 @@
       },
       "targets": [
         {
-          "expr": "sum by (host) (rate({host=~\"$host\", job=~\"$job\"} |~ \"${severity:raw}\" [$__auto]))",
-          "legendFormat": "{{host}}",
+          "expr": "sum by (host, source_type) (rate({host=~\"$host\", job=~\"$job\", source_type=~\"$source_type\", workload=~\"$workload\"} |~ \"${severity:raw}\" [$__auto]))",
+          "legendFormat": "{{host}} · {{source_type}}",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Log volume by host",
+      "title": "Log activity by VM and source",
       "type": "timeseries"
     },
     {
@@ -821,23 +822,23 @@
       "options": {
         "dedupStrategy": "none",
         "enableInfiniteScrolling": false,
-        "enableLogDetails": false,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": true,
+        "showLabels": true,
         "showTime": true,
         "sortOrder": "Descending",
         "syntaxHighlighting": false,
-        "wrapLogMessage": false
+        "wrapLogMessage": true
       },
       "targets": [
         {
-          "expr": "{host=~\"$host\", job=~\"$job\"} |~ \"${severity:raw}\" |~ \"(?i)$search\"",
+          "expr": "{host=~\"$host\", job=~\"$job\", source_type=~\"$source_type\", workload=~\"$workload\"} |~ \"${severity:raw}\" |~ \"(?i)$search\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Centralized logs",
+      "title": "Centralized logs — VM, source, and application are shown per entry",
       "type": "logs"
     }
   ],
@@ -861,7 +862,7 @@
         },
         "definition": "label_values(host)",
         "includeAll": true,
-        "label": "Log host",
+        "label": "VM / host",
         "name": "host",
         "options": [],
         "query": "label_values(host)",
@@ -880,10 +881,48 @@
         },
         "definition": "label_values(job)",
         "includeAll": true,
-        "label": "Log source",
+        "label": "Log transport",
         "name": "job",
         "options": [],
         "query": "label_values(job)",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".+",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "definition": "label_values(source_type)",
+        "includeAll": true,
+        "label": "Source type",
+        "name": "source_type",
+        "options": [],
+        "query": "label_values(source_type)",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".+",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "definition": "label_values(workload)",
+        "includeAll": true,
+        "label": "Application or unit",
+        "name": "workload",
+        "options": [],
+        "query": "label_values(workload)",
         "refresh": 1,
         "type": "query"
       },
