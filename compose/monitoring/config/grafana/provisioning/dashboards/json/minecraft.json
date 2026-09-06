@@ -37,7 +37,7 @@
       "gridPos": {"h": 14, "w": 24, "x": 0, "y": 8},
       "id": 4,
       "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": false, "sortOrder": "Descending", "wrapLogMessage": false},
-      "targets": [{"expr": "{host=\"games\", job=\"minecraft\", service=\"minecraft\", log_type=\"server\"} |= \"[net.minecraft.server.MinecraftServer/]\"", "refId": "A"}],
+      "targets": [{"expr": "{host=\"games\", job=\"minecraft\", service=\"minecraft\", log_type=\"server\"} |= \"[net.minecraft.server.MinecraftServer/]\" | regexp \"^\\\\[Server thread/INFO\\\\] \\\\[net\\\\.minecraft\\\\.server\\\\.MinecraftServer/\\\\]: (?P<message>.*)$\" | line_format \"{{.message}}\"", "refId": "A"}],
       "title": "Minecraft server logs",
       "type": "logs"
     }
