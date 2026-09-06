@@ -47,7 +47,7 @@
         body_format: json
         body:
           type: ssh
-        status_code: 204
+        status_code: [200, 204]
         validate_certs: true
       when: vault_ssh_ca_mount ~ '/' not in vault_ssh_ca_mount_status.json.data
       no_log: true
