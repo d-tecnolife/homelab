@@ -136,6 +136,12 @@
         directory_mode: "2775"
       loop: "{{ compose_stacks }}"
 
+    - name: Remove retired standalone Logs dashboard
+      ansible.builtin.file:
+        path: /opt/compose/monitoring/config/grafana/provisioning/dashboards/json/logs.json
+        state: absent
+      when: inventory_hostname == 'monitoring'
+
     - name: Check for encrypted stack secrets
       ansible.builtin.stat:
         path: "{{ compose_secret_directory }}/{{ item }}.sops.env"
