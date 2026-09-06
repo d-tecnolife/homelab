@@ -36,8 +36,8 @@
       "datasource": {"type": "loki", "uid": "loki"},
       "gridPos": {"h": 14, "w": 24, "x": 0, "y": 8},
       "id": 4,
-      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": false},
-      "targets": [{"expr": "{host=\"games\", job=\"minecraft\", service=\"minecraft\", log_type=\"server\"}", "refId": "A"}],
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": false, "sortOrder": "Descending", "wrapLogMessage": false},
+      "targets": [{"expr": "{host=\"games\", job=\"minecraft\", service=\"minecraft\", log_type=\"server\"} |= \"[net.minecraft.server.MinecraftServer/]\"", "refId": "A"}],
       "title": "Minecraft server logs",
       "type": "logs"
     }
