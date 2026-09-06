@@ -1,31 +1,953 @@
 {
-  "annotations": {"list": [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]},
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
   "editable": false,
   "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
-    {"datasource": {"type": "prometheus", "uid": "prometheus"}, "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []}, "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}, "id": 1, "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true}, "targets": [{"expr": "sum(up{job=\"node\"})", "refId": "A"}], "title": "Reachable hosts", "type": "stat"},
-    {"datasource": {"type": "prometheus", "uid": "prometheus"}, "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 7}, {"color": "green", "value": 8}]}}, "overrides": []}, "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}, "id": 2, "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true}, "targets": [{"expr": "count(up{job=\"node\"})", "refId": "A"}], "title": "Configured hosts", "type": "stat"},
-    {"datasource": {"type": "prometheus", "uid": "prometheus"}, "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []}, "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}, "id": 3, "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true}, "targets": [{"expr": "sum(pve_up{id=~\"qemu/.*\"})", "refId": "A"}], "title": "Running Proxmox VMs", "type": "stat"},
-    {"datasource": {"type": "prometheus", "uid": "prometheus"}, "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []}, "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}, "id": 4, "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true}, "targets": [{"expr": "count(ALERTS{alertstate=\"firing\"}) or vector(0)", "refId": "A"}], "title": "Firing alerts", "type": "stat"},
-    {"datasource": {"type": "prometheus", "uid": "prometheus"}, "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 90}]}, "unit": "percent"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}, "id": 5, "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}}, "targets": [{"expr": "(100 * (1 - avg by(instance) (rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\"}[5m])))) * on(instance) group_left(nodename) node_uname_info", "legendFormat": "{{nodename}}", "refId": "A"}], "title": "Host CPU", "type": "timeseries"},
-    {"datasource": {"type": "prometheus", "uid": "prometheus"}, "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 90}]}, "unit": "percent"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}, "id": 6, "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}}, "targets": [{"expr": "(100 * (1 - node_memory_MemAvailable_bytes{job=\"node\"} / node_memory_MemTotal_bytes{job=\"node\"})) * on(instance) group_left(nodename) node_uname_info", "legendFormat": "{{nodename}}", "refId": "A"}], "title": "Host memory", "type": "timeseries"},
-    {"datasource": {"type": "prometheus", "uid": "prometheus"}, "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "max": 100, "min": 0, "unit": "percent"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}, "id": 7, "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}}, "targets": [{"expr": "(100 * (1 - node_filesystem_avail_bytes{job=\"node\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{job=\"node\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})) * on(instance) group_left(nodename) node_uname_info", "legendFormat": "{{nodename}}", "refId": "A"}], "title": "Root filesystem usage", "type": "timeseries"},
-    {"datasource": {"type": "prometheus", "uid": "prometheus"}, "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "area"}}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 85}]}, "unit": "celsius"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}, "id": 9, "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}}, "targets": [{"expr": "node_hwmon_temp_celsius{job=\"node\"} * on(instance) group_left(nodename) node_uname_info", "legendFormat": "{{nodename}} {{chip}} {{sensor}}", "refId": "A"}], "title": "Hardware temperatures", "type": "timeseries"},
-    {"datasource": {"type": "loki", "uid": "loki"}, "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisBorderShow": false, "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "bars", "fillOpacity": 35, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true, "stacking": {"group": "A", "mode": "normal"}, "thresholdsStyle": {"mode": "off"}}, "unit": "logs/sec"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}, "id": 10, "options": {"legend": {"calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}}, "targets": [{"expr": "sum by (host) (rate({host=~\"$host\", job=~\"$job\"} |~ \"${severity:raw}\" [$__auto]))", "legendFormat": "{{host}}", "queryType": "range", "refId": "A"}], "title": "Log volume by host", "type": "timeseries"},
-    {"datasource": {"type": "loki", "uid": "loki"}, "gridPos": {"h": 17, "w": 24, "x": 0, "y": 28}, "id": 11, "options": {"dedupStrategy": "none", "enableInfiniteScrolling": false, "enableLogDetails": false, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "syntaxHighlighting": false, "wrapLogMessage": false}, "targets": [{"expr": "{host=~\"$host\", job=~\"$job\"} |~ \"${severity:raw}\" |~ \"(?i)$search\"", "queryType": "range", "refId": "A"}], "title": "Centralized logs", "type": "logs"}
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(up{job=\"node\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Reachable hosts",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 7
+              },
+              {
+                "color": "green",
+                "value": 8
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "count(up{job=\"node\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Configured hosts",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(pve_up{id=~\"qemu/.*\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Running Proxmox VMs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "count(ALERTS{alertstate=\"firing\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Firing alerts",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "(100 * (1 - avg by(instance) (rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\"}[5m])))) * on(instance) group_left(nodename) node_uname_info",
+          "legendFormat": "{{nodename}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Host CPU",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "(100 * (1 - node_memory_MemAvailable_bytes{job=\"node\"} / node_memory_MemTotal_bytes{job=\"node\"})) * on(instance) group_left(nodename) node_uname_info",
+          "legendFormat": "{{nodename}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Host memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "(100 * (1 - node_filesystem_avail_bytes{job=\"node\",fstype!~\"tmpfs|overlay|squashfs\"} / node_filesystem_size_bytes{job=\"node\",fstype!~\"tmpfs|overlay|squashfs\"})) * on(instance) group_left(nodename) node_uname_info",
+          "legendFormat": "{{nodename}} {{mountpoint}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Filesystem usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (instance) (rate(node_disk_read_bytes_total{job=\"node\",device!~\"loop.*|ram.*\"}[5m]) + rate(node_disk_written_bytes_total{job=\"node\",device!~\"loop.*|ram.*\"}[5m])) * on(instance) group_left(nodename) node_uname_info",
+          "legendFormat": "{{nodename}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Disk throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "area"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "node_hwmon_temp_celsius{job=\"node\"} * on(instance) group_left(nodename) node_uname_info",
+          "legendFormat": "{{nodename}} {{chip}} {{sensor}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Hardware temperatures",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (instance) (rate(node_network_receive_bytes_total{job=\"node\",device!~\"lo|veth.*|docker.*\"}[5m]) + rate(node_network_transmit_bytes_total{job=\"node\",device!~\"lo|veth.*|docker.*\"}[5m])) * on(instance) group_left(nodename) node_uname_info",
+          "legendFormat": "{{nodename}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Network throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 35,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "logs/sec"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (host) (rate({host=~\"$host\", job=~\"$job\"} |~ \"${severity:raw}\" [$__auto]))",
+          "legendFormat": "{{host}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Log volume by host",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 17,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "id": 11,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": false,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "syntaxHighlighting": false,
+        "wrapLogMessage": false
+      },
+      "targets": [
+        {
+          "expr": "{host=~\"$host\", job=~\"$job\"} |~ \"${severity:raw}\" |~ \"(?i)$search\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Centralized logs",
+      "type": "logs"
+    }
   ],
   "refresh": "30s",
   "schemaVersion": 41,
-  "tags": ["homelab", "overview"],
-  "templating": {"list": [
-    {"allValue": ".+", "current": {"text": "All", "value": "$__all"}, "datasource": {"type": "loki", "uid": "loki"}, "definition": "label_values(host)", "includeAll": true, "label": "Log host", "name": "host", "options": [], "query": "label_values(host)", "refresh": 1, "type": "query"},
-    {"allValue": ".+", "current": {"text": "All", "value": "$__all"}, "datasource": {"type": "loki", "uid": "loki"}, "definition": "label_values(job)", "includeAll": true, "label": "Log source", "name": "job", "options": [], "query": "label_values(job)", "refresh": 1, "type": "query"},
-    {"current": {"text": "All", "value": "(?:)"}, "includeAll": false, "label": "Log severity", "name": "severity", "options": [{"selected": true, "text": "All", "value": "(?:)"}, {"selected": false, "text": "Error", "value": "(?i)(error|fatal|panic|critical|crit|emerg|alert)"}, {"selected": false, "text": "Warning", "value": "(?i)(warning|warn)"}, {"selected": false, "text": "Info", "value": "(?i)(info|notice)"}, {"selected": false, "text": "Debug", "value": "(?i)(debug|trace)"}], "query": "All : (?:),Error : (?i)(error|fatal|panic|critical|crit|emerg|alert),Warning : (?i)(warning|warn),Info : (?i)(info|notice),Debug : (?i)(debug|trace)", "type": "custom"},
-    {"current": {"text": "", "value": ""}, "label": "Log search", "name": "search", "options": [{"selected": true, "text": "", "value": ""}], "query": "", "type": "textbox"}
-  ]},
-  "time": {"from": "now-6h", "to": "now"},
+  "tags": [
+    "homelab",
+    "overview"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".+",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "definition": "label_values(host)",
+        "includeAll": true,
+        "label": "Log host",
+        "name": "host",
+        "options": [],
+        "query": "label_values(host)",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".+",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "definition": "label_values(job)",
+        "includeAll": true,
+        "label": "Log source",
+        "name": "job",
+        "options": [],
+        "query": "label_values(job)",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "(?:)"
+        },
+        "includeAll": false,
+        "label": "Log severity",
+        "name": "severity",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "(?:)"
+          },
+          {
+            "selected": false,
+            "text": "Error",
+            "value": "(?i)(error|fatal|panic|critical|crit|emerg|alert)"
+          },
+          {
+            "selected": false,
+            "text": "Warning",
+            "value": "(?i)(warning|warn)"
+          },
+          {
+            "selected": false,
+            "text": "Info",
+            "value": "(?i)(info|notice)"
+          },
+          {
+            "selected": false,
+            "text": "Debug",
+            "value": "(?i)(debug|trace)"
+          }
+        ],
+        "query": "All : (?:),Error : (?i)(error|fatal|panic|critical|crit|emerg|alert),Warning : (?i)(warning|warn),Info : (?i)(info|notice),Debug : (?i)(debug|trace)",
+        "type": "custom"
+      },
+      {
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "label": "Log search",
+        "name": "search",
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "timezone": "browser",
   "title": "Homelab Overview",
   "uid": "homelab-overview",

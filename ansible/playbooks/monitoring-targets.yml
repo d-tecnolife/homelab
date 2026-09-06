@@ -4,6 +4,15 @@
   become: true
   gather_facts: false
   tasks:
+    - name: Require the Proxmox hardware metrics target
+      ansible.builtin.assert:
+        that:
+          - groups.get('proxmox_hosts', []) | length > 0
+        fail_msg: >-
+          Add the Proxmox host to the proxmox_hosts inventory group before
+          generating node exporter targets. Hardware temperatures are collected
+          directly from that host.
+
     - name: Create generated Prometheus target directory
       ansible.builtin.file:
         path: /srv/compose/monitoring/prometheus-targets

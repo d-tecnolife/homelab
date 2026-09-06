@@ -2,6 +2,7 @@ services:
   prometheus:
     image: prom/prometheus:v3.5.0
     container_name: prometheus
+    user: "65534:1002" # nobody with the prometheus-data group for file-discovery targets
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
