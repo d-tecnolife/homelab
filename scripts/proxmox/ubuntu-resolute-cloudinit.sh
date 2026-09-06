@@ -75,7 +75,8 @@ install -d -m 0755 "$SNIPPET_DIR"
 
 cat << EOF | tee "$SNIPPET_DIR/ubuntu-resolute.yaml"
 #cloud-config
-ssh_deletekeys: false
+# Cloud images must create a distinct SSH host identity on each cloned VM.
+ssh_deletekeys: true
 runcmd:
     - apt-get update
     - apt-get install -y qemu-guest-agent

@@ -78,54 +78,10 @@
         ops_management_public_key: >-
           {{ ops_management_public_key_file.content | b64decode | trim }}
 
-    - name: Remove previous managed VM SSH host keys
-      ansible.builtin.command:
-        argv:
-          - ssh-keygen
-          - -f
-          - "{{ ansible_user_dir }}/.ssh/known_hosts"
-          - -R
-          - "{{ hostvars[item].ansible_host }}"
-      loop: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
-      register: removed_managed_vm_host_keys
-      changed_when: "'found' in removed_managed_vm_host_keys.stdout"
-      failed_when: false
-
-    - name: Scan managed VM SSH host keys
-      ansible.builtin.command:
-        argv:
-          - ssh-keyscan
-          - -T
-          - "5"
-          - "{{ hostvars[item].ansible_host }}"
-      loop: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
-      register: managed_vm_host_keys
-      changed_when: false
-      failed_when: false
-
-    - name: Select reachable managed VMs
-      ansible.builtin.add_host:
-        name: "{{ item.item }}"
-        groups: ops_ssh_bootstrap_targets
-      loop: "{{ managed_vm_host_keys.results }}"
-      loop_control:
-        label: "{{ item.item }}"
-      when: item.rc == 0 and (item.stdout | length) > 0
-
-    - name: Trust managed VM SSH host keys
-      ansible.builtin.known_hosts:
-        path: "{{ ansible_user_dir }}/.ssh/known_hosts"
-        name: "{{ hostvars[item.item].ansible_host }}"
-        key: "{{ item.stdout }}"
-        state: present
-      loop: "{{ managed_vm_host_keys.results }}"
-      loop_control:
-        label: "{{ item.item }}"
-      when: item.rc == 0 and (item.stdout | length) > 0
-
 - name: Authorize Ops on every running managed VM
-  hosts: ops_ssh_bootstrap_targets
+  hosts: managed_vms:!ops
   gather_facts: true
+  ignore_unreachable: true
   vars:
     repository_authorized_key_files: >-
       {{ query('fileglob', playbook_dir ~ '/../../keys/*.pub') | sort }}

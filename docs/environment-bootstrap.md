@@ -158,9 +158,10 @@ cd homelab/ansible
 cp inventory/hosts.yml.example inventory/hosts.yml
 ```
 
-The playbook configures every VM that is currently reachable and skips
-powered-off VMs such as k3s. Rerun it after starting an on-demand VM to add
-its current host key and the Ops management key. Run:
+The playbook configures every reachable VM and preserves existing SSH host-key
+verification. It never deletes or silently replaces a remembered host key; a
+changed key must be verified through the Proxmox console before continuing.
+Run:
 
 ```bash
 ansible-playbook playbooks/bootstrap-ops-ssh.yml

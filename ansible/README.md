@@ -9,7 +9,8 @@ for the required execution order.
 ## Playbooks
 
 - `playbooks/bootstrap-ops-ssh.yml` generates the Ops management key and adds
-  its public key to every managed VM.
+  its public key to every managed VM without replacing remembered SSH host
+  keys.
 - `playbooks/secrets.yml` installs SOPS and age on Ops and generates the
   administrator-owned age identity used for deploy-time decryption.
 - `playbooks/ops-codex.yml` configures project model routing for `dtec`.
