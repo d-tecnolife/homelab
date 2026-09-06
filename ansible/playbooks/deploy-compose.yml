@@ -7,6 +7,7 @@
     compose_stacks_by_host:
       ops: []
       apps:
+        - authentik
         - job-ops
         - vault
         - vaultwarden
@@ -20,6 +21,9 @@
     compose_data_directories_by_host:
       ops: []
       apps:
+        - authentik/postgresql
+        - authentik/media
+        - authentik/custom-templates
         - job-ops/data
         - vault/data
         - vaultwarden/data
@@ -36,6 +40,9 @@
     compose_data_owners_by_host:
       ops: []
       apps:
+        - {path: authentik/postgresql, owner: "70"}
+        - {path: authentik/media, owner: "1000"}
+        - {path: authentik/custom-templates, owner: "1000"}
         - {path: vault/data, owner: "100"}
       monitoring:
         - {path: monitoring/prometheus, owner: "65534"}
@@ -49,6 +56,9 @@
     compose_data_access_by_host:
       ops: []
       apps:
+        - {path: authentik/postgresql, group: authentik-data}
+        - {path: authentik/media, group: authentik-data}
+        - {path: authentik/custom-templates, group: authentik-data}
         - {path: job-ops/data, group: job-ops-data}
         - {path: vault/data, group: vault-data}
         - {path: vaultwarden/data, group: vaultwarden-data}

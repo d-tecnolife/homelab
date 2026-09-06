@@ -1,0 +1,21 @@
+---
+- name: Keep Ops on its directly connected services network
+  hosts: ops
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Read selected NetBird networks
+      ansible.builtin.command:
+        argv: [netbird, networks, list]
+      register: netbird_networks
+      changed_when: false
+
+    - name: Deselect the services network on Ops
+      ansible.builtin.command:
+        argv: [netbird, networks, deselect, Services]
+      when: >-
+        netbird_networks.stdout is search(
+          'ID: Services\\s+Network: 10\\.200\\.1\\.0/24\\s+Status: Selected',
+          multiline=True
+        )

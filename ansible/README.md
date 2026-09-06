@@ -28,6 +28,8 @@ for the required execution order.
   `/etc/hosts` on every reachable managed VM using the inventory addresses.
 - `playbooks/edge-routing.yml` maintains persistent IPv4 forwarding, the
   CrowdSec nftables sets, and per-source Minecraft connection limits on Edge.
+- `playbooks/netbird-networks.yml` keeps Ops from accepting the Services
+  NetBird route because Apps is directly reachable through Edge.
 - `playbooks/crowdsec.yml` installs CrowdSec and its nftables bouncer on Edge,
   consumes community decisions, and parses Linux and Caddy logs.
 - `playbooks/minecraft-backups.yml` installs the daily Minecraft backup service
