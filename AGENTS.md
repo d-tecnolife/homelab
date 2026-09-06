@@ -7,9 +7,9 @@ deployment.
 Before reading Notes context, inspect the sibling Notes checkout. When its
 worktree is clean and network access is available, sync it with
 `git -C ../notes pull --no-rebase`; this fast-forwards when possible and creates
-a normal merge commit when committed local history has diverged. Do not use
-`scripts/context-sync.sh`. Then read `../notes/AGENTS.md` and follow its router
-to exactly the context relevant to the task. If the checkout is missing,
+a normal merge commit when committed local history has diverged. Then read
+`../notes/AGENTS.md` and follow its router to exactly the context relevant to
+the task. If the checkout is missing,
 read-only, has uncommitted changes, or cannot be updated, report that condition
 and the context's freshness is unverified. Never stash, replace, or overwrite
 local work to make a pull succeed.
