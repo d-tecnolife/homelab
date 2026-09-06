@@ -4,10 +4,10 @@ ssh-ca.dscim.dev {
 		resolvers 1.1.1.1
 	}
 
-	# NetBird clients retain a 100.64.0.0/10 source address at Edge.
-	@trusted remote_ip 100.64.0.0/10 192.168.1.0/24
+	# Permit NetBird plus the private ranges used by this homelab.
+	@trusted remote_ip 100.64.0.0/10 10.0.0.0/8 192.168.0.0/16
 	handle @trusted {
 		reverse_proxy 10.200.1.10:8200
 	}
-	respond "VPN or home-network access required" 403
+	respond "Private-network access required" 403
 }

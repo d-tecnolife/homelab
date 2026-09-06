@@ -73,7 +73,8 @@ ansible-playbook playbooks/netbird-edge.yml --limit edge
 Edge continues to advertise the routed homelab subnets to NetBird clients. The
 Vault endpoint itself remains on Edge's management address so it works through
 that route and from the home LAN. `caddy.yml` maintains the DNS-only
-`ssh-ca.dscim.dev` A record at that management address.
+`ssh-ca.dscim.dev` A record at that management address. Caddy permits NetBird,
+`10.0.0.0/8`, and `192.168.0.0/16` sources; it still rejects all other sources.
 
 ## Terraform
 
