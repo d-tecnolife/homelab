@@ -264,3 +264,18 @@
         'Recreated' in (compose_deployments.stdout + compose_deployments.stderr) or
         'Started' in (compose_deployments.stdout + compose_deployments.stderr) or
         'Pulled' in (compose_deployments.stdout + compose_deployments.stderr)
+
+    - name: Restart Vaultwarden after clearing SSO overrides
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-directory
+          - /opt/compose/vaultwarden
+          - up
+          - --detach
+          - --force-recreate
+      when:
+        - vaultwarden_sso_config is defined
+        - vaultwarden_sso_config.changed
+      changed_when: true
