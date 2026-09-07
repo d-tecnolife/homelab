@@ -9,6 +9,7 @@
       apps:
         - authentik
         - job-ops
+        - playwright
         - vault
         - vaultwarden
         - wannbot
@@ -25,6 +26,7 @@
         - authentik/media
         - authentik/custom-templates
         - job-ops/data
+        - playwright/data
         - vault/data
         - vaultwarden/data
       monitoring:
@@ -40,6 +42,7 @@
     compose_data_owners_by_host:
       ops: []
       apps:
+        - {path: playwright/data, owner: "1001"}
         - {path: authentik/postgresql, owner: "70"}
         - {path: authentik/media, owner: "1000"}
         - {path: authentik/custom-templates, owner: "1000"}
@@ -56,6 +59,7 @@
     compose_data_access_by_host:
       ops: []
       apps:
+        - {path: playwright/data, group: playwright-data}
         - {path: authentik/postgresql, group: authentik-data}
         - {path: authentik/media, group: authentik-data}
         - {path: authentik/custom-templates, group: authentik-data}

@@ -1,0 +1,37 @@
+# Playwright MCP browser automation
+#
+# The upstream HTTP transport has no authentication. Keep this endpoint bound
+# to loopback and reach it over an authenticated SSH tunnel.
+services:
+  playwright:
+    image: mcr.microsoft.com/playwright/mcp@sha256:dda1f7f9b812e22946635c8af7df9288b96d3b9e3f0f1b8576d6823e2031c1de
+    container_name: playwright
+    init: true
+    user: "1001:1001"
+    entrypoint: node
+    command:
+      - /app/cli.js
+      - --headless
+      - --browser
+      - chromium
+      - --no-sandbox
+      - --host
+      - 0.0.0.0
+      - --allowed-hosts
+      - 127.0.0.1:8931,localhost:8931
+      - --port
+      - "8931"
+      - --user-data-dir
+      - /home/pwuser/.cache/ms-playwright/profile
+      - --output-dir
+      - /home/pwuser/.cache/ms-playwright/output
+      - --shared-browser-context
+    environment:
+      PLAYWRIGHT_MCP_PING_TIMEOUT_MS: "0"
+    ports:
+      - "127.0.0.1:8931:8931"
+    volumes:
+      - /srv/compose/playwright/data:/home/pwuser/.cache/ms-playwright
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
