@@ -290,6 +290,10 @@
           - --envfile
           - /etc/caddy/cloudflare.env
       become_user: caddy
+      vars:
+        # The default remote tmp is private to the SSH user; caddy needs its
+        # own path when validating the configuration as the service account.
+        ansible_remote_tmp: /tmp/ansible-caddy
       changed_when: false
 
     - name: Install the Caddy configuration
