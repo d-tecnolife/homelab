@@ -200,6 +200,16 @@
         mode: "0750"
         recurse: true
 
+    - name: Create the Job Ops Caddy access log
+      ansible.builtin.file:
+        path: /var/log/caddy/job-ops-access.json
+        state: touch
+        owner: caddy
+        group: caddy
+        mode: "0640"
+        access_time: preserve
+        modification_time: preserve
+
     - name: Grant operators access to existing Caddy logs
       ansible.posix.acl:
         path: /var/log/caddy
