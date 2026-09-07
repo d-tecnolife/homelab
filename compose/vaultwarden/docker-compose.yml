@@ -1,6 +1,6 @@
 services:
   vaultwarden:
-    image: vaultwarden/server:latest
+    image: vaultwarden/server:1.37.2
     container_name: vaultwarden
     restart: unless-stopped
     ports:
@@ -12,3 +12,13 @@ services:
       WEBSOCKET_ENABLED: "true"
       SIGNUPS_ALLOWED: "false"
       ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN:?set VAULTWARDEN_ADMIN_TOKEN in .env}
+      # Keep email and master-password login available as a recovery path.
+      SSO_ENABLED: "true"
+      SSO_ONLY: "false"
+      SSO_SIGNUPS_MATCH_EMAIL: "true"
+      SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION: "false"
+      SSO_CLIENT_ID: ${AUTHENTIK_VAULTWARDEN_OIDC_CLIENT_ID:?set AUTHENTIK_VAULTWARDEN_OIDC_CLIENT_ID}
+      SSO_CLIENT_SECRET: ${AUTHENTIK_VAULTWARDEN_OIDC_CLIENT_SECRET:?set AUTHENTIK_VAULTWARDEN_OIDC_CLIENT_SECRET}
+      SSO_AUTHORITY: https://auth.dscim.dev/application/o/vaultwarden/
+      SSO_SCOPES: openid email profile offline_access
+      SSO_PKCE: "true"
