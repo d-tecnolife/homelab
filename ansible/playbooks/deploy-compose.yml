@@ -211,6 +211,40 @@
       loop: "{{ compose_stacks }}"
       changed_when: false
 
+    - name: Let Vaultwarden use Compose-managed SSO settings
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import json
+            import sys
+
+            path = "/srv/compose/vaultwarden/data/config.json"
+            changed = False
+            try:
+                with open(path, "r+", encoding="utf-8") as config_file:
+                    config = json.load(config_file)
+                    sso_keys = [key for key in config if key.startswith("sso_")]
+                    if not sso_keys:
+                        sys.exit(0)
+                    for key in sso_keys:
+                        del config[key]
+                    config_file.seek(0)
+                    json.dump(config, config_file, indent=2, sort_keys=True)
+                    config_file.write("\n")
+                    config_file.truncate()
+                    changed = True
+            except FileNotFoundError:
+                pass
+            sys.exit(10 if changed else 0)
+      when:
+        - inventory_hostname == 'apps'
+        - "'vaultwarden' in compose_stacks"
+      register: vaultwarden_sso_config
+      changed_when: vaultwarden_sso_config.rc == 10
+      failed_when: vaultwarden_sso_config.rc not in [0, 10]
+
     - name: Pull and apply Compose stacks
       ansible.builtin.command:
         argv:
