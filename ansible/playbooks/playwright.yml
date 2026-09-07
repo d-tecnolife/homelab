@@ -1,0 +1,36 @@
+---
+- name: Configure the private Playwright MCP tunnel on Ops
+  hosts: ops
+  gather_facts: false
+  tasks:
+    - name: Create the user systemd directory
+      ansible.builtin.file:
+        path: /home/dtec/.config/systemd/user
+        state: directory
+        mode: "0755"
+
+    - name: Install the Playwright MCP tunnel
+      ansible.builtin.copy:
+        dest: /home/dtec/.config/systemd/user/playwright-mcp-tunnel.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Private tunnel to the Apps Playwright MCP endpoint
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          ExecStart=/usr/bin/ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:8931:127.0.0.1:8931 dtec@10.200.1.10
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=default.target
+
+    - name: Enable and start the Playwright MCP tunnel
+      ansible.builtin.systemd_service:
+        name: playwright-mcp-tunnel.service
+        scope: user
+        daemon_reload: true
+        enabled: true
+        state: started

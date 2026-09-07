@@ -4,11 +4,8 @@
 profile. Its MCP HTTP endpoint binds only to the Apps VM loopback interface;
 it has no network exposure beyond an authenticated SSH session to Apps.
 
-From Ops, create a tunnel before starting Codex:
-
-```bash
-ssh -N -L 8931:127.0.0.1:8931 dtec@10.200.1.10
-```
+`ansible/playbooks/playwright.yml` maintains the required loopback-only SSH
+tunnel on Ops.
 
 Then add this MCP server to the local Codex configuration:
 
