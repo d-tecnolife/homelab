@@ -28,6 +28,9 @@ services:
       - --shared-browser-context
     environment:
       PLAYWRIGHT_MCP_PING_TIMEOUT_MS: "0"
+      XDG_CONFIG_HOME: /home/pwuser/.cache/ms-playwright/config
+      XDG_CACHE_HOME: /home/pwuser/.cache/ms-playwright/cache
+      XDG_DATA_HOME: /home/pwuser/.cache/ms-playwright/data
     ports:
       - "127.0.0.1:8931:8931"
     volumes:
