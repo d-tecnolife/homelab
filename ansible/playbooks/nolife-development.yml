@@ -1,0 +1,136 @@
+---
+- name: Bootstrap the Nolife development environment
+  hosts: nolife
+  gather_facts: true
+  vars:
+    dev_brew_prefix: /home/linuxbrew/.linuxbrew
+    dev_brew_bin: "{{ dev_brew_prefix }}/bin/brew"
+    # Supply with -e dev_dotfiles_repository=<git-url> to apply ChezMoi-managed dotfiles.
+    dev_dotfiles_repository: ""
+    dev_apt_packages:
+      - build-essential
+      - ca-certificates
+      - clang
+      - cmake
+      - curl
+      - git
+      - libffi-dev
+      - libssl-dev
+      - make
+      - pkg-config
+      - python3
+      - python3-pip
+      - python3-venv
+      - unzip
+      - xz-utils
+      - zip
+    dev_brew_packages:
+      - bat
+      - chezmoi
+      - eza
+      - fd
+      - fzf
+      - go
+      - jq
+      - lazygit
+      - neovim
+      - node
+      - ripgrep
+      - rustup
+      - shellcheck
+      - shfmt
+      - tree-sitter
+      - uv
+      - yq
+      - zig
+      - neurosnap/tap/zmx
+
+  tasks:
+    - name: Require Ubuntu
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+        fail_msg: This playbook currently supports Ubuntu only.
+
+    - name: Install system build and language prerequisites
+      become: true
+      ansible.builtin.apt:
+        name: "{{ dev_apt_packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Homebrew
+      ansible.builtin.shell:
+        cmd: >-
+          NONINTERACTIVE=1 /bin/bash -c
+          "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        creates: "{{ dev_brew_bin }}"
+      args:
+        executable: /bin/bash
+
+    - name: Make Homebrew and Rustup available to login shells
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/profile.d/homebrew.sh
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # Managed by Ansible: Homebrew and its keg-only Rustup formula.
+          if [ -x {{ dev_brew_bin }} ]; then
+            eval "$({{ dev_brew_bin }} shellenv)"
+            export PATH="{{ dev_brew_prefix }}/opt/rustup/bin:$PATH"
+          fi
+
+    - name: Check installed Homebrew formulae
+      ansible.builtin.command:
+        argv: ["{{ dev_brew_bin }}", list, --formula, "{{ item }}"]
+      loop: "{{ dev_brew_packages }}"
+      register: dev_brew_formulae
+      changed_when: false
+      failed_when: false
+
+    - name: Install missing Homebrew formulae
+      ansible.builtin.command:
+        argv: ["{{ dev_brew_bin }}", install, "{{ item.item }}"]
+      loop: "{{ dev_brew_formulae.results }}"
+      when: item.rc != 0
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Read the active Rust toolchain
+      ansible.builtin.command:
+        argv: ["{{ dev_brew_prefix }}/opt/rustup/bin/rustup", show, active-toolchain]
+      register: dev_rust_toolchain
+      changed_when: false
+      failed_when: false
+
+    - name: Install and select the stable Rust toolchain
+      ansible.builtin.command:
+        argv: ["{{ dev_brew_prefix }}/opt/rustup/bin/rustup", default, stable]
+      when: dev_rust_toolchain.rc != 0 or not dev_rust_toolchain.stdout.startswith('stable')
+
+    - name: Apply the configured ChezMoi source
+      ansible.builtin.command:
+        argv: ["{{ dev_brew_prefix }}/bin/chezmoi", init, --apply, "{{ dev_dotfiles_repository }}"]
+      when: dev_dotfiles_repository | length > 0
+
+    - name: Check for an existing Neovim configuration
+      ansible.builtin.stat:
+        path: "{{ ansible_user_dir }}/.config/nvim"
+      register: dev_nvim_config
+
+    - name: Seed a LazyVim starter configuration
+      ansible.builtin.git:
+        repo: https://github.com/LazyVim/starter
+        dest: "{{ ansible_user_dir }}/.config/nvim"
+        depth: 1
+        update: false
+      when: not dev_nvim_config.stat.exists
+
+    - name: Remove the LazyVim starter Git metadata
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/.config/nvim/.git"
+        state: absent
+      when: not dev_nvim_config.stat.exists

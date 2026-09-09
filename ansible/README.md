@@ -11,6 +11,11 @@ for the required execution order.
 - `playbooks/bootstrap-ops-ssh.yml` generates the Ops management key and adds
   its public key to every managed VM without replacing remembered SSH host
   keys.
+- `playbooks/nolife-development.yml` bootstraps Nolife as an Ubuntu development
+  VM with build tools, Homebrew, Python/pip, Node/npm, Go, Zig, Rustup/Cargo,
+  ChezMoi, and a LazyVim starter configuration. It intentionally leaves Docker
+  to `playbooks/docker.yml` and only applies ChezMoi when given a dotfiles
+  repository URL.
 - `playbooks/secrets.yml` installs SOPS and age on Ops and generates the
   administrator-owned age identity used for deploy-time decryption.
 - `playbooks/vault-ssh-host-ca-bootstrap.yml` configures Vault's restricted
@@ -66,6 +71,22 @@ Install or update the maintenance schedule on Ops:
 ```bash
 ansible-playbook playbooks/maintenance-schedule.yml
 systemctl list-timers 'homelab-maintenance-*'
+```
+
+Bootstrap the development VM:
+
+```bash
+ansible-playbook playbooks/nolife-development.yml
+```
+
+To initialize and apply a ChezMoi repository during the same run, supply its
+Git URL explicitly. The LazyVim starter is seeded only if `~/.config/nvim` is
+absent; add that configuration to the ChezMoi source when you are ready to
+manage it as a dotfile.
+
+```bash
+ansible-playbook playbooks/nolife-development.yml \
+  -e dev_dotfiles_repository=https://github.com/you/dotfiles.git
 ```
 
 The monthly playbook checks `/var/run/reboot-required`; it does nothing on a
