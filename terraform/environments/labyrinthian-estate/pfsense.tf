@@ -13,7 +13,8 @@ resource "proxmox_virtual_environment_vm" "pfsense" {
     dedicated = 2048
   }
   vga {
-    type = "serial0"
+    # Keep the Proxmox graphical console available for attended pfSense setup.
+    type = "virtio"
   }
 
   disk {
