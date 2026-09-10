@@ -1,8 +1,6 @@
 ---
-# The single ordered post-Terraform configuration entry point. Run only from
-# Ops after pfSense policy permits Ops SSH administration of managed VMs.
-- import_playbook: bootstrap-ssh-host-keys.yml
-- import_playbook: bootstrap-ops-ssh.yml
+# Workload configuration phase. bootstrap-lab.sh runs the host-key and initial
+# SSH-key phases separately so this process uses Ops' permanent management key.
 - import_playbook: hosts-file.yml
 - import_playbook: docker.yml
 - import_playbook: maintenance-schedule.yml

@@ -5,6 +5,11 @@
   gather_facts: false
 
   tasks:
+    - name: Remove the temporary Ops SSH bootstrap private key
+      ansible.builtin.file:
+        path: /home/dtec/.ssh/id_ed25519_bootstrap
+        state: absent
+
     - name: Remove graphical-console auto-login override
       ansible.builtin.file:
         path: /etc/systemd/system/getty@tty1.service.d/homelab-bootstrap.conf

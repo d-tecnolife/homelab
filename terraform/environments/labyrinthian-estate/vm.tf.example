@@ -62,7 +62,7 @@ resource "proxmox_virtual_environment_vm" "example" {
 
     user_account {
       username = var.vm_username
-      keys     = [trimspace(file(pathexpand(var.ssh_public_key_file)))]
+      keys     = local.workload_ssh_authorized_keys
     }
   }
 

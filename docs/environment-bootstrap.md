@@ -63,6 +63,13 @@ inventory example to the ignored inventory, and run the first playbook locally.
 xterm.js is the supported bootstrap console because it can paste text; the
 graphical noVNC console remains available as the recovery fallback.
 
+Terraform creates a dedicated, temporary Ops bootstrap SSH key for each fresh
+environment. Its public half is installed on every workload VM and its private
+half is available only on Ops for the initial key-distribution playbook. The
+bootstrap script then switches to the permanent Ops management key and removes
+the temporary private key. Terraform state and saved Terraform plans therefore
+contain sensitive bootstrap material; keep them local and out of Git.
+
 ```bash
 git clone https://github.com/d-tecnolife/homelab.git ~/homelab
 cd ~/homelab/ansible

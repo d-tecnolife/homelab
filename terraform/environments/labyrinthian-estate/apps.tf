@@ -62,7 +62,7 @@ resource "proxmox_virtual_environment_vm" "apps" {
 
     user_account {
       username = var.vm_username
-      keys     = local.vm_ssh_authorized_keys
+      keys     = local.workload_ssh_authorized_keys
     }
   }
 

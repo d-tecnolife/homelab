@@ -26,6 +26,12 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
       }]
       write_files = [
         {
+          path        = "/home/${var.vm_username}/.ssh/id_ed25519_bootstrap"
+          owner       = "${var.vm_username}:${var.vm_username}"
+          permissions = "0600"
+          content     = tls_private_key.ops_bootstrap.private_key_openssh
+        },
+        {
           path        = "/etc/systemd/system/getty@tty1.service.d/homelab-bootstrap.conf"
           permissions = "0644"
           content     = <<-EOT
