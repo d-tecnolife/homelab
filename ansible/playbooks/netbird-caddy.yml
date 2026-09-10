@@ -1,6 +1,6 @@
 ---
-- name: Connect Caddy to NetBird for remote administration
-  hosts: caddy
+- name: Connect Door to NetBird for remote administration
+  hosts: door
   become: true
   gather_facts: false
   vars:

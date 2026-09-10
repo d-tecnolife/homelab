@@ -109,8 +109,8 @@ def calculate_status(hosts: dict[str, Any], invocation_rc: int) -> str:
             or any(target["health"] != "up" for target in prometheus["targets"])
         ):
             return "degraded"
-        caddy = host.get("caddy")
-        if caddy and (caddy["service"] != "active" or not caddy["health_endpoint"]):
+        door = host.get("door")
+        if door and (door["service"] != "active" or not door["health_endpoint"]):
             return "degraded"
         minecraft = host.get("minecraft")
         if minecraft and (minecraft["container"] != "running" or not minecraft["port_25565"]):

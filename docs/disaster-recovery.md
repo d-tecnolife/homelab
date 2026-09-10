@@ -27,7 +27,7 @@ credentials when their former host is lost or compromised.
    Cloud-Init template. A new Proxmox API token is expected on a new host.
 3. Create a new local `terraform.tfvars` or encrypted
    `secrets/infrastructure.sops.env` using the new endpoint and token.
-4. Run Terraform from a trusted workstation to create pfSense, Ops, Caddy, and
+4. Run Terraform from a trusted workstation to create pfSense, Ops, Door (running Caddy), and
    the workload VMs. A genuinely new environment starts with new Terraform
    state.
 5. Open VMID 1010's Proxmox console; its first boot signs in as `dtec`

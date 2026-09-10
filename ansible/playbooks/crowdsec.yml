@@ -1,6 +1,6 @@
 ---
-- name: Configure CrowdSec on Caddy
-  hosts: caddy
+- name: Configure CrowdSec on Door
+  hosts: door
   become: true
   gather_facts: true
   vars:

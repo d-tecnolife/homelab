@@ -1,6 +1,6 @@
 ---
-- name: Configure Caddy on Caddy
-  hosts: caddy
+- name: Configure Caddy on Door
+  hosts: door
   become: true
   gather_facts: true
   vars:

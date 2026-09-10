@@ -24,6 +24,13 @@ if [[ ! -f "$ansible_directory/inventory/hosts.yml" ]]; then
     echo "Created ansible/inventory/hosts.yml from the example. Review it if this is a non-default environment."
 fi
 
+# Inventory host names are stable automation identifiers. Migrate the retired
+# Caddy VM name once; the proxy software itself remains Caddy.
+if grep -q '^        caddy:$' "$ansible_directory/inventory/hosts.yml"; then
+    sed -i 's/^        caddy:$/        door:/' "$ansible_directory/inventory/hosts.yml"
+    echo "Migrated the inventory host name from caddy to door."
+fi
+
 cd "$ansible_directory"
 bootstrap_key_file="$HOME/.ssh/id_ed25519_bootstrap"
 

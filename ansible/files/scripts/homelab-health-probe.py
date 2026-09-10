@@ -144,7 +144,7 @@ def tcp_open(host: str, port: int, timeout: float) -> bool:
 def caddy_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
     state = service_state("caddy.service", timeout)
     if state is None:
-        return {"service": "missing", "health_endpoint": False} if host == "caddy" else None
+        return {"service": "missing", "health_endpoint": False} if host == "door" else None
     healthy = False
     try:
         with urllib.request.urlopen("http://127.0.0.1:8082/healthz", timeout=timeout) as response:
@@ -174,7 +174,7 @@ def minecraft_snapshot(
 def crowdsec_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
     state = service_state("crowdsec.service", timeout)
     if state is None:
-        if host == "caddy":
+        if host == "door":
             return {"service": "missing", "bouncer": "missing", "decisions": None}
         return None
     bouncer = service_state("crowdsec-firewall-bouncer.service", timeout)
@@ -192,7 +192,7 @@ def crowdsec_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
 def nftables_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
     state = service_state("nftables.service", timeout)
     if state is None:
-        if host == "caddy":
+        if host == "door":
             return {
                 "service": "missing",
                 "config_valid": False,
@@ -240,7 +240,7 @@ def collect(host: str, timeout: float) -> dict[str, Any]:
         "containers": containers,
         "exporters": sorted(exporters, key=lambda item: item["name"]),
         "prometheus": prometheus_snapshot(host, containers, timeout),
-        "caddy": caddy_snapshot(host, timeout),
+        "door": caddy_snapshot(host, timeout),
         "minecraft": minecraft_snapshot(host, containers, timeout),
         "crowdsec": crowdsec_snapshot(host, timeout),
         "nftables": nftables_snapshot(host, timeout),

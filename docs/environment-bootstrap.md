@@ -38,7 +38,7 @@ terraform plan
 ```
 
 The plan creates pfSense VMID 100 with WAN on `vmbr0` and a tagged `vmbr1`
-trunk for VLANs 10, 20, and 30. It creates Ops at `172.16.10.10`, Caddy at
+trunk for VLANs 10, 20, and 30. It creates Ops at `172.16.10.10`, Door (running Caddy) at
 `172.16.30.10`, and the remaining hosts at the addresses in the inventory
 example. Apply only in a console-attended maintenance window after an explicit
 network/rebuild confirmation.

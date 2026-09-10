@@ -157,8 +157,8 @@ variable "games_vm_id" {
   default     = 3020
 }
 
-variable "caddy_vm_id" {
-  description = "VMID to assign to the Caddy VM."
+variable "door_vm_id" {
+  description = "VMID to assign to the Door VM."
   type        = number
   default     = 3010
 }
@@ -269,35 +269,35 @@ variable "ops_ipv4_gateway" {
   nullable    = true
 }
 
-# Caddy VM variables
+# Door VM variables
 
-variable "caddy_cpu_cores" {
+variable "door_cpu_cores" {
   type    = number
   default = 2
 }
 
-variable "caddy_memory_mb" {
+variable "door_memory_mb" {
   type    = number
   default = 2048
 }
 
-variable "caddy_disk_size_gb" {
+variable "door_disk_size_gb" {
   type    = number
   default = 32
 }
 
-variable "caddy_ipv4_address" {
+variable "door_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
   default     = "172.16.30.10/24"
 
   validation {
-    condition     = var.caddy_ipv4_address == "dhcp" || can(cidrnetmask(var.caddy_ipv4_address))
-    error_message = "caddy_ipv4_address must be dhcp or an IPv4 address in CIDR notation."
+    condition     = var.door_ipv4_address == "dhcp" || can(cidrnetmask(var.door_ipv4_address))
+    error_message = "door_ipv4_address must be dhcp or an IPv4 address in CIDR notation."
   }
 }
 
-variable "caddy_ipv4_gateway" {
+variable "door_ipv4_gateway" {
   type     = string
   default  = "172.16.30.1"
   nullable = true
