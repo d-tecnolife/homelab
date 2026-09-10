@@ -1,0 +1,154 @@
+---
+- name: Configure Gateway as the homelab Tailscale subnet router
+  hosts: localhost
+  gather_facts: false
+  vars:
+    gateway_tailscale_secret_path: "{{ playbook_dir }}/../secrets/gateway-tailscale.sops.env"
+
+  tasks:
+    - name: Require encrypted Gateway API and Tailscale enrollment input
+      ansible.builtin.stat:
+        path: "{{ gateway_tailscale_secret_path }}"
+      register: gateway_tailscale_secret
+
+    - name: Refuse to configure Gateway without encrypted credentials
+      ansible.builtin.assert:
+        that: gateway_tailscale_secret.stat.isreg | default(false)
+        fail_msg: >-
+          Create and encrypt ansible/secrets/gateway-tailscale.sops.env first.
+
+    - name: Decrypt Gateway credentials in memory
+      ansible.builtin.command:
+        argv: [sops, decrypt, "{{ gateway_tailscale_secret_path }}"]
+      register: gateway_tailscale_secret_content
+      changed_when: false
+      no_log: true
+
+    - name: Extract Gateway API and enrollment values
+      ansible.builtin.set_fact:
+        gateway_url: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^OPNSENSE_URL=(.+)$', '\\1') | first | trim }}"
+        gateway_api_key: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_KEY=(.+)$', '\\1') | first | trim }}"
+        gateway_api_secret: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_SECRET=(.+)$', '\\1') | first | trim }}"
+        gateway_tailscale_auth_key: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_AUTH_KEY=(.+)$', '\\1') | first | trim }}"
+      no_log: true
+
+    - name: Require complete Gateway API and enrollment values
+      ansible.builtin.assert:
+        that:
+          - gateway_url | length > 0
+          - gateway_api_key | length > 0
+          - gateway_api_secret | length > 0
+          - gateway_tailscale_auth_key | length > 0
+        fail_msg: gateway-tailscale.sops.env is incomplete.
+      no_log: true
+
+    - name: Configure Tailscale authentication on Gateway
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/authentication/set"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        body_format: json
+        body:
+          authentication:
+            loginServer: https://controlplane.tailscale.com
+            preAuthKey: "{{ gateway_tailscale_auth_key }}"
+      no_log: true
+
+    - name: Configure Gateway Tailscale subnet routing
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/settings/set"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        body_format: json
+        body:
+          settings:
+            enabled: "1"
+            loginTimeout: "10"
+            listenPort: "41641"
+            acceptDNS: "0"
+            advertiseExitNode: "0"
+            acceptSubnetRoutes: "0"
+            enableSSH: "0"
+            disableSNAT: "0"
+      no_log: true
+
+    - name: Read existing Gateway Tailscale subnet advertisements
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/settings/search_subnet"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+      register: gateway_tailscale_existing_subnets
+      changed_when: false
+      no_log: true
+
+    - name: Remove previous Gateway Tailscale subnet advertisements
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/settings/del_subnet/{{ item.uuid }}"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+      loop: "{{ gateway_tailscale_existing_subnets.json.rows | default([]) }}"
+      no_log: true
+
+    - name: Declare Gateway Tailscale subnet advertisements
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/settings/add_subnet"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        body_format: json
+        body:
+          subnet4:
+            subnet: "{{ item.subnet }}"
+            description: "{{ item.description }}"
+      loop:
+        - subnet: 172.16.10.0/24
+          description: Infra
+        - subnet: 172.16.20.0/24
+          description: Internal
+        - subnet: 172.16.30.0/24
+          description: DMZ
+      no_log: true
+
+    - name: Apply Gateway Tailscale configuration
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/service/reconfigure"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+      no_log: true
+
+    - name: Require Gateway Tailscale service to be running
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/service/status"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        return_content: true
+      register: gateway_tailscale_status
+      changed_when: false
+      no_log: true
+
+    - name: Assert Gateway Tailscale service reports running
+      ansible.builtin.assert:
+        that: >-
+          gateway_tailscale_status.json.status | default('') in ['running', 'ok']
+        fail_msg: Gateway did not report a running Tailscale service.
+      no_log: true

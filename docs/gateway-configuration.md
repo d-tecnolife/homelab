@@ -19,8 +19,11 @@ restored and verified.
 4. Create an API key for the restricted Gateway automation user and encrypt it
    as `ansible/secrets/gateway-api.sops.env`. Never commit a plaintext API key,
    a password, or a decrypted `config.xml`.
-5. Apply and verify the Gateway policy from Ops. Only then set
-   `gateway_policy_ready = true`, review the workload plan, and apply it.
+5. Create Ops (VMID `1010`) as the only controller exception. From its console,
+   run the Gateway reconciliation playbook, then apply the separate Tailscale
+   Terraform root.
+6. Set `gateway_policy_ready = true` only after those steps complete, review
+   the workload plan, and apply it.
 
 The OPNsense installer accepts an unencrypted `/conf/config.xml` on installer
 media, so the encrypted baseline must be decrypted only into a protected,
@@ -77,3 +80,23 @@ Before `gateway_policy_ready` is changed, verify from Ops:
 The Ansible bootstrap's network preflight is a final assertion, not the step
 that establishes connectivity. A failure means stop at the Gateway policy; do
 not add a one-off shell rule to continue provisioning.
+
+## Tailscale
+
+Gateway is the sole tailnet node. It advertises the three VLAN routes with
+source NAT enabled, so every workload sees Gateway as the return path and its
+existing VLAN rules remain authoritative. Do not enable Tailscale SSH, an exit
+node, Funnel, Serve, or Tailscale on Door/workloads.
+
+After Ops exists, create the encrypted API/enrollment input from
+`ansible/secrets/gateway-tailscale.sops.env.example`, then run:
+
+```bash
+cd ~/homelab/ansible
+ansible-playbook playbooks/gateway-tailscale.yml
+```
+
+Then apply the separate `terraform/environments/labyrinthian-estate/tailscale`
+root with its scoped OAuth credentials. Its policy makes route approval
+automatic for `tag:gateway`; inviting somebody to the tailnet is all that is
+needed for them to use the VPN.

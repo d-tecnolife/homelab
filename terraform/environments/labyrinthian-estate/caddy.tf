@@ -77,7 +77,7 @@ resource "proxmox_virtual_environment_vm" "door" {
   lifecycle {
     precondition {
       condition     = var.gateway_policy_ready
-      error_message = "Gateway policy is not verified. Apply and verify ansible/playbooks/gateway-policy.yml before creating workloads."
+      error_message = "Gateway policy is not verified. Complete docs/gateway-configuration.md before creating workloads."
     }
     precondition {
       condition     = var.door_ipv4_address == "dhcp" || var.door_ipv4_gateway != null

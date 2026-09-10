@@ -10,7 +10,6 @@
 - import_playbook: homelab-health.yml
 - import_playbook: caddy.yml
 - import_playbook: crowdsec.yml
-- import_playbook: netbird-caddy.yml
 - import_playbook: deploy-compose.yml
 - import_playbook: monitoring-agents.yml
 - import_playbook: monitoring-targets.yml

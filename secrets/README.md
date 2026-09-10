@@ -58,23 +58,17 @@ SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" sops ansible/secrets/caddy.s
 Ansible decrypts the file in memory and writes the destination with restricted
 permissions. Tasks handling plaintext use `no_log: true`.
 
-## NetBird Caddy enrollment
+## Gateway Tailscale enrollment
 
-Create a one-off NetBird setup key assigned to the Caddy group,
-then create `ansible/secrets/netbird-caddy.sops.env` from its example and
-encrypt it. The setup key is used only when Caddy is not already connected;
-the playbook never writes it to Caddy. Run:
+OPNsense Gateway is the sole Tailscale node and advertises the three homelab
+VLANs. Create a tag-owned, one-off Gateway enrollment key and store it with the
+OPNsense API credentials in an encrypted Gateway baseline. Do not install
+Tailscale on Door or workload VMs: that would create paths which bypass the
+Gateway's inter-VLAN enforcement.
 
-```bash
-cd ~/homelab/ansible
-ansible-playbook playbooks/netbird-caddy.yml --limit caddy
-```
-
-OPNsense Gateway routes the homelab subnets; Door supplies the NetBird access
-duties.
-`caddy.yml` maintains the DNS-only `ssh-ca.dscim.dev` A record at Caddy's DMZ
-address. Caddy permits NetBird, home-LAN, and `172.16.0.0/12` sources; it still
-rejects all other sources where the site policy requires private access.
+The separate `terraform/environments/labyrinthian-estate/tailscale` root uses
+a scoped OAuth client from encrypted process environment to own the tailnet
+policy and automatically approve Gateway's advertised routes.
 
 ## Terraform
 

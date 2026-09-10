@@ -37,8 +37,6 @@ encrypted deployment inputs first.
   Ops watcher that runs it whenever the private inventory changes.
 - `playbooks/hosts-file.yml` maintains short-name and `dscim.dev` mappings in
   `/etc/hosts` on every reachable managed VM using the inventory addresses.
-- `playbooks/netbird-caddy.yml` enrolls Caddy for remote administration
-  using an encrypted one-off setup key.
 - `playbooks/crowdsec.yml` installs CrowdSec and its nftables bouncer on Caddy,
   consumes community decisions, and parses Linux and Caddy logs.
 - `playbooks/minecraft-backups.yml` installs the daily Minecraft backup service
@@ -117,5 +115,5 @@ ansible-playbook playbooks/crowdsec.yml
 ```
 
 The bouncer enforces community and local decisions on Door. OPNsense Gateway
-owns WAN filtering and game-port forwarding; keep those rules in the Gateway
-policy.
+owns WAN filtering, game-port forwarding, and Tailscale subnet routing; keep
+those rules in the Gateway policy.

@@ -37,11 +37,11 @@ terraform validate
 terraform plan
 ```
 
-The phase-one plan creates Gateway VMID 100 with WAN on `vmbr0` and a tagged `vmbr1`
-trunk for VLANs 10, 20, and 30. It creates Ops at `172.16.10.10`, Door (running Caddy) at
-`172.16.30.10`, and the remaining hosts at the addresses in the inventory
-example. Apply only in a console-attended maintenance window after an explicit
-network/rebuild confirmation.
+The first phase replaces Gateway VMID 100 only. After its baseline permits
+normal VLAN egress, create Ops VMID 1010 as the sole controller exception.
+The remaining workloads are gated until Gateway policy and Tailscale routing
+have been reconciled. Apply only in a console-attended maintenance window after
+an explicit network/rebuild confirmation.
 
 ## 3. Install and configure Gateway
 
@@ -55,7 +55,15 @@ No route or inbound management exception is required on the upstream LAN for
 initial setup. Keep WAN default-deny. Use the Proxmox console for VMID 1010
 (Ops) as the out-of-band bootstrap path.
 
-## 4. Configure Ubuntu guests from Ops
+## 4. Configure Gateway from Ops
+
+Restore the encrypted Gateway API/enrollment input, run
+`playbooks/gateway-tailscale.yml`, then apply the separate Tailscale Terraform
+root. The root owns the tailnet policy and automatic approval for the three
+Gateway-advertised VLAN routes. Set `gateway_policy_ready = true` only after
+that succeeds.
+
+## 5. Configure Ubuntu guests from Ops
 
 Open VMID 1010 through the **Console → xterm.js** serial console in Proxmox.
 The first boot signs `dtec` in automatically; clone the repository, copy the
