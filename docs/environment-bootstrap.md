@@ -62,9 +62,11 @@ initial setup. Keep WAN default-deny. Use the Proxmox console for VMID 1010
 
 ## 4. Configure Ubuntu guests from Ops
 
-Open the Proxmox console for VMID 1010, sign in as `dtec` with the local
-recovery password, clone the repository, copy the inventory example to the
-ignored inventory, and run the first playbook locally:
+Open VMID 1010 through the **Console → xterm.js** serial console in Proxmox,
+sign in as `dtec` with the local recovery password, clone the repository, copy
+the inventory example to the ignored inventory, and run the first playbook
+locally. xterm.js is the supported bootstrap console because it can paste text;
+the graphical noVNC console cannot reliably do so for terminal guests:
 
 ```bash
 git clone https://github.com/d-tecnolife/homelab.git ~/homelab

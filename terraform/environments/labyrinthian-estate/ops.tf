@@ -64,7 +64,13 @@ resource "proxmox_virtual_environment_vm" "ops" {
   }
 
   vga {
-    type = var.vga_type
+    # Use the Proxmox serial xterm console: it supports terminal clipboard
+    # operations during the out-of-band bootstrap path.
+    type = "serial0"
+  }
+
+  serial_device {
+    device = "socket"
   }
 
   disk {
