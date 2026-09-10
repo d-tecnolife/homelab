@@ -35,8 +35,10 @@ Use the existing Codex installation; authenticate interactively with `codex logi
 as `dtec` if needed. Authentication and the SOPS age identity remain outside Git.
 For initial setup and recovery, open the saved project through VMID 1010's
 Proxmox **Console → xterm.js** serial console; the graphical noVNC console is
-the recovery fallback. Network SSH remains key-only and is enabled only after
-the private management path is configured.
+the recovery fallback. A fresh Ops bootstrap logs in automatically; the final
+bootstrap playbook removes that temporary console auto-login. Network SSH
+remains key-only and is enabled only after the private management path is
+configured.
 Keep the sibling Notes checkout at `/home/dtec/notes` and follow its context router.
 
 `homelab-health` is discretionary when an infrastructure implementation or fix

@@ -29,14 +29,11 @@ variable "vm_username" {
 }
 
 variable "ops_console_password_hash" {
-  description = "SHA-512 crypt hash for the local Ops console recovery password. SSH password authentication remains disabled."
+  description = "Deprecated compatibility input. Initial Ops console bootstrap uses Proxmox-console auto-login instead."
   type        = string
   sensitive   = true
-
-  validation {
-    condition     = can(regex("^\\$6\\$", var.ops_console_password_hash))
-    error_message = "ops_console_password_hash must be a SHA-512 crypt hash beginning with $6$."
-  }
+  default     = null
+  nullable    = true
 }
 
 variable "datastore_id" {

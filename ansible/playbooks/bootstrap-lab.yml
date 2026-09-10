@@ -17,3 +17,4 @@
 - import_playbook: monitoring-targets.yml
 - import_playbook: monitoring-inventory-automation.yml
 - import_playbook: minecraft-backups.yml
+- import_playbook: lock-bootstrap-console.yml

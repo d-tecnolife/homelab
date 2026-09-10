@@ -13,8 +13,6 @@ Keep these outside Proxmox, Ops, Gitea, and the application VMs:
 - Access to GitHub, Cloudflare, the password manager, and their recovery codes.
 - At least one administrator SSH private key whose public key is committed
   under `keys/`.
-- The strong local Ops console recovery password used to generate
-  `ops_console_password_hash`; keep it in the password manager, not Git.
 - Terraform state when recovering or moving an existing deployment rather than
   creating a completely new one.
 
@@ -32,9 +30,9 @@ credentials when their former host is lost or compromised.
 4. Run Terraform from a trusted workstation to create pfSense, Ops, Caddy, and
    the workload VMs. A genuinely new environment starts with new Terraform
    state.
-5. Open VMID 1010's Proxmox console, sign in as `dtec` using the recovery
-   password, clone `homelab` onto Ops, and restore the backed-up age identity
-   to a temporary local file readable only by the administrator. Run
+5. Open VMID 1010's Proxmox console; its first boot signs in as `dtec`
+   automatically. Clone `homelab` onto Ops and restore the backed-up age
+   identity to a temporary local file readable only by the administrator. Run
    `bootstrap-ops-ssh.yml --limit ops -c local` before using Ops to manage the
    other VMs.
 6. Restore and verify the identity:

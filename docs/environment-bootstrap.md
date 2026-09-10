@@ -20,16 +20,11 @@ bash ./scripts/proxmox/bootstrap-proxmox.sh
 
 On the Windows Terraform runner, load the bootstrap key into `ssh-agent`, copy
 `terraform.tfvars.example` to ignored `terraform.tfvars`, and enter the Proxmox
-connection values. Generate a strong local recovery-password hash on Proxmox
-without sharing the password or committing either value:
-
-```bash
-openssl passwd -6
-```
-
-Store the resulting value only as `ops_console_password_hash` in the ignored
-`terraform.tfvars`. It permits the `dtec` account to log in through the Ops VM
-console; `ssh_pwauth: false` keeps network SSH key-only.
+connection values. A fresh Ops VM automatically signs `dtec` in through its
+Proxmox graphical and serial consoles. This temporary path exists only behind
+Proxmox authentication and the pfSense private networks; SSH password
+authentication remains disabled. The final Ansible bootstrap removes auto-login
+for subsequent boots.
 
 ## 2. Review the rebuild
 
@@ -62,11 +57,11 @@ initial setup. Keep WAN default-deny. Use the Proxmox console for VMID 1010
 
 ## 4. Configure Ubuntu guests from Ops
 
-Open VMID 1010 through the **Console → xterm.js** serial console in Proxmox,
-sign in as `dtec` with the local recovery password, clone the repository, copy
-the inventory example to the ignored inventory, and run the first playbook
-locally. xterm.js is the supported bootstrap console because it can paste text;
-the graphical noVNC console remains available as the recovery fallback.
+Open VMID 1010 through the **Console → xterm.js** serial console in Proxmox.
+The first boot signs `dtec` in automatically; clone the repository, copy the
+inventory example to the ignored inventory, and run the first playbook locally.
+xterm.js is the supported bootstrap console because it can paste text; the
+graphical noVNC console remains available as the recovery fallback.
 
 ```bash
 git clone https://github.com/d-tecnolife/homelab.git ~/homelab

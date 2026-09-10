@@ -16,8 +16,6 @@ the required Terraform, routing, and Ansible sequence.
   which enables `snippets` on the configured snippet datastore
 - the Terraform runner's SSH agent can authenticate as `root` on Proxmox
 - the bootstrap SSH public key referenced by `ssh_public_key_file`
-- a strong Ops console recovery-password hash in the ignored
-  `ops_console_password_hash` Terraform variable
 
 ## Network layout
 
@@ -42,3 +40,7 @@ Terraform intentionally disables Proxmox guest-agent integration during VM
 creation so it never waits for cloud-init networking or the guest agent. The
 template still installs the package; enable the integration later only after
 verifying that the agent is running.
+
+A fresh Ops VM uses temporary Proxmox-console auto-login for its first bootstrap
+only; SSH remains key-only. The ordered Ansible bootstrap removes that override
+after it completes.

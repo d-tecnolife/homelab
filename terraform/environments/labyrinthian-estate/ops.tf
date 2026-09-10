@@ -12,20 +12,45 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
       manage_etc_hosts = true
       disable_root     = true
       ssh_pwauth       = false
+      bootcmd = [
+        ["install", "-d", "-m", "0755", "/etc/systemd/system/getty@tty1.service.d"],
+        ["install", "-d", "-m", "0755", "/etc/systemd/system/serial-getty@ttyS0.service.d"]
+      ]
       users = [{
         name                = var.vm_username
         groups              = ["sudo"]
         shell               = "/bin/bash"
         sudo                = "ALL=(ALL) NOPASSWD:ALL"
-        lock_passwd         = false
-        passwd              = var.ops_console_password_hash
+        lock_passwd         = true
         ssh_authorized_keys = local.vm_ssh_authorized_keys
       }]
+      write_files = [
+        {
+          path        = "/etc/systemd/system/getty@tty1.service.d/homelab-bootstrap.conf"
+          permissions = "0644"
+          content     = <<-EOT
+            [Service]
+            ExecStart=
+            ExecStart=-/sbin/agetty --autologin ${var.vm_username} --noclear %I $TERM
+          EOT
+        },
+        {
+          path        = "/etc/systemd/system/serial-getty@ttyS0.service.d/homelab-bootstrap.conf"
+          permissions = "0644"
+          content     = <<-EOT
+            [Service]
+            ExecStart=
+            ExecStart=-/sbin/agetty --autologin ${var.vm_username} --keep-baud 115200,57600,38400 - $TERM
+          EOT
+        }
+      ]
       package_update = true
       packages       = ["ansible-core", "git", "qemu-guest-agent"]
       runcmd = [
+        ["systemctl", "daemon-reload"],
         ["systemctl", "enable", "--now", "qemu-guest-agent"],
-        ["systemctl", "enable", "--now", "serial-getty@ttyS0.service"]
+        ["systemctl", "enable", "--now", "serial-getty@ttyS0.service"],
+        ["systemctl", "restart", "getty@tty1.service"]
       ]
     })])
 

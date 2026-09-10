@@ -2,5 +2,3 @@ proxmox_endpoint  = "https://192.168.1.100:8006/"
 proxmox_api_token = "terraform@pve!provider=replace-me"
 node_name         = "specify-name-here"
 vm_username       = "username-here"
-# Generate locally with `openssl passwd -6`; do not commit this value.
-ops_console_password_hash = "$6$replace-with-a-locally-generated-sha512-crypt-hash"

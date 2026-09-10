@@ -1,0 +1,20 @@
+---
+- name: Lock the temporary Ops console bootstrap path for future boots
+  hosts: ops
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Remove graphical-console auto-login override
+      ansible.builtin.file:
+        path: /etc/systemd/system/getty@tty1.service.d/homelab-bootstrap.conf
+        state: absent
+
+    - name: Remove serial-console auto-login override
+      ansible.builtin.file:
+        path: /etc/systemd/system/serial-getty@ttyS0.service.d/homelab-bootstrap.conf
+        state: absent
+
+    - name: Reload systemd for the next console session
+      ansible.builtin.systemd_service:
+        daemon_reload: true
