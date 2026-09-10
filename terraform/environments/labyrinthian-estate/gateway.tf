@@ -46,5 +46,4 @@ resource "proxmox_virtual_environment_vm" "gateway" {
 
   on_boot = true
   started = true
-
 }
