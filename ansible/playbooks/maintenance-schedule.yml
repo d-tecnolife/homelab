@@ -6,7 +6,7 @@
   vars:
     maintenance_playbook_directory: "{{ playbook_dir }}"
     maintenance_working_directory: "{{ playbook_dir | dirname }}"
-    maintenance_user: "{{ ansible_user_id }}"
+    maintenance_user: "{{ ansible_user | default('dtec', true) }}"
     maintenance_timezone: America/Winnipeg
 
   tasks:

@@ -3,6 +3,7 @@
   hosts: nolife
   gather_facts: true
   vars:
+    dev_user_home: "/home/{{ ansible_user | default('dtec', true) }}"
     dev_brew_prefix: /home/linuxbrew/.linuxbrew
     dev_brew_bin: "{{ dev_brew_prefix }}/bin/brew"
     # Supply with -e dev_dotfiles_repository=<git-url> to apply ChezMoi-managed dotfiles.
@@ -118,19 +119,19 @@
 
     - name: Check for an existing Neovim configuration
       ansible.builtin.stat:
-        path: "{{ ansible_user_dir }}/.config/nvim"
+        path: "{{ dev_user_home }}/.config/nvim"
       register: dev_nvim_config
 
     - name: Seed a LazyVim starter configuration
       ansible.builtin.git:
         repo: https://github.com/LazyVim/starter
-        dest: "{{ ansible_user_dir }}/.config/nvim"
+        dest: "{{ dev_user_home }}/.config/nvim"
         depth: 1
         update: false
       when: not dev_nvim_config.stat.exists
 
     - name: Remove the LazyVim starter Git metadata
       ansible.builtin.file:
-        path: "{{ ansible_user_dir }}/.config/nvim/.git"
+        path: "{{ dev_user_home }}/.config/nvim/.git"
         state: absent
       when: not dev_nvim_config.stat.exists
