@@ -66,7 +66,7 @@ Open VMID 1010 through the **Console → xterm.js** serial console in Proxmox,
 sign in as `dtec` with the local recovery password, clone the repository, copy
 the inventory example to the ignored inventory, and run the first playbook
 locally. xterm.js is the supported bootstrap console because it can paste text;
-the graphical noVNC console cannot reliably do so for terminal guests:
+the graphical noVNC console remains available as the recovery fallback.
 
 ```bash
 git clone https://github.com/d-tecnolife/homelab.git ~/homelab

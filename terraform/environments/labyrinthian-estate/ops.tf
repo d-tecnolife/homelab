@@ -24,7 +24,8 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
       package_update = true
       packages       = ["ansible-core", "git", "qemu-guest-agent"]
       runcmd = [
-        ["systemctl", "enable", "--now", "qemu-guest-agent"]
+        ["systemctl", "enable", "--now", "qemu-guest-agent"],
+        ["systemctl", "enable", "--now", "serial-getty@ttyS0.service"]
       ]
     })])
 
@@ -64,9 +65,9 @@ resource "proxmox_virtual_environment_vm" "ops" {
   }
 
   vga {
-    # Use the Proxmox serial xterm console: it supports terminal clipboard
-    # operations during the out-of-band bootstrap path.
-    type = "serial0"
+    # Retain noVNC as the out-of-band fallback. The serial device below and
+    # Cloud-Init serial-getty service provide paste-capable xterm.js access.
+    type = var.vga_type
   }
 
   serial_device {
