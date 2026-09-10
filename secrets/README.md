@@ -86,6 +86,14 @@ The wrapper uses `sops exec-env`, so Terraform receives `TF_VAR_*` values in
 its process environment without a decrypted variables file. It deliberately
 accepts only common Terraform actions.
 
+The same encrypted file stores the scoped Tailscale OAuth client. Manage the
+separate tailnet control-plane root with:
+
+```bash
+bash scripts/terraform-with-secrets.sh tailscale init
+bash scripts/terraform-with-secrets.sh tailscale plan
+```
+
 ## Compose stacks
 
 Create one encrypted file per stack from its existing example:

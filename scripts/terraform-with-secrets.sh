@@ -2,9 +2,25 @@
 set -euo pipefail
 
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-environment_directory="$repository_root/terraform/environments/labyrinthian-estate"
 secret_file="$repository_root/secrets/infrastructure.sops.env"
+component="proxmox"
 action="${1:-}"
+
+case "$action" in
+  proxmox|tailscale)
+    component="$action"
+    action="${2:-}"
+    ;;
+esac
+
+case "$component" in
+  proxmox)
+    environment_directory="$repository_root/terraform/environments/labyrinthian-estate"
+    ;;
+  tailscale)
+    environment_directory="$repository_root/terraform/environments/labyrinthian-estate/tailscale"
+    ;;
+esac
 
 case "$action" in
   init|validate|plan|apply|output)
@@ -13,7 +29,7 @@ case "$action" in
     exec terraform -chdir="$environment_directory" fmt -check
     ;;
   *)
-    echo "usage: $0 {init|fmt|validate|plan|apply|output}" >&2
+    echo "usage: $0 [proxmox|tailscale] {init|fmt|validate|plan|apply|output}" >&2
     exit 2
     ;;
 esac
