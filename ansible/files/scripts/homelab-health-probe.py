@@ -147,7 +147,7 @@ def caddy_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
         return {"service": "missing", "health_endpoint": False} if host == "caddy" else None
     healthy = False
     try:
-        with urllib.request.urlopen("http://127.0.0.1:8080/healthz", timeout=timeout) as response:
+        with urllib.request.urlopen("http://127.0.0.1:8082/healthz", timeout=timeout) as response:
             healthy = response.status == 200 and response.read(16).strip() == b"ok"
     except (OSError, urllib.error.URLError):
         pass

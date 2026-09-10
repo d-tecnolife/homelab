@@ -317,7 +317,7 @@
 
     - name: Verify the private Caddy health endpoint
       ansible.builtin.uri:
-        url: http://127.0.0.1:8080/healthz
+        url: http://127.0.0.1:8082/healthz
         return_content: true
         status_code: 200
       register: caddy_health

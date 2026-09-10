@@ -13,6 +13,7 @@
           - python3-debian
         state: present
         update_cache: true
+        lock_timeout: 300
 
     - name: Configure the official Docker repository
       ansible.builtin.deb822_repository:
@@ -36,6 +37,7 @@
           - docker-compose-plugin
         state: present
         update_cache: "{{ docker_repository.changed }}"
+        lock_timeout: 300
 
     - name: Allow the management user to run Docker
       ansible.builtin.user:
