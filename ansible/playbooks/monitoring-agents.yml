@@ -11,6 +11,7 @@
         name: [ca-certificates, prometheus-node-exporter, python3-debian]
         state: present
         update_cache: true
+        lock_timeout: 300
     - name: Configure the Grafana package repository
       ansible.builtin.deb822_repository:
         name: grafana
@@ -27,6 +28,7 @@
         name: alloy
         state: present
         update_cache: "{{ grafana_repository.changed }}"
+        lock_timeout: 300
     - name: Check for Docker
       ansible.builtin.stat:
         path: /var/run/docker.sock

@@ -11,6 +11,8 @@ from its local Proxmox console before starting dependent Ubuntu VMs.
   30 (DMZ): `172.16.30.1/24`, all on the tagged LAN trunk.
 - Use split DNS with host overrides for internal names. Do not enable NAT
   reflection.
+- The guest topology is IPv4-only. Guest configuration prefers IPv4 so public
+  package repositories do not attempt an unrouted IPv6 path.
 
 ## Firewall and NAT policy
 

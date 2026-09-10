@@ -9,6 +9,16 @@
       ansible.builtin.hostname:
         name: "{{ inventory_hostname }}"
 
+    - name: Prefer IPv4 on the IPv4-only lab networks
+      ansible.builtin.lineinfile:
+        path: /etc/gai.conf
+        regexp: '^#?precedence ::ffff:0:0/96 100$'
+        line: 'precedence ::ffff:0:0/96 100'
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: Add homelab hostname mappings
       ansible.builtin.blockinfile:
         path: /etc/hosts
