@@ -1,0 +1,53 @@
+---
+# Terraform rebuilds create new SSH host keys. Refresh only the managed guest
+# addresses before Ansible's first SSH connection, then retain strict host-key
+# verification for all subsequent tasks.
+- name: Refresh managed guest SSH host keys after a rebuild
+  hosts: localhost
+  gather_facts: false
+  vars:
+    bootstrap_operator_user: "{{ ansible_user | default('dtec', true) }}"
+    bootstrap_known_hosts_file: "/home/{{ bootstrap_operator_user }}/.ssh/known_hosts"
+    bootstrap_ssh_hosts: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
+
+  tasks:
+    - name: Ensure the Ops SSH directory exists
+      ansible.builtin.file:
+        path: "{{ bootstrap_known_hosts_file | dirname }}"
+        state: directory
+        mode: "0700"
+
+    - name: Remove stale guest host keys from a previous rebuild
+      ansible.builtin.command:
+        argv: [ssh-keygen, -R, "{{ hostvars[item].ansible_host }}", -f, "{{ bootstrap_known_hosts_file }}"]
+      loop: "{{ bootstrap_ssh_hosts }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Discover each rebuilt guest SSH host key
+      ansible.builtin.command:
+        argv: [ssh-keyscan, -T, "5", -t, ed25519, "{{ hostvars[item].ansible_host }}"]
+      loop: "{{ bootstrap_ssh_hosts }}"
+      register: bootstrap_ssh_host_key_scans
+      changed_when: false
+      failed_when: false
+      retries: 6
+      delay: 5
+      until: bootstrap_ssh_host_key_scans.stdout | length > 0
+
+    - name: Require every managed guest to be reachable by SSH
+      ansible.builtin.assert:
+        that: item.stdout | length > 0
+        fail_msg: >-
+          {{ item.item }} at {{ hostvars[item.item].ansible_host }} did not provide
+          an SSH host key. Confirm the VM is running and the pfSense policy permits
+          Ops SSH administration, then rerun the bootstrap.
+      loop: "{{ bootstrap_ssh_host_key_scans.results }}"
+
+    - name: Record rebuilt guest SSH host keys
+      ansible.builtin.known_hosts:
+        name: "{{ hostvars[item.item].ansible_host }}"
+        key: "{{ item.stdout }}"
+        path: "{{ bootstrap_known_hosts_file }}"
+        state: present
+      loop: "{{ bootstrap_ssh_host_key_scans.results }}"
