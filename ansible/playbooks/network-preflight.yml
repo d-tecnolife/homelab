@@ -1,0 +1,25 @@
+---
+- name: Verify guest bootstrap network prerequisites
+  hosts: managed_vms
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Require IPv4 DNS resolution for package repositories
+      ansible.builtin.command:
+        argv: [getent, ahostsv4, download.docker.com]
+      changed_when: false
+
+    - name: Require public HTTPS egress for bootstrap and updates
+      ansible.builtin.wait_for:
+        host: 1.1.1.1
+        port: 443
+        timeout: 5
+      changed_when: false
+
+    - name: Require public HTTP egress for Ubuntu package mirrors
+      ansible.builtin.wait_for:
+        host: 1.1.1.1
+        port: 80
+        timeout: 5
+      changed_when: false
