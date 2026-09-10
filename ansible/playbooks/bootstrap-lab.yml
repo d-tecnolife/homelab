@@ -1,0 +1,19 @@
+---
+# The single ordered post-Terraform configuration entry point. Run only from
+# Ops after pfSense policy permits Ops SSH administration of managed VMs.
+- import_playbook: bootstrap-ops-ssh.yml
+- import_playbook: hosts-file.yml
+- import_playbook: docker.yml
+- import_playbook: maintenance-schedule.yml
+- import_playbook: secrets.yml
+- import_playbook: ops-codex.yml
+- import_playbook: homelab-health.yml
+- import_playbook: caddy.yml
+- import_playbook: crowdsec.yml
+- import_playbook: netbird-caddy.yml
+- import_playbook: netbird-networks.yml
+- import_playbook: deploy-compose.yml
+- import_playbook: monitoring-agents.yml
+- import_playbook: monitoring-targets.yml
+- import_playbook: monitoring-inventory-automation.yml
+- import_playbook: minecraft-backups.yml

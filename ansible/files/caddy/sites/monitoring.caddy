@@ -7,7 +7,7 @@ monitor.dscim.dev {
 	@outside_private_networks not remote_ip 100.64.0.0/10 192.168.1.0/24
 	respond @outside_private_networks "Private network access required" 403
 
-	reverse_proxy 10.100.1.30:3000
+	reverse_proxy 172.16.10.20:3000
 
 	log {
 		output file /var/log/caddy/monitoring-access.json {

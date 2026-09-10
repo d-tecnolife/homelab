@@ -53,14 +53,14 @@ class ResultTreeTests(unittest.TestCase):
                 "exporters": [],
             }
             (tree / "ops").write_text(json.dumps({"rc": 0, "stdout": json.dumps(snapshot)}))
-            (tree / "edge").write_text(
+            (tree / "caddy").write_text(
                 json.dumps({"unreachable": True, "msg": "ssh failed with secret text"})
             )
 
             result = health.read_result_tree(tree)
 
         self.assertTrue(result["ops"]["reachable"])
-        self.assertEqual(result["edge"], {"reachable": False, "reason": "unreachable"})
+        self.assertEqual(result["caddy"], {"reachable": False, "reason": "unreachable"})
         self.assertNotIn("secret", json.dumps(result))
 
     def test_status_detects_down_prometheus_target(self):
@@ -71,7 +71,7 @@ class ResultTreeTests(unittest.TestCase):
                 "exporters": [],
                 "prometheus": {
                     "reachable": True,
-                    "targets": [{"job": "node", "instance": "edge:9100", "health": "down"}],
+                    "targets": [{"job": "node", "instance": "caddy:9100", "health": "down"}],
                 },
             }
         }
@@ -105,7 +105,7 @@ class ProbeTests(unittest.TestCase):
             "data": {
                 "activeTargets": [
                     {
-                        "labels": {"job": "node", "instance": "edge:9100", "secret": "omit"},
+                        "labels": {"job": "node", "instance": "caddy:9100", "secret": "omit"},
                         "health": "up",
                         "lastError": "omit",
                     }
@@ -119,14 +119,14 @@ class ProbeTests(unittest.TestCase):
             {
                 "container": "running",
                 "reachable": True,
-                "targets": [{"job": "node", "instance": "edge:9100", "health": "up"}],
+                "targets": [{"job": "node", "instance": "caddy:9100", "health": "up"}],
             },
         )
         self.assertNotIn("secret", json.dumps(result))
 
     def test_expected_service_is_reported_missing(self):
         with mock.patch.object(probe, "service_state", return_value=None):
-            result = probe.caddy_snapshot("edge", 5)
+            result = probe.caddy_snapshot("caddy", 5)
         self.assertEqual(result, {"service": "missing", "health_endpoint": False})
 
 

@@ -91,7 +91,7 @@
     vault_ssh_ca_role: homelab-hosts
     vault_ssh_ca_token_path: /etc/homelab/vault-ssh-ca.env
     ansible_ssh_common_args: >-
-      {{ '-o ProxyJump=10.100.1.1' if ansible_host is match('^10\\.200\\.') else '' }}
+      {{ '' }}
 
   pre_tasks:
     - name: Read the Ops signing credential

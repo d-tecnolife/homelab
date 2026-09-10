@@ -58,23 +58,22 @@ SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" sops ansible/secrets/caddy.s
 Ansible decrypts the file in memory and writes the destination with restricted
 permissions. Tasks handling plaintext use `no_log: true`.
 
-## NetBird Edge enrollment
+## NetBird Caddy enrollment
 
-Create a one-off NetBird setup key assigned to the Edge routing-peer group,
-then create `ansible/secrets/netbird-edge.sops.env` from its example and
-encrypt it. The setup key is used only when Edge is not already connected;
-the playbook never writes it to Edge. Run:
+Create a one-off NetBird setup key assigned to the Caddy group,
+then create `ansible/secrets/netbird-caddy.sops.env` from its example and
+encrypt it. The setup key is used only when Caddy is not already connected;
+the playbook never writes it to Caddy. Run:
 
 ```bash
 cd ~/homelab/ansible
-ansible-playbook playbooks/netbird-edge.yml --limit edge
+ansible-playbook playbooks/netbird-caddy.yml --limit caddy
 ```
 
-Edge continues to advertise the routed homelab subnets to NetBird clients. The
-Vault endpoint itself remains on Edge's management address so it works through
-that route and from the home LAN. `caddy.yml` maintains the DNS-only
-`ssh-ca.dscim.dev` A record at that management address. Caddy permits NetBird,
-`10.0.0.0/8`, and `192.168.0.0/16` sources; it still rejects all other sources.
+pfSense routes the homelab subnets; Caddy supplies the NetBird access duties.
+`caddy.yml` maintains the DNS-only `ssh-ca.dscim.dev` A record at Caddy's DMZ
+address. Caddy permits NetBird, home-LAN, and `172.16.0.0/12` sources; it still
+rejects all other sources where the site policy requires private access.
 
 ## Terraform
 

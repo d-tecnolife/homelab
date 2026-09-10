@@ -1,45 +1,45 @@
 ---
-- name: Connect Edge to NetBird as a redundant routing peer
-  hosts: edge
+- name: Connect Caddy to NetBird for remote administration
+  hosts: caddy
   become: true
   gather_facts: false
   vars:
-    netbird_edge_secret_path: "{{ playbook_dir }}/../secrets/netbird-edge.sops.env"
+    netbird_caddy_secret_path: "{{ playbook_dir }}/../secrets/netbird-caddy.sops.env"
     sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
 
   pre_tasks:
-    - name: Require the encrypted Edge NetBird setup key
+    - name: Require the encrypted Caddy NetBird setup key
       ansible.builtin.stat:
-        path: "{{ netbird_edge_secret_path }}"
+        path: "{{ netbird_caddy_secret_path }}"
       delegate_to: localhost
       become: false
-      register: netbird_edge_secret
+      register: netbird_caddy_secret
 
-    - name: Refuse to enroll Edge without an encrypted setup key
+    - name: Refuse to enroll Caddy without an encrypted setup key
       ansible.builtin.assert:
-        that: netbird_edge_secret.stat.isreg | default(false)
-        fail_msg: Create and encrypt ansible/secrets/netbird-edge.sops.env first.
+        that: netbird_caddy_secret.stat.isreg | default(false)
+        fail_msg: Create and encrypt ansible/secrets/netbird-caddy.sops.env first.
       delegate_to: localhost
       become: false
 
-    - name: Decrypt the Edge NetBird setup key in memory
+    - name: Decrypt the Caddy NetBird setup key in memory
       ansible.builtin.command:
-        argv: [sops, decrypt, "{{ netbird_edge_secret_path }}"]
+        argv: [sops, decrypt, "{{ netbird_caddy_secret_path }}"]
       environment:
         SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
       delegate_to: localhost
       become: false
-      register: netbird_edge_secret_content
+      register: netbird_caddy_secret_content
       changed_when: false
       no_log: true
 
-    - name: Extract the Edge NetBird setup key
+    - name: Extract the Caddy NetBird setup key
       ansible.builtin.set_fact:
         netbird_setup_key: >-
-          {{ netbird_edge_secret_content.stdout | trim | split('=', 1) | last }}
+          {{ netbird_caddy_secret_content.stdout | trim | split('=', 1) | last }}
       no_log: true
 
-    - name: Require a non-empty Edge NetBird setup key
+    - name: Require a non-empty Caddy NetBird setup key
       ansible.builtin.assert:
         that: netbird_setup_key | length > 0
         fail_msg: NETBIRD_SETUP_KEY is missing from the encrypted secret.
@@ -97,7 +97,7 @@
       failed_when: false
       no_log: true
 
-    - name: Enroll Edge when it is not already connected
+    - name: Enroll Caddy when it is not already connected
       ansible.builtin.command:
         argv: [netbird, up, --setup-key, "{{ netbird_setup_key }}"]
       when: >-
@@ -105,7 +105,7 @@
         (netbird_status.stdout | from_json).daemonStatus | default('') != 'Connected'
       no_log: true
 
-    - name: Wait for Edge to connect to NetBird
+    - name: Wait for Caddy to connect to NetBird
       ansible.builtin.command:
         argv: [netbird, status, --json]
       register: netbird_connected_status

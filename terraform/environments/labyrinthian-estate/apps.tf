@@ -1,5 +1,5 @@
 resource "proxmox_virtual_environment_vm" "apps" {
-  depends_on = [proxmox_virtual_environment_vm.edge]
+  depends_on = [proxmox_virtual_environment_vm.pfsense]
 
   name        = "apps"
   description = "Primary Docker application host managed by Terraform"
@@ -15,7 +15,7 @@ resource "proxmox_virtual_environment_vm" "apps" {
   }
 
   agent {
-    enabled = true
+    enabled = false
   }
 
   cpu {
@@ -42,7 +42,7 @@ resource "proxmox_virtual_environment_vm" "apps" {
   network_device {
     bridge  = proxmox_network_linux_bridge.internal.name
     model   = "virtio"
-    vlan_id = var.services_vlan_id
+    vlan_id = var.internal_vlan_id
   }
 
   initialization {

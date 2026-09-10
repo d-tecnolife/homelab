@@ -28,6 +28,17 @@ variable "vm_username" {
   default     = "dtec"
 }
 
+variable "ops_console_password_hash" {
+  description = "SHA-512 crypt hash for the local Ops console recovery password. SSH password authentication remains disabled."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^\\$6\\$", var.ops_console_password_hash))
+    error_message = "ops_console_password_hash must be a SHA-512 crypt hash beginning with $6$."
+  }
+}
+
 variable "datastore_id" {
   description = "Proxmox datastore for the cloned VM disks."
   type        = string
@@ -41,7 +52,7 @@ variable "snippet_datastore_id" {
 }
 
 variable "network_bridge" {
-  description = "Proxmox bridge used by edge's home LAN-facing NIC."
+  description = "Proxmox bridge used by pfSense's WAN-facing NIC."
   type        = string
   default     = "vmbr0"
 }
@@ -52,16 +63,22 @@ variable "internal_network_bridge" {
   default     = "vmbr1"
 }
 
-variable "management_vlan_id" {
-  description = "VLAN ID for the management network."
+variable "infra_vlan_id" {
+  description = "VLAN ID for infrastructure services."
   type        = number
-  default     = 100
+  default     = 10
 }
 
-variable "services_vlan_id" {
-  description = "VLAN ID for the services network."
+variable "internal_vlan_id" {
+  description = "VLAN ID for internal workloads."
   type        = number
-  default     = 200
+  default     = 20
+}
+
+variable "dmz_vlan_id" {
+  description = "VLAN ID for internet-facing workloads."
+  type        = number
+  default     = 30
 }
 
 variable "vga_type" {
@@ -101,10 +118,10 @@ variable "ops_vm_id" {
   default     = 1010
 }
 
-variable "edge_vm_id" {
-  description = "VMID to assign to the edge VM."
+variable "pfsense_vm_id" {
+  description = "VMID to assign to pfSense."
   type        = number
-  default     = 1999
+  default     = 100
 }
 
 variable "apps_vm_id" {
@@ -116,13 +133,13 @@ variable "apps_vm_id" {
 variable "gitea_vm_id" {
   description = "VMID to assign to the Gitea VM."
   type        = number
-  default     = 1020
+  default     = 1030
 }
 
 variable "monitoring_vm_id" {
   description = "VMID to assign to the monitoring VM."
   type        = number
-  default     = 1030
+  default     = 1020
 }
 
 variable "k3s_vm_id" {
@@ -134,13 +151,19 @@ variable "k3s_vm_id" {
 variable "nolife_vm_id" {
   description = "VMID to assign to the Nolife development VM."
   type        = number
-  default     = 1050
+  default     = 2020
 }
 
 variable "games_vm_id" {
   description = "VMID to assign to the game-server VM."
   type        = number
-  default     = 2020
+  default     = 3020
+}
+
+variable "caddy_vm_id" {
+  description = "VMID to assign to the Caddy VM."
+  type        = number
+  default     = 3010
 }
 
 # Apps VM variables
@@ -181,7 +204,7 @@ variable "apps_disk_size_gb" {
 variable "apps_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.200.1.10/24"
+  default     = "172.16.20.10/24"
 
   validation {
     condition     = var.apps_ipv4_address == "dhcp" || can(cidrnetmask(var.apps_ipv4_address))
@@ -192,7 +215,7 @@ variable "apps_ipv4_address" {
 variable "apps_ipv4_gateway" {
   description = "IPv4 gateway for a static address; leave null when using DHCP."
   type        = string
-  default     = "10.200.1.1"
+  default     = "172.16.20.1"
   nullable    = true
 }
 
@@ -234,7 +257,7 @@ variable "ops_disk_size_gb" {
 variable "ops_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.100.1.10/24"
+  default     = "172.16.10.10/24"
 
   validation {
     condition     = var.ops_ipv4_address == "dhcp" || can(cidrnetmask(var.ops_ipv4_address))
@@ -245,84 +268,42 @@ variable "ops_ipv4_address" {
 variable "ops_ipv4_gateway" {
   description = "IPv4 gateway for a static address; leave null when using DHCP."
   type        = string
-  default     = "10.100.1.1"
+  default     = "172.16.10.1"
   nullable    = true
 }
 
-# Edge VM variables
+# Caddy VM variables
 
-variable "edge_cpu_cores" {
-  description = "Number of virtual CPU cores assigned to edge."
-  type        = number
-  default     = 2
-
-  validation {
-    condition     = var.edge_cpu_cores >= 1
-    error_message = "edge_cpu_cores must be at least 1."
-  }
+variable "caddy_cpu_cores" {
+  type    = number
+  default = 2
 }
 
-variable "edge_memory_mb" {
-  description = "Dedicated memory assigned to edge, in MiB."
-  type        = number
-  default     = 2048
-
-  validation {
-    condition     = var.edge_memory_mb >= 1024
-    error_message = "edge_memory_mb must be at least 1024."
-  }
+variable "caddy_memory_mb" {
+  type    = number
+  default = 2048
 }
 
-variable "edge_disk_size_gb" {
-  description = "Size of the edge boot disk, in GiB. Must not be smaller than the template disk."
-  type        = number
-  default     = 24
-
-  validation {
-    condition     = var.edge_disk_size_gb >= 8
-    error_message = "edge_disk_size_gb must be at least the template's 8 GiB disk size."
-  }
+variable "caddy_disk_size_gb" {
+  type    = number
+  default = 32
 }
 
-variable "edge_ipv4_address" {
+variable "caddy_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "192.168.1.199/24"
+  default     = "172.16.30.10/24"
 
   validation {
-    condition     = var.edge_ipv4_address == "dhcp" || can(cidrnetmask(var.edge_ipv4_address))
-    error_message = "edge_ipv4_address must be dhcp or an IPv4 address in CIDR notation."
+    condition     = var.caddy_ipv4_address == "dhcp" || can(cidrnetmask(var.caddy_ipv4_address))
+    error_message = "caddy_ipv4_address must be dhcp or an IPv4 address in CIDR notation."
   }
 }
 
-variable "edge_ipv4_gateway" {
-  description = "IPv4 gateway for a static address; leave null when using DHCP."
-  type        = string
-  default     = "192.168.1.1"
-  nullable    = true
-}
-
-variable "edge_wan_mac_address" {
-  description = "Stable MAC address for Edge's Rogers LAN-facing interface."
-  type        = string
-  default     = "BC:24:11:47:C7:97"
-
-  validation {
-    condition     = can(regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$", var.edge_wan_mac_address))
-    error_message = "edge_wan_mac_address must be a colon-separated MAC address."
-  }
-}
-
-variable "edge_management_ipv4_address" {
-  description = "Static management-side address for Edge in CIDR notation."
-  type        = string
-  default     = "10.100.1.1/24"
-}
-
-variable "edge_services_ipv4_address" {
-  description = "Static services-side address for Edge in CIDR notation."
-  type        = string
-  default     = "10.200.1.1/24"
+variable "caddy_ipv4_gateway" {
+  type     = string
+  default  = "172.16.30.1"
+  nullable = true
 }
 
 # Gitea VM variables
@@ -345,7 +326,7 @@ variable "gitea_disk_size_gb" {
 variable "gitea_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.100.1.20/24"
+  default     = "172.16.10.30/24"
 
   validation {
     condition     = var.gitea_ipv4_address == "dhcp" || can(cidrnetmask(var.gitea_ipv4_address))
@@ -355,7 +336,7 @@ variable "gitea_ipv4_address" {
 
 variable "gitea_ipv4_gateway" {
   type     = string
-  default  = "10.100.1.1"
+  default  = "172.16.10.1"
   nullable = true
 }
 
@@ -379,7 +360,7 @@ variable "monitoring_disk_size_gb" {
 variable "monitoring_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.100.1.30/24"
+  default     = "172.16.10.20/24"
 
   validation {
     condition     = var.monitoring_ipv4_address == "dhcp" || can(cidrnetmask(var.monitoring_ipv4_address))
@@ -389,7 +370,7 @@ variable "monitoring_ipv4_address" {
 
 variable "monitoring_ipv4_gateway" {
   type     = string
-  default  = "10.100.1.1"
+  default  = "172.16.10.1"
   nullable = true
 }
 
@@ -413,7 +394,7 @@ variable "k3s_disk_size_gb" {
 variable "k3s_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.100.1.40/24"
+  default     = "172.16.10.40/24"
 
   validation {
     condition     = var.k3s_ipv4_address == "dhcp" || can(cidrnetmask(var.k3s_ipv4_address))
@@ -423,7 +404,7 @@ variable "k3s_ipv4_address" {
 
 variable "k3s_ipv4_gateway" {
   type     = string
-  default  = "10.100.1.1"
+  default  = "172.16.10.1"
   nullable = true
 }
 
@@ -447,7 +428,7 @@ variable "nolife_disk_size_gb" {
 variable "nolife_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.100.1.50/24"
+  default     = "172.16.20.20/24"
 
   validation {
     condition     = var.nolife_ipv4_address == "dhcp" || can(cidrnetmask(var.nolife_ipv4_address))
@@ -457,7 +438,7 @@ variable "nolife_ipv4_address" {
 
 variable "nolife_ipv4_gateway" {
   type     = string
-  default  = "10.100.1.1"
+  default  = "172.16.20.1"
   nullable = true
 }
 
@@ -481,7 +462,7 @@ variable "games_disk_size_gb" {
 variable "games_ipv4_address" {
   description = "IPv4 address in CIDR notation, or dhcp."
   type        = string
-  default     = "10.200.1.20/24"
+  default     = "172.16.30.20/24"
 
   validation {
     condition     = var.games_ipv4_address == "dhcp" || can(cidrnetmask(var.games_ipv4_address))
@@ -491,6 +472,6 @@ variable "games_ipv4_address" {
 
 variable "games_ipv4_gateway" {
   type     = string
-  default  = "10.200.1.1"
+  default  = "172.16.30.1"
   nullable = true
 }

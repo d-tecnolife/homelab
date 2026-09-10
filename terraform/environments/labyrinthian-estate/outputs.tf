@@ -18,14 +18,14 @@ output "apps_ipv4_addresses" {
   value       = proxmox_virtual_environment_vm.apps.ipv4_addresses
 }
 
-output "edge_vm_id" {
-  description = "VMID assigned to edge."
-  value       = proxmox_virtual_environment_vm.edge.vm_id
+output "pfsense_vm_id" {
+  description = "VMID assigned to pfSense."
+  value       = proxmox_virtual_environment_vm.pfsense.vm_id
 }
 
-output "edge_ipv4_addresses" {
-  description = "IPv4 addresses reported by the QEMU guest agent for edge."
-  value       = proxmox_virtual_environment_vm.edge.ipv4_addresses
+output "pfsense_ipv4_addresses" {
+  description = "IPv4 addresses reported by the QEMU guest agent for pfSense."
+  value       = proxmox_virtual_environment_vm.pfsense.ipv4_addresses
 }
 
 output "gitea_vm_id" { value = proxmox_virtual_environment_vm.gitea.vm_id }

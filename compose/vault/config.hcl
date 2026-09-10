@@ -10,7 +10,7 @@ listener "tcp" {
   tls_disable = true
 }
 
-# TLS is terminated by Caddy on Edge; do not publish this port beyond Apps.
+# TLS is terminated by Caddy in the DMZ; do not publish this port beyond Apps.
 api_addr     = "https://ssh-ca.dscim.dev"
 cluster_addr = "http://127.0.0.1:8201"
 

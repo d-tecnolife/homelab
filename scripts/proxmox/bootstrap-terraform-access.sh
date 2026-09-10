@@ -8,6 +8,7 @@ TOKEN_ID="${TOKEN_ID:-provider}"
 ROLE_ID="${ROLE_ID:-TerraformVM}"
 PRIVILEGES="Datastore.Allocate Datastore.AllocateSpace Datastore.Audit SDN.Use Sys.Audit Sys.Modify VM.Allocate VM.Audit VM.Clone VM.Config.CDROM VM.Config.Cloudinit VM.Config.CPU VM.Config.Disk VM.Config.HWType VM.Config.Memory VM.Config.Network VM.Config.Options VM.GuestAgent.Audit VM.PowerMgmt"
 TERRAFORM_TOKEN_VALUE=""
+REPOSITORY_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 if [[ $EUID -ne 0 ]]; then
     echo "Run this script as root on a Proxmox VE node." >&2
@@ -19,8 +20,14 @@ command -v pveum >/dev/null || {
     exit 1
 }
 
-if [[ $# -eq 0 ]]; then
+public_key_files=("$@")
+shopt -s nullglob
+public_key_files+=("$REPOSITORY_ROOT"/keys/*.pub)
+shopt -u nullglob
+
+if [[ ${#public_key_files[@]} -eq 0 ]]; then
     echo "Usage: $0 <terraform-runner-public-key> [additional-public-key ...]" >&2
+    echo "Alternatively, add at least one public key under keys/." >&2
     exit 1
 fi
 
@@ -40,7 +47,7 @@ touch "$SSH_HOME/.ssh/authorized_keys"
 chown "$TERRAFORM_SSH_USER:$TERRAFORM_SSH_USER" "$SSH_HOME/.ssh/authorized_keys"
 chmod 0600 "$SSH_HOME/.ssh/authorized_keys"
 
-for public_key_file in "$@"; do
+for public_key_file in "${public_key_files[@]}"; do
     if [[ ! -f "$public_key_file" ]]; then
         echo "Public key file not found: $public_key_file" >&2
         exit 1

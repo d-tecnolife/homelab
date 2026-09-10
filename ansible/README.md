@@ -8,6 +8,12 @@ for the required execution order.
 
 ## Playbooks
 
+Run `../scripts/ops/bootstrap-lab.sh` from the Ops console for the ordered
+post-Terraform bootstrap. It creates the ignored inventory from the committed
+example when absent, generates the Ops management key, and then runs the
+playbooks below in their required order. Restore the existing age identity and
+encrypted deployment inputs first.
+
 - `playbooks/bootstrap-ops-ssh.yml` generates the Ops management key and adds
   its public key to every managed VM without replacing remembered SSH host
   keys.
@@ -31,17 +37,15 @@ for the required execution order.
   Ops watcher that runs it whenever the private inventory changes.
 - `playbooks/hosts-file.yml` maintains short-name and `dscim.dev` mappings in
   `/etc/hosts` on every reachable managed VM using the inventory addresses.
-- `playbooks/edge-routing.yml` maintains persistent IPv4 forwarding, the
-  CrowdSec nftables sets, and per-source Minecraft connection limits on Edge.
-- `playbooks/netbird-networks.yml` keeps Ops from accepting the Services
-  NetBird route because Apps is directly reachable through Edge.
-- `playbooks/netbird-edge.yml` enrolls Edge as the NetBird routing peer using
-  an encrypted one-off setup key.
-- `playbooks/crowdsec.yml` installs CrowdSec and its nftables bouncer on Edge,
+- `playbooks/netbird-networks.yml` keeps Ops from accepting the Internal
+  NetBird route because Apps is directly reachable through pfSense.
+- `playbooks/netbird-caddy.yml` enrolls Caddy for remote administration
+  using an encrypted one-off setup key.
+- `playbooks/crowdsec.yml` installs CrowdSec and its nftables bouncer on Caddy,
   consumes community decisions, and parses Linux and Caddy logs.
 - `playbooks/minecraft-backups.yml` installs the daily Minecraft backup service
   and timer on Games, with five-archive retention and RCON-safe world flushing.
-- `playbooks/caddy.yml` installs a Cloudflare-enabled Caddy build on Edge,
+- `playbooks/caddy.yml` installs a Cloudflare-enabled Caddy build on Caddy,
   deploys its sites, validates the configuration, and maintains its health
   endpoint and JSON logs.
 - `playbooks/docker.yml` installs Docker Engine and Compose on Docker hosts,
@@ -107,15 +111,12 @@ create `secrets/caddy.sops.env`. The playbook temporarily accepts the ignored
 plaintext `secrets/caddy.env` to support migration, but new deployments should
 use the encrypted file.
 
-Deploy Edge filtering before CrowdSec so the Ansible-owned nftables set exists
-before the set-only bouncer starts:
+Deploy CrowdSec after Caddy so Caddy access logs are available:
 
 ```bash
-ansible-playbook playbooks/edge-routing.yml
+ansible-playbook playbooks/caddy.yml
 ansible-playbook playbooks/crowdsec.yml
 ```
 
-The bouncer enforces community and local decisions in both the input path and
-the forwarded Minecraft path. Private LAN and NetBird sources bypass reputation
-blocking. Minecraft allows 12 new connections per minute per public source with
-a burst of 20; established sessions are not rate-limited.
+The bouncer enforces community and local decisions on Caddy. pfSense owns WAN
+filtering and game-port forwarding; keep those rules in the pfSense policy.

@@ -77,6 +77,8 @@ cat << EOF | tee "$SNIPPET_DIR/ubuntu-resolute.yaml"
 #cloud-config
 # Cloud images must create a distinct SSH host identity on each cloned VM.
 ssh_deletekeys: true
+# Console recovery passwords are local-only; SSH remains key-only.
+ssh_pwauth: false
 runcmd:
     - apt-get update
     - apt-get install -y qemu-guest-agent

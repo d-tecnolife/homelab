@@ -17,6 +17,8 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
         groups              = ["sudo"]
         shell               = "/bin/bash"
         sudo                = "ALL=(ALL) NOPASSWD:ALL"
+        lock_passwd         = false
+        passwd              = var.ops_console_password_hash
         ssh_authorized_keys = local.vm_ssh_authorized_keys
       }]
       package_update = true
@@ -31,7 +33,7 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
 }
 
 resource "proxmox_virtual_environment_vm" "ops" {
-  depends_on = [proxmox_virtual_environment_vm.edge]
+  depends_on = [proxmox_virtual_environment_vm.pfsense]
 
   name        = "ops"
   description = "ops VM managed by Terraform"
@@ -47,7 +49,9 @@ resource "proxmox_virtual_environment_vm" "ops" {
   }
 
   agent {
-    enabled = true
+    # Cloud-init installs the guest agent, but Terraform must not block initial
+    # creation on it. The Proxmox console is the supported bootstrap path.
+    enabled = false
   }
 
   cpu {
@@ -74,7 +78,7 @@ resource "proxmox_virtual_environment_vm" "ops" {
   network_device {
     bridge  = proxmox_network_linux_bridge.internal.name
     model   = "virtio"
-    vlan_id = var.management_vlan_id
+    vlan_id = var.infra_vlan_id
   }
 
   initialization {
@@ -99,6 +103,8 @@ resource "proxmox_virtual_environment_vm" "ops" {
   started = true
 
   lifecycle {
+    # Cloud-init user data is first-boot-only; apply changed bootstrap data by
+    # replacing Ops rather than mutating an already initialized guest.
     ignore_changes = [initialization[0].user_data_file_id]
 
     precondition {

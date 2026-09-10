@@ -1,98 +1,37 @@
 # Environment bootstrap
 
-Terraform creates the network and VMs, Cloud-Init makes
-Edge route traffic and prepares Ops, Ansible then gives Ops management access
-to every VM.
+Terraform creates pfSense and the VLAN-attached VMs; Ansible configures the
+Ubuntu guests after pfSense has been installed and its firewall policy applied.
+For recovery, read [Rebuild and disaster recovery](disaster-recovery.md) first
+and restore the original age identity rather than generating a new one.
 
-For replacement hardware or recovery of an existing environment, read
-[Rebuild and disaster recovery](disaster-recovery.md) first. In particular,
-restore the original age identity rather than generating a new one after
-encrypted secrets have been committed.
+## 1. Prepare Proxmox and the Terraform runner
 
-## 1. Prepare Proxmox
-
-**Run on: Proxmox node**
-
-After installing Proxmox and confirming that its management network and storage
-work, run the community [PVE Post Install](https://community-scripts.org/scripts/post-pve-install?id=post-pve-install)
-tool as `root`:
-
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/tools/pve/post-pve-install.sh)"
-```
-
-Run it interactively and select only the repository and host changes needed for
-this installation. It can change the Debian and Proxmox repositories, update the
-host, and request a reboot. The subscription-nag modification is optional because
-Proxmox package updates can overwrite it.
-
-After it finishes, reboot if prompted and verify the web interface and SSH are
-reachable. Confirm the configured repositories are healthy before continuing:
-
-```bash
-apt update
-pveversion
-```
-
-Record the selected options, Proxmox version, and run date in the rebuild notes.
-
-Install Git, clone this repository, then run both repository preparation scripts
-as `root`:
+On Proxmox, install Git and OpenSSH, clone this repository, then run the
+single repository preparation command as `root`:
 
 ```bash
 apt update
 apt install -y git openssh-client
 git clone https://github.com/d-tecnolife/homelab.git
 cd homelab
-./scripts/proxmox/bootstrap-terraform-access.sh keys/work-computer.pub
-./scripts/proxmox/ubuntu-resolute-cloudinit.sh
+bash ./scripts/proxmox/bootstrap-proxmox.sh
 ```
 
-The first script creates both the restricted Linux SSH account and the Proxmox
-API identity. Save its Terraform token in a password manager.
-The second script enables snippets on the `local` datastore and builds Ubuntu
-Cloud-Init template `9001`.
+On the Windows Terraform runner, load the bootstrap key into `ssh-agent`, copy
+`terraform.tfvars.example` to ignored `terraform.tfvars`, and enter the Proxmox
+connection values. Generate a strong local recovery-password hash on Proxmox
+without sharing the password or committing either value:
 
-## 2. Prepare the Terraform runner
-
-**Run on: Windows workstation**
-
-Open PowerShell as Administrator and enable the Windows SSH agent:
-
-```powershell
-Set-Service -Name ssh-agent -StartupType Automatic
-Start-Service ssh-agent
+```bash
+openssl passwd -6
 ```
 
-Return to a normal PowerShell session and load the same key supplied to the
-bootstrap script:
+Store the resulting value only as `ops_console_password_hash` in the ignored
+`terraform.tfvars`. It permits the `dtec` account to log in through the Ops VM
+console; `ssh_pwauth: false` keeps network SSH key-only.
 
-```powershell
-ssh-add "$env:USERPROFILE\.ssh\id_ed25519"
-ssh-add -l
-```
-
-Verify the restricted account and its narrow sudo access:
-
-```powershell
-ssh terraform@192.168.1.100 sudo pvesm apiinfo
-```
-
-Create an automatically loaded, ignored variables file from the committed
-example:
-
-```powershell
-cd C:\path\to\homelab\terraform\environments\labyrinthian-estate
-Copy-Item terraform.tfvars.example terraform.tfvars
-```
-
-Edit `terraform.tfvars`. It contains only the Proxmox endpoint, API token, node
-name, and VM username. Terraform loads it automatically. Commit and push only
-`terraform.tfvars.example`; never commit the populated `terraform.tfvars`.
-
-## 3. Create the environment
-
-**Run on: Windows workstation**
+## 2. Review the rebuild
 
 From `terraform/environments/labyrinthian-estate`:
 
@@ -101,171 +40,48 @@ terraform init
 terraform fmt -check
 terraform validate
 terraform plan
-terraform apply
 ```
 
-Terraform creates the VLAN-aware bridge, tagged VM interfaces, Edge, Ops, and
-the remaining VMs. Cloud-Init enables IPv4 forwarding on Edge and installs Git
-and Ansible on Ops. Wait for Edge to finish before using it as the router:
+The plan creates pfSense VMID 100 with WAN on `vmbr0` and a tagged `vmbr1`
+trunk for VLANs 10, 20, and 30. It creates Ops at `172.16.10.10`, Caddy at
+`172.16.30.10`, and the remaining hosts at the addresses in the inventory
+example. Apply only in a console-attended maintenance window after an explicit
+network/rebuild confirmation.
 
-```powershell
-ssh dtec@192.168.1.199 "cloud-init status --wait"
-```
-Where 192.168.1.199 is edge's IP.
+## 3. Install and configure pfSense
 
-## 4. Add workstation routes
+Use the Proxmox console to install the ISO on VMID 100. Assign WAN to `vmbr0`
+and the tagged trunk to the LAN interface; create VLAN interfaces 10, 20, and
+30. Configure WAN as `192.168.1.2/24` with upstream gateway `192.168.1.1` and
+disable WAN blocking of private networks. Apply the exact policy in
+[pfSense configuration](pfsense-configuration.md) before starting workloads.
 
-**Run on: Windows workstation as Administrator**
+No route or inbound management exception is required on the upstream LAN for
+initial setup. Keep WAN default-deny. Use the Proxmox console for VMID 1010
+(Ops) as the out-of-band bootstrap path.
 
-Windows needs routes to the internal networks because the LAN router does
-not know them. Open PowerShell as Administrator and use edge's stable
-LAN address as the next hop:
+## 4. Configure Ubuntu guests from Ops
 
-```powershell
-route -p add 10.100.1.0 mask 255.255.255.0 192.168.1.199
-route -p add 10.200.1.0 mask 255.255.255.0 192.168.1.199
-```
-
-Disconnect any VPN before connecting to the private subnets; a VPN may route
-`10.100.1.0/24` through its virtual interface instead of Edge.
-
-Verify Ops is reachable, then wait for its Cloud-Init setup to finish:
-
-```powershell
-Test-NetConnection 10.100.1.10 -Port 22
-ssh dtec@10.100.1.10 "cloud-init status --wait"
-```
-
-## 5. Bootstrap Ops with agent forwarding
-
-**Begin on: Windows workstation**
-
-Ensure the workstation key is still loaded, then forward its agent to Ops:
-
-```powershell
-ssh-add -l
-ssh -A dtec@10.100.1.10
-```
-
-**Continue on: Ops VM**
-
-Confirm the forwarded identity is visible and clone the repository:
+Open the Proxmox console for VMID 1010, sign in as `dtec` with the local
+recovery password, clone the repository, copy the inventory example to the
+ignored inventory, and run the first playbook locally:
 
 ```bash
-ssh-add -l
-git clone git@github.com:d-tecnolife/homelab.git
-cd homelab/ansible
-cp inventory/hosts.yml.example inventory/hosts.yml
-```
-
-The playbook configures every reachable VM and preserves existing SSH host-key
-verification. It never deletes or silently replaces a remembered host key; a
-changed key must be verified through the Proxmox console before continuing.
-Run:
-
-```bash
-ansible-playbook playbooks/bootstrap-ops-ssh.yml
-ansible-playbook playbooks/hosts-file.yml
-ansible-playbook playbooks/edge-routing.yml
-ansible-playbook playbooks/crowdsec.yml
-ansible-playbook playbooks/docker.yml
-ansible-playbook playbooks/maintenance-schedule.yml
-ansible-playbook playbooks/secrets.yml
-ansible-playbook playbooks/ops-codex.yml
-ansible-playbook playbooks/homelab-health.yml
-```
-
-The first playbook generates an Ed25519 key on Ops and adds its public key to
-every VM. The workstation private key is used through the forwarded agent and
-is never copied to Ops. The remaining playbooks maintain VM hostname mappings,
-configure Edge routing, and configure Docker.
-
-Back up the age identity printed by `secrets.yml`, create and commit
-`.sops.yaml` from `.sops.yaml.example`, then follow
-[Secrets management](../secrets/README.md) to encrypt the Cloudflare API token.
-The token should remain scoped to `dscim.dev` with `Zone:Read` and `DNS:Edit`.
-Then deploy Caddy:
-
-```bash
-ansible-playbook playbooks/caddy.yml
-```
-
-Caddy uses the token only for DNS certificate challenges. This gives private
-NetBird services publicly trusted certificates without forwarding ports 80 or
-443 through the Rogers router.
-
-Create or restore each stack's SOPS-encrypted environment file under
-`secrets/compose/` on Ops, then deploy the Compose applications, monitoring
-collectors, generated scrape targets, and Minecraft backups:
-
-```bash
-ansible-playbook playbooks/deploy-compose.yml
-ansible-playbook playbooks/monitoring-agents.yml
-ansible-playbook playbooks/monitoring-targets.yml
-ansible-playbook playbooks/monitoring-inventory-automation.yml
-ansible-playbook playbooks/minecraft-backups.yml
-```
-
-## 6. Preserve the Ops public key
-
-**Begin on: Ops VM**
-
-Copy only its public key into the repository:
-
-```bash
-cd ~/homelab
-mkdir -p keys
-cp ~/.ssh/id_ed25519.pub keys/ops-management.pub
-git add keys/ops-management.pub
-git commit -m "Add Ops management public key"
-git push
-exit
-```
-
-**Continue on: Windows workstation**
-
-Pull the commit containing the Ops public key:
-
-```powershell
-cd C:\path\to\homelab
-git pull
-cd terraform\environments\labyrinthian-estate
-```
-
-Review and apply the resulting Terraform update:
-
-```powershell
-terraform plan
-terraform apply
-```
-
-Future workload VM creations and replacements receive both the workstation
-and repository-managed public keys during Cloud-Init. Terraform automatically
-includes every non-empty repository-root `keys/*.pub` file. After adding another device's
-public key, commit it and rerun `bootstrap-ops-ssh.yml` so existing VMs receive
-it; private keys remain only on their originating devices.
-
-## 7. Verify management from Ops
-
-**Begin on: Windows workstation**
-
-Reconnect without agent forwarding:
-
-```powershell
-ssh dtec@10.100.1.10
-```
-
-**Continue on: Ops VM**
-
-Verify the inventory:
-
-```bash
+git clone https://github.com/d-tecnolife/homelab.git ~/homelab
 cd ~/homelab/ansible
-ansible all -m ping
+cp inventory/hosts.yml.example inventory/hosts.yml
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-ops-ssh.yml --limit ops -c local
 ```
 
-The infrastructure bootstrap is complete when every running VM returns
-`SUCCESS`.
+Then run the complete ordered configuration from Ops:
+
+```bash
+bash ~/homelab/scripts/ops/bootstrap-lab.sh
+```
+
+Before running the command, restore the existing age identity and the required
+SOPS-encrypted Compose and Caddy inputs. The playbook deliberately stops rather
+than creating replacement credentials that cannot decrypt existing data.
 
 ## Related details
 

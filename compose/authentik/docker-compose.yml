@@ -24,12 +24,12 @@ services:
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:?set PG_PASS}
-      AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS: 10.200.1.1/32
+      AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS: 172.16.30.10/32
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
     labels:
       com.centurylinklabs.watchtower.enable: "false"
     ports:
-      - "10.200.1.10:9000:9000"
+      - "172.16.20.10:9000:9000"
     volumes:
       - /srv/compose/authentik/media:/media
       - /srv/compose/authentik/custom-templates:/templates

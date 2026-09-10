@@ -1,6 +1,6 @@
 ---
-- name: Configure Caddy on Edge
-  hosts: edge
+- name: Configure Caddy on Caddy
+  hosts: caddy
   become: true
   gather_facts: true
   vars:

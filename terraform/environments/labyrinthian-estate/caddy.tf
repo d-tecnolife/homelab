@@ -1,12 +1,12 @@
-resource "proxmox_virtual_environment_vm" "nolife" {
+resource "proxmox_virtual_environment_vm" "caddy" {
   depends_on = [proxmox_virtual_environment_vm.pfsense]
 
-  name        = "nolife"
-  description = "Always-on development VM managed by Terraform"
-  tags        = ["terraform", "ubuntu", "nolife"]
+  name        = "caddy"
+  description = "DMZ Caddy VM managed by Terraform"
+  tags        = ["terraform", "ubuntu", "caddy", "dmz"]
 
   node_name = var.node_name
-  vm_id     = var.nolife_vm_id
+  vm_id     = var.caddy_vm_id
 
   clone {
     vm_id        = var.template_vm_id
@@ -19,12 +19,12 @@ resource "proxmox_virtual_environment_vm" "nolife" {
   }
 
   cpu {
-    cores = var.nolife_cpu_cores
+    cores = var.caddy_cpu_cores
     type  = "host"
   }
 
   memory {
-    dedicated = var.nolife_memory_mb
+    dedicated = var.caddy_memory_mb
   }
 
   vga {
@@ -36,13 +36,13 @@ resource "proxmox_virtual_environment_vm" "nolife" {
     interface    = "virtio0"
     file_format  = "raw"
     discard      = "on"
-    size         = var.nolife_disk_size_gb
+    size         = var.caddy_disk_size_gb
   }
 
   network_device {
     bridge  = proxmox_network_linux_bridge.internal.name
     model   = "virtio"
-    vlan_id = var.internal_vlan_id
+    vlan_id = var.dmz_vlan_id
   }
 
   initialization {
@@ -55,8 +55,8 @@ resource "proxmox_virtual_environment_vm" "nolife" {
 
     ip_config {
       ipv4 {
-        address = var.nolife_ipv4_address
-        gateway = var.nolife_ipv4_address == "dhcp" ? null : var.nolife_ipv4_gateway
+        address = var.caddy_ipv4_address
+        gateway = var.caddy_ipv4_address == "dhcp" ? null : var.caddy_ipv4_gateway
       }
     }
 
@@ -71,9 +71,8 @@ resource "proxmox_virtual_environment_vm" "nolife" {
 
   lifecycle {
     precondition {
-      condition     = var.nolife_ipv4_address == "dhcp" || var.nolife_ipv4_gateway != null
-      error_message = "nolife_ipv4_gateway must be set when nolife_ipv4_address is static."
+      condition     = var.caddy_ipv4_address == "dhcp" || var.caddy_ipv4_gateway != null
+      error_message = "caddy_ipv4_gateway must be set when caddy_ipv4_address is static."
     }
   }
 }
-

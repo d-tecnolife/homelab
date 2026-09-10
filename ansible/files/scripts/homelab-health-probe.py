@@ -144,7 +144,7 @@ def tcp_open(host: str, port: int, timeout: float) -> bool:
 def caddy_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
     state = service_state("caddy.service", timeout)
     if state is None:
-        return {"service": "missing", "health_endpoint": False} if host == "edge" else None
+        return {"service": "missing", "health_endpoint": False} if host == "caddy" else None
     healthy = False
     try:
         with urllib.request.urlopen("http://127.0.0.1:8080/healthz", timeout=timeout) as response:
@@ -174,7 +174,7 @@ def minecraft_snapshot(
 def crowdsec_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
     state = service_state("crowdsec.service", timeout)
     if state is None:
-        if host == "edge":
+        if host == "caddy":
             return {"service": "missing", "bouncer": "missing", "decisions": None}
         return None
     bouncer = service_state("crowdsec-firewall-bouncer.service", timeout)
@@ -192,12 +192,11 @@ def crowdsec_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
 def nftables_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
     state = service_state("nftables.service", timeout)
     if state is None:
-        if host == "edge":
+        if host == "caddy":
             return {
                 "service": "missing",
                 "config_valid": False,
                 "blacklist_entries": None,
-                "ipv4_forwarding": False,
             }
         return None
     check_rc, _ = run(["nft", "--check", "--file", "/etc/nftables.conf"], timeout)
@@ -218,12 +217,10 @@ def nftables_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
             blacklist_entries = len(entries)
         except (AttributeError, json.JSONDecodeError):
             pass
-    forward_rc, forward = run(["sysctl", "-n", "net.ipv4.ip_forward"], timeout)
     return {
         "service": state,
         "config_valid": check_rc == 0,
         "blacklist_entries": blacklist_entries,
-        "ipv4_forwarding": forward_rc == 0 and forward.strip() == "1",
     }
 
 

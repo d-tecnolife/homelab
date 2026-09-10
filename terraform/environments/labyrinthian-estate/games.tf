@@ -2,7 +2,7 @@
 # names, then declare the matching VM-specific variables in variables.tf.
 
 resource "proxmox_virtual_environment_vm" "games" {
-  depends_on = [proxmox_virtual_environment_vm.edge]
+  depends_on = [proxmox_virtual_environment_vm.pfsense]
 
   name        = "games"
   description = "Priority game-server VM managed by Terraform"
@@ -18,7 +18,7 @@ resource "proxmox_virtual_environment_vm" "games" {
   }
 
   agent {
-    enabled = true
+    enabled = false
   }
 
   cpu {
@@ -45,7 +45,7 @@ resource "proxmox_virtual_environment_vm" "games" {
   network_device {
     bridge  = proxmox_network_linux_bridge.internal.name
     model   = "virtio"
-    vlan_id = var.services_vlan_id
+    vlan_id = var.dmz_vlan_id
   }
 
   initialization {

@@ -2,7 +2,7 @@
 # names, then declare the matching VM-specific variables in variables.tf.
 
 resource "proxmox_virtual_environment_vm" "monitoring" {
-  depends_on = [proxmox_virtual_environment_vm.edge]
+  depends_on = [proxmox_virtual_environment_vm.pfsense]
 
   name        = "monitoring"
   description = "Monitoring VM managed by Terraform"
@@ -18,7 +18,7 @@ resource "proxmox_virtual_environment_vm" "monitoring" {
   }
 
   agent {
-    enabled = true
+    enabled = false
   }
 
   cpu {
@@ -45,7 +45,7 @@ resource "proxmox_virtual_environment_vm" "monitoring" {
   network_device {
     bridge  = proxmox_network_linux_bridge.internal.name
     model   = "virtio"
-    vlan_id = var.management_vlan_id
+    vlan_id = var.infra_vlan_id
   }
 
   initialization {

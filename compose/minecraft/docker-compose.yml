@@ -52,7 +52,7 @@ services:
       MC_WORLD: /minecraft/world
       MC_MOD_SERVER_STATS: forge
     ports:
-      - "10.200.1.20:9150:9150"
+      - "172.16.30.20:9150:9150"
     volumes:
       - /srv/compose/minecraft/data/Backshots Central:/minecraft/world:ro
     depends_on:

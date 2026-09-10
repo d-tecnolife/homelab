@@ -33,7 +33,9 @@ ansible-playbook playbooks/homelab-health.yml
 
 Use the existing Codex installation; authenticate interactively with `codex login`
 as `dtec` if needed. Authentication and the SOPS age identity remain outside Git.
-Open the saved project with an SSH connection using `dtec@10.100.1.10`.
+For initial setup and recovery, open the saved project through the Proxmox
+console for VMID 1010. Network SSH remains key-only and is enabled only after
+the private management path is configured.
 Keep the sibling Notes checkout at `/home/dtec/notes` and follow its context router.
 
 `homelab-health` is discretionary when an infrastructure implementation or fix

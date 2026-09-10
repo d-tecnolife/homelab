@@ -2,23 +2,23 @@ all:
   children:
     managed_vms:
       hosts:
-        edge:
-          ansible_host: 10.100.1.1
         ops:
-          ansible_host: 10.100.1.10
+          ansible_host: 172.16.10.10
           ansible_connection: local
         gitea:
-          ansible_host: 10.100.1.20
+          ansible_host: 172.16.10.30
         monitoring:
-          ansible_host: 10.100.1.30
+          ansible_host: 172.16.10.20
         k3s:
-          ansible_host: 10.100.1.40
+          ansible_host: 172.16.10.40
         nolife:
-          ansible_host: 10.100.1.50
+          ansible_host: 172.16.20.20
         apps:
-          ansible_host: 10.200.1.10
+          ansible_host: 172.16.20.10
+        caddy:
+          ansible_host: 172.16.30.10
         games:
-          ansible_host: 10.200.1.20
+          ansible_host: 172.16.30.20
       vars:
         ansible_user: dtec
     proxmox_hosts:
