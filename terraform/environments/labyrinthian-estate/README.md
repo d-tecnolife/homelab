@@ -1,6 +1,6 @@
 # Labyrinthian Estate environment
 
-This environment provisions the VLAN-aware Proxmox network, pfSense firewall,
+This environment provisions the VLAN-aware Proxmox network, OPNsense Gateway,
 Ops controller, and workload VMs from the Ubuntu Resolute Cloud-Init template.
 
 Follow the
@@ -19,16 +19,17 @@ the required Terraform, routing, and Ansible sequence.
 
 ## Network layout
 
-pfSense VMID `100` attaches to `vmbr0` for WAN (`192.168.1.2/24`, gateway
-`192.168.1.1`) and to a tagged `vmbr1` trunk for VLANs 10, 20, and 30. pfSense
+Gateway VMID `100` attaches to `vmbr0` for WAN (`192.168.1.2/24`, gateway
+`192.168.1.1`) and to a tagged `vmbr1` trunk for VLANs 10, 20, and 30. OPNsense
 owns `172.16.10.1`, `172.16.20.1`, and `172.16.30.1` as the respective
 gateways. The Ubuntu VMs use access ports on that bridge: Infra (10), Internal
-(20), or DMZ (30). Caddy VMID `3010` is the DMZ web host.
+(20), or DMZ (30). Door VMID `3010` runs Caddy in the DMZ.
 
-Terraform creates the pfSense VM from the checked ISO but does not configure
-the firewall. Complete its console installation and apply the reviewed policy
-in [pfSense configuration](../../../docs/pfsense-configuration.md) before
-booting dependent VMs.
+Terraform creates the OPNsense Gateway from the ISO selected by
+`gateway_iso_file_id`. Workloads are deliberately gated by
+`gateway_policy_ready`: restore the reviewed Gateway baseline, apply and verify
+the declarative policy, then set that value to `true` before planning guests.
+See [Gateway configuration](../../../docs/gateway-configuration.md).
 
 The initial apply authorizes the Terraform runner's public key. Terraform also
 adds every non-empty repository-root `keys/*.pub` file to each new VM. Public keys may be

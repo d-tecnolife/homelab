@@ -70,7 +70,8 @@ cd ~/homelab/ansible
 ansible-playbook playbooks/netbird-caddy.yml --limit caddy
 ```
 
-pfSense routes the homelab subnets; Caddy supplies the NetBird access duties.
+OPNsense Gateway routes the homelab subnets; Door supplies the NetBird access
+duties.
 `caddy.yml` maintains the DNS-only `ssh-ca.dscim.dev` A record at Caddy's DMZ
 address. Caddy permits NetBird, home-LAN, and `172.16.0.0/12` sources; it still
 rejects all other sources where the site policy requires private access.

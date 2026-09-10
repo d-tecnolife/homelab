@@ -27,9 +27,10 @@ credentials when their former host is lost or compromised.
    Cloud-Init template. A new Proxmox API token is expected on a new host.
 3. Create a new local `terraform.tfvars` or encrypted
    `secrets/infrastructure.sops.env` using the new endpoint and token.
-4. Run Terraform from a trusted workstation to create pfSense, Ops, Door (running Caddy), and
-   the workload VMs. A genuinely new environment starts with new Terraform
-   state.
+4. Run Terraform phase one from a trusted workstation to create the OPNsense
+   Gateway. Restore the encrypted Gateway baseline and apply its policy before
+   setting `gateway_policy_ready = true` and applying the workload phase. A
+   genuinely new environment starts with new Terraform state.
 5. Open VMID 1010's Proxmox console; its first boot signs in as `dtec`
    automatically. Clone `homelab` onto Ops and restore the backed-up age
    identity to a temporary local file readable only by the administrator. Run

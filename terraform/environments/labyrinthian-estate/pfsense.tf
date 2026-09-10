@@ -1,9 +1,14 @@
-resource "proxmox_virtual_environment_vm" "pfsense" {
-  name        = "pfsense"
-  description = "pfSense firewall and VLAN router managed by Terraform"
-  tags        = ["terraform", "pfsense", "firewall"]
+moved {
+  from = proxmox_virtual_environment_vm.pfsense
+  to   = proxmox_virtual_environment_vm.gateway
+}
+
+resource "proxmox_virtual_environment_vm" "gateway" {
+  name        = "gateway"
+  description = "OPNsense firewall and VLAN router managed by Terraform"
+  tags        = ["terraform", "opnsense", "gateway", "firewall"]
   node_name   = var.node_name
-  vm_id       = var.pfsense_vm_id
+  vm_id       = var.gateway_vm_id
 
   cpu {
     cores = 2
@@ -13,7 +18,7 @@ resource "proxmox_virtual_environment_vm" "pfsense" {
     dedicated = 2048
   }
   vga {
-    # Keep the Proxmox graphical console available for attended pfSense setup.
+    # Keep the Proxmox graphical console available for the OPNsense installer.
     type = "virtio"
   }
 
@@ -25,7 +30,7 @@ resource "proxmox_virtual_environment_vm" "pfsense" {
   }
 
   cdrom {
-    file_id   = "local:iso/netgate-installer-amd64.iso"
+    file_id   = var.gateway_iso_file_id
     interface = "ide2"
   }
 
@@ -42,9 +47,4 @@ resource "proxmox_virtual_environment_vm" "pfsense" {
   on_boot = true
   started = true
 
-  # pfSense is configured from its console; leave post-install media changes
-  # to that workflow instead of reconciling them through the VM resource.
-  lifecycle {
-    ignore_changes = [cdrom]
-  }
 }

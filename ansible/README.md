@@ -116,5 +116,6 @@ ansible-playbook playbooks/caddy.yml
 ansible-playbook playbooks/crowdsec.yml
 ```
 
-The bouncer enforces community and local decisions on Caddy. pfSense owns WAN
-filtering and game-port forwarding; keep those rules in the pfSense policy.
+The bouncer enforces community and local decisions on Door. OPNsense Gateway
+owns WAN filtering and game-port forwarding; keep those rules in the Gateway
+policy.

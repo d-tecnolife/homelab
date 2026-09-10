@@ -21,7 +21,7 @@
         group: root
         mode: "0644"
         content: |
-          # Managed by Ansible. pfSense owns routing and WAN filtering.
+          # Managed by Ansible. Gateway owns routing and WAN filtering.
           flush ruleset
 
           table ip crowdsec {

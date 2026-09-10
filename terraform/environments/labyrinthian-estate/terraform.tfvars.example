@@ -2,3 +2,7 @@ proxmox_endpoint  = "https://192.168.1.100:8006/"
 proxmox_api_token = "terraform@pve!provider=replace-me"
 node_name         = "specify-name-here"
 vm_username       = "username-here"
+gateway_iso_file_id = "local:iso/OPNsense-<version>-dvd-amd64.iso"
+# Leave false for phase 1. Set true only after the Gateway policy playbook
+# has completed its verification successfully.
+gateway_policy_ready = false

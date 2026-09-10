@@ -1,5 +1,5 @@
 resource "proxmox_virtual_environment_vm" "nolife" {
-  depends_on = [proxmox_virtual_environment_vm.pfsense]
+  depends_on = [proxmox_virtual_environment_vm.gateway]
 
   name        = "nolife"
   description = "Always-on development VM managed by Terraform"
@@ -70,6 +70,10 @@ resource "proxmox_virtual_environment_vm" "nolife" {
   started = true
 
   lifecycle {
+    precondition {
+      condition     = var.gateway_policy_ready
+      error_message = "Gateway policy is not verified. Apply and verify ansible/playbooks/gateway-policy.yml before creating workloads."
+    }
     precondition {
       condition     = var.nolife_ipv4_address == "dhcp" || var.nolife_ipv4_gateway != null
       error_message = "nolife_ipv4_gateway must be set when nolife_ipv4_address is static."

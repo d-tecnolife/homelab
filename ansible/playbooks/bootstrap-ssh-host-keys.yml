@@ -40,7 +40,7 @@
         that: item.stdout | length > 0
         fail_msg: >-
           {{ item.item }} at {{ hostvars[item.item].ansible_host }} did not provide
-          an SSH host key. Confirm the VM is running and the pfSense policy permits
+          an SSH host key. Confirm the VM is running and the Gateway policy permits
           Ops SSH administration, then rerun the bootstrap.
       loop: "{{ bootstrap_ssh_host_key_scans.results }}"
 

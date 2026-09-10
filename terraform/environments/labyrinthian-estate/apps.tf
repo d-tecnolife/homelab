@@ -1,5 +1,5 @@
 resource "proxmox_virtual_environment_vm" "apps" {
-  depends_on = [proxmox_virtual_environment_vm.pfsense]
+  depends_on = [proxmox_virtual_environment_vm.gateway]
 
   name        = "apps"
   description = "Primary Docker application host managed by Terraform"
@@ -70,6 +70,10 @@ resource "proxmox_virtual_environment_vm" "apps" {
   started = true
 
   lifecycle {
+    precondition {
+      condition     = var.gateway_policy_ready
+      error_message = "Gateway policy is not verified. Apply and verify ansible/playbooks/gateway-policy.yml before creating workloads."
+    }
     precondition {
       condition     = var.apps_ipv4_address == "dhcp" || var.apps_ipv4_gateway != null
       error_message = "apps_ipv4_gateway must be set when apps_ipv4_address is static."

@@ -1,7 +1,7 @@
 # Environment bootstrap
 
-Terraform creates pfSense and the VLAN-attached VMs; Ansible configures the
-Ubuntu guests after pfSense has been installed and its firewall policy applied.
+Terraform creates the OPNsense Gateway and VLAN-attached VMs; Ansible configures
+Ubuntu guests only after the Gateway baseline and policy have been applied.
 For recovery, read [Rebuild and disaster recovery](disaster-recovery.md) first
 and restore the original age identity rather than generating a new one.
 
@@ -22,7 +22,7 @@ On the Windows Terraform runner, load the bootstrap key into `ssh-agent`, copy
 `terraform.tfvars.example` to ignored `terraform.tfvars`, and enter the Proxmox
 connection values. A fresh Ops VM automatically signs `dtec` in through its
 Proxmox graphical and serial consoles. This temporary path exists only behind
-Proxmox authentication and the pfSense private networks; SSH password
+Proxmox authentication and the Gateway private networks; SSH password
 authentication remains disabled. The final Ansible bootstrap removes auto-login
 for subsequent boots.
 
@@ -37,19 +37,19 @@ terraform validate
 terraform plan
 ```
 
-The plan creates pfSense VMID 100 with WAN on `vmbr0` and a tagged `vmbr1`
+The phase-one plan creates Gateway VMID 100 with WAN on `vmbr0` and a tagged `vmbr1`
 trunk for VLANs 10, 20, and 30. It creates Ops at `172.16.10.10`, Door (running Caddy) at
 `172.16.30.10`, and the remaining hosts at the addresses in the inventory
 example. Apply only in a console-attended maintenance window after an explicit
 network/rebuild confirmation.
 
-## 3. Install and configure pfSense
+## 3. Install and configure Gateway
 
 Use the Proxmox console to install the ISO on VMID 100. Assign WAN to `vmbr0`
 and the tagged trunk to the LAN interface; create VLAN interfaces 10, 20, and
 30. Configure WAN as `192.168.1.2/24` with upstream gateway `192.168.1.1` and
 disable WAN blocking of private networks. Apply the exact policy in
-[pfSense configuration](pfsense-configuration.md) before starting workloads.
+[Gateway configuration](gateway-configuration.md) before starting workloads.
 
 No route or inbound management exception is required on the upstream LAN for
 initial setup. Keep WAN default-deny. Use the Proxmox console for VMID 1010

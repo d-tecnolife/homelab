@@ -67,7 +67,7 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
 }
 
 resource "proxmox_virtual_environment_vm" "ops" {
-  depends_on = [proxmox_virtual_environment_vm.pfsense]
+  depends_on = [proxmox_virtual_environment_vm.gateway]
 
   name        = "ops"
   description = "ops VM managed by Terraform"
@@ -143,6 +143,10 @@ resource "proxmox_virtual_environment_vm" "ops" {
   started = true
 
   lifecycle {
+    precondition {
+      condition     = var.gateway_policy_ready
+      error_message = "Gateway policy is not verified. Apply and verify ansible/playbooks/gateway-policy.yml before creating workloads."
+    }
     # Cloud-init user data is first-boot-only; apply changed bootstrap data by
     # replacing Ops rather than mutating an already initialized guest.
     ignore_changes = [initialization[0].user_data_file_id]

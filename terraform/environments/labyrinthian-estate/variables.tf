@@ -49,7 +49,7 @@ variable "snippet_datastore_id" {
 }
 
 variable "network_bridge" {
-  description = "Proxmox bridge used by pfSense's WAN-facing NIC."
+  description = "Proxmox bridge used by the Gateway WAN-facing NIC."
   type        = string
   default     = "vmbr0"
 }
@@ -115,10 +115,21 @@ variable "ops_vm_id" {
   default     = 1010
 }
 
-variable "pfsense_vm_id" {
-  description = "VMID to assign to pfSense."
+variable "gateway_vm_id" {
+  description = "VMID to assign to the OPNsense Gateway."
   type        = number
   default     = 100
+}
+
+variable "gateway_iso_file_id" {
+  description = "Proxmox ISO volume ID for the uploaded OPNsense DVD installer, for example local:iso/OPNsense-<version>-dvd-amd64.iso."
+  type        = string
+}
+
+variable "gateway_policy_ready" {
+  description = "Set true only after the OPNsense baseline and declarative policy have been applied and verified. This gates workload creation."
+  type        = bool
+  default     = false
 }
 
 variable "apps_vm_id" {

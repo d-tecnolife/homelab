@@ -18,14 +18,14 @@ output "apps_ipv4_addresses" {
   value       = proxmox_virtual_environment_vm.apps.ipv4_addresses
 }
 
-output "pfsense_vm_id" {
-  description = "VMID assigned to pfSense."
-  value       = proxmox_virtual_environment_vm.pfsense.vm_id
+output "gateway_vm_id" {
+  description = "VMID assigned to the OPNsense Gateway."
+  value       = proxmox_virtual_environment_vm.gateway.vm_id
 }
 
-output "pfsense_ipv4_addresses" {
-  description = "IPv4 addresses reported by the QEMU guest agent for pfSense."
-  value       = proxmox_virtual_environment_vm.pfsense.ipv4_addresses
+output "gateway_ipv4_addresses" {
+  description = "IPv4 addresses reported by the QEMU guest agent for the Gateway."
+  value       = proxmox_virtual_environment_vm.gateway.ipv4_addresses
 }
 
 output "gitea_vm_id" { value = proxmox_virtual_environment_vm.gitea.vm_id }

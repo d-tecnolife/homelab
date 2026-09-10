@@ -2,7 +2,7 @@
 # names, then declare the matching VM-specific variables in variables.tf.
 
 resource "proxmox_virtual_environment_vm" "k3s" {
-  depends_on = [proxmox_virtual_environment_vm.pfsense]
+  depends_on = [proxmox_virtual_environment_vm.gateway]
 
   name        = "k3s"
   description = "Single-node k3s VM managed by Terraform"
@@ -73,6 +73,10 @@ resource "proxmox_virtual_environment_vm" "k3s" {
   started = true
 
   lifecycle {
+    precondition {
+      condition     = var.gateway_policy_ready
+      error_message = "Gateway policy is not verified. Apply and verify ansible/playbooks/gateway-policy.yml before creating workloads."
+    }
     precondition {
       condition     = var.k3s_ipv4_address == "dhcp" || var.k3s_ipv4_gateway != null
       error_message = "k3s_ipv4_gateway must be set when k3s_ipv4_address is static."
