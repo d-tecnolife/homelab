@@ -8,12 +8,7 @@
   vars:
     bootstrap_operator_user: "{{ ansible_user | default('dtec', true) }}"
     bootstrap_known_hosts_file: "/home/{{ bootstrap_operator_user }}/.ssh/known_hosts"
-    # K3s is intentionally created powered off and is configured only after it
-    # is explicitly started for its workload bootstrap.
-    bootstrap_offline_hosts: [k3s]
-    bootstrap_ssh_hosts: >-
-      {{ groups['managed_vms'] | reject('equalto', 'ops') |
-         reject('in', bootstrap_offline_hosts) | list }}
+    bootstrap_ssh_hosts: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
 
   tasks:
     - name: Ensure the Ops SSH directory exists

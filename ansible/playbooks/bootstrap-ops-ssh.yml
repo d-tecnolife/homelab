@@ -81,7 +81,7 @@
           {{ ops_management_public_key_file.content | b64decode | trim }}
 
 - name: Authorize Ops on every running managed VM
-  hosts: managed_vms:!ops:!k3s
+  hosts: managed_vms:!ops
   gather_facts: true
   ignore_unreachable: true
   vars:

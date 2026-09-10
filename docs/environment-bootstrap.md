@@ -76,9 +76,6 @@ Then run the complete ordered configuration from Ops:
 bash ~/homelab/scripts/ops/bootstrap-lab.sh
 ```
 
-K3s is intentionally created powered off. The base bootstrap excludes it; once
-you start VMID 1040, configure it explicitly with the relevant K3s playbook.
-
 Before running the command, restore the existing age identity and the required
 SOPS-encrypted Compose and Caddy inputs. The playbook deliberately stops rather
 than creating replacement credentials that cannot decrypt existing data.

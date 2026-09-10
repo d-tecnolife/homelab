@@ -69,8 +69,8 @@ resource "proxmox_virtual_environment_vm" "k3s" {
     }
   }
 
-  on_boot = false
-  started = false
+  on_boot = true
+  started = true
 
   lifecycle {
     precondition {

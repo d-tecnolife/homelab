@@ -1,6 +1,6 @@
 ---
 - name: Maintain homelab hostnames on managed VMs
-  hosts: managed_vms:!k3s
+  hosts: managed_vms
   become: true
   ignore_unreachable: true
 
