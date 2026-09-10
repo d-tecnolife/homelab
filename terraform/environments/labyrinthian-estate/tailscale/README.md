@@ -9,8 +9,9 @@ homelab VLANs. It does not grant direct access to a workload's Tailscale
 address because Gateway is the only tailnet node in this design. OPNsense then
 enforces the port and VLAN policy.
 
-Create an OAuth client with policy-file and route scopes. Store its values in
-an encrypted deployment secret and expose them only for Terraform through
+Create an OAuth client with the Policy File **Write** scope only. Route
+approval is declared through this policy's `autoApprovers`; this Terraform root
+does not call the device-routes API. Store its values in an encrypted deployment secret and expose them only for Terraform through
 `TAILSCALE_OAUTH_CLIENT_ID`, `TAILSCALE_OAUTH_CLIENT_SECRET`, and
 `TAILSCALE_TAILNET=-`. Do not put them in a `.tfvars` file or source control.
 
