@@ -83,11 +83,62 @@
         state: present
       register: crowdsec_repository
 
-    - name: Install CrowdSec and its nftables bouncer
+    - name: Detect an existing CrowdSec configuration
+      ansible.builtin.stat:
+        path: /etc/crowdsec/config.yaml
+      register: crowdsec_config
+
+    - name: Create the CrowdSec bouncer configuration directory
+      ansible.builtin.file:
+        path: /etc/crowdsec/bouncers
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Move an existing CrowdSec local API off Caddy's port before package recovery
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/config.yaml
+        regexp: '^    listen_uri:'
+        line: '    listen_uri: 127.0.0.1:8081'
+      when: crowdsec_config.stat.exists
+
+    - name: Point an existing CrowdSec agent at its local API port before package recovery
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/local_api_credentials.yaml
+        regexp: '^url:'
+        line: 'url: http://127.0.0.1:8081'
+      when: crowdsec_config.stat.exists
+      no_log: true
+
+    - name: Start an existing CrowdSec API before package recovery
+      ansible.builtin.systemd_service:
+        name: crowdsec
+        state: started
+      when: crowdsec_config.stat.exists
+
+    - name: Stage the firewall bouncer API endpoint before package recovery
+      ansible.builtin.copy:
+        dest: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local
+        owner: root
+        group: root
+        mode: "0640"
+        content: |
+          # BEGIN ANSIBLE MANAGED BOUNCER SETTINGS
+          api_url: http://127.0.0.1:8081/
+          # END ANSIBLE MANAGED BOUNCER SETTINGS
+      when: crowdsec_config.stat.exists
+
+    - name: Complete any interrupted CrowdSec package configuration
+      ansible.builtin.command:
+        argv: [dpkg, --configure, -a]
+      when: crowdsec_config.stat.exists
+      register: crowdsec_package_recovery
+      changed_when: "'Setting up' in crowdsec_package_recovery.stdout"
+
+    - name: Install the CrowdSec agent
       ansible.builtin.apt:
-        name:
-          - crowdsec
-          - crowdsec-firewall-bouncer-nftables
+        name: crowdsec
         state: present
         update_cache: "{{ crowdsec_repository.changed }}"
         policy_rc_d: 101
@@ -106,6 +157,29 @@
         line: 'url: http://127.0.0.1:8081'
       no_log: true
       notify: Restart CrowdSec
+
+    - name: Start CrowdSec before installing its firewall bouncer
+      ansible.builtin.systemd_service:
+        name: crowdsec
+        enabled: true
+        state: started
+
+    - name: Stage the firewall bouncer API endpoint before installation
+      ansible.builtin.copy:
+        dest: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local
+        owner: root
+        group: root
+        mode: "0640"
+        content: |
+          # BEGIN ANSIBLE MANAGED BOUNCER SETTINGS
+          api_url: http://127.0.0.1:8081/
+          # END ANSIBLE MANAGED BOUNCER SETTINGS
+
+    - name: Install the CrowdSec nftables bouncer
+      ansible.builtin.apt:
+        name: crowdsec-firewall-bouncer-nftables
+        state: present
+        policy_rc_d: 101
 
     - name: Create the firewall bouncer local configuration
       ansible.builtin.file:
