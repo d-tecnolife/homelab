@@ -37,8 +37,6 @@ encrypted deployment inputs first.
   Ops watcher that runs it whenever the private inventory changes.
 - `playbooks/hosts-file.yml` maintains short-name and `dscim.dev` mappings in
   `/etc/hosts` on every reachable managed VM using the inventory addresses.
-- `playbooks/netbird-networks.yml` keeps Ops from accepting the Internal
-  NetBird route because Apps is directly reachable through pfSense.
 - `playbooks/netbird-caddy.yml` enrolls Caddy for remote administration
   using an encrypted one-off setup key.
 - `playbooks/crowdsec.yml` installs CrowdSec and its nftables bouncer on Caddy,
