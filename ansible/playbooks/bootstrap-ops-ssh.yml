@@ -38,7 +38,7 @@
         path: "{{ ansible_user_dir }}/.ssh"
         state: directory
         owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_gid }}"
+        group: "{{ ansible_user_id }}"
         mode: "0700"
 
     - name: Install repository-managed public keys on Ops
@@ -47,7 +47,7 @@
         line: "{{ lookup('file', item) | trim }}"
         create: true
         owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_gid }}"
+        group: "{{ ansible_user_id }}"
         mode: "0600"
       loop: "{{ repository_authorized_key_files }}"
       loop_control:
@@ -92,7 +92,7 @@
         path: "{{ ansible_user_dir }}/.ssh"
         state: directory
         owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_gid }}"
+        group: "{{ ansible_user_id }}"
         mode: "0700"
 
     - name: Install the Ops management public key
@@ -101,7 +101,7 @@
         line: "{{ hostvars['ops'].ops_management_public_key }}"
         create: true
         owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_gid }}"
+        group: "{{ ansible_user_id }}"
         mode: "0600"
 
     - name: Install repository-managed public keys
@@ -110,7 +110,7 @@
         line: "{{ lookup('file', item) | trim }}"
         create: true
         owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_gid }}"
+        group: "{{ ansible_user_id }}"
         mode: "0600"
       loop: "{{ repository_authorized_key_files }}"
       loop_control:
