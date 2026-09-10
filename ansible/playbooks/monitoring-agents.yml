@@ -1,6 +1,6 @@
 ---
 - name: Install metrics and log collectors on managed VMs
-  hosts: managed_vms
+  hosts: managed_vms:!k3s
   become: true
   gather_facts: true
   vars:
