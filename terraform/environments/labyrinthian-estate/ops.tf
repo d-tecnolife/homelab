@@ -49,7 +49,8 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
       runcmd = [
         ["systemctl", "daemon-reload"],
         ["systemctl", "enable", "--now", "qemu-guest-agent"],
-        ["systemctl", "enable", "--now", "serial-getty@ttyS0.service"],
+        ["systemctl", "enable", "serial-getty@ttyS0.service"],
+        ["systemctl", "restart", "serial-getty@ttyS0.service"],
         ["systemctl", "restart", "getty@tty1.service"]
       ]
     })])
