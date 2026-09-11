@@ -110,6 +110,43 @@
       no_log: true
       tags: [git_ssh]
 
+    - name: Trigger OPNsense firmware check to refresh package metadata
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/firmware/check"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_firmware_check
+      changed_when: true
+      no_log: true
+    
+    - name: Wait for the OPNsense firmware check job to complete
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/firmware/upgradestatus"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_firmware_check_status
+      until: gateway_firmware_check_status.json.status | default('running') != 'running'
+      retries: 60
+      delay: 5
+      changed_when: false
+      no_log: true
+    
+    - name: Require successful OPNsense firmware metadata refresh
+      ansible.builtin.assert:
+        that: gateway_firmware_check_status.json.status | default('error') == 'done'
+        fail_msg: >-
+          OPNsense firmware metadata refresh failed. Verify Gateway DNS and
+          upstream repository connectivity before retrying.
+      no_log: true
+
     - name: Install the OPNsense Tailscale plugin through the seeded Gateway API
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/core/firmware/install/os-tailscale"
@@ -119,8 +156,33 @@
         force_basic_auth: true
         validate_certs: false
         status_code: 200
+      register: gateway_tailscale_install
       no_log: true
 
+    - name: Wait for the OPNsense firmware job that installs Tailscale
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/firmware/upgradestatus"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_tailscale_install_status
+      until: gateway_tailscale_install_status.json.status | default('running') != 'running'
+      retries: 60
+      delay: 5
+      changed_when: false
+      no_log: true
+
+    - name: Require successful OPNsense Tailscale plugin installation
+      ansible.builtin.assert:
+        that: gateway_tailscale_install_status.json.status | default('error') == 'done'
+        fail_msg: >-
+          OPNsense failed to install os-tailscale. Inspect the firmware log in
+          the Gateway web UI before retrying.
+      no_log: true
+    
     - name: Wait for the OPNsense Tailscale plugin API
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/tailscale/settings/get"
@@ -132,7 +194,7 @@
         status_code: 200
       register: gateway_tailscale_plugin
       until: gateway_tailscale_plugin.status == 200
-      retries: 60
+      retries: 12
       delay: 5
       no_log: true
 
@@ -227,9 +289,9 @@
         validate_certs: false
       no_log: true
 
-    - name: Require Gateway Tailscale service to be running
+    - name: Read Gateway Tailscale daemon status
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/tailscale/service/status"
+        url: "{{ gateway_url }}/api/tailscale/status/status"
         method: GET
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
@@ -237,12 +299,17 @@
         validate_certs: false
         return_content: true
       register: gateway_tailscale_status
+      until: gateway_tailscale_status.json.BackendState | default('') == 'Running'
+      retries: 12
+      delay: 5
       changed_when: false
+      failed_when: false
       no_log: true
 
     - name: Assert Gateway Tailscale service reports running
       ansible.builtin.assert:
         that: >-
-          gateway_tailscale_status.json.status | default('') in ['running', 'ok']
-        fail_msg: Gateway did not report a running Tailscale service.
-      no_log: true
+          gateway_tailscale_status.json.BackendState | default('') == 'Running'
+        fail_msg: >-
+          Gateway Tailscale BackendState is
+          {{ gateway_tailscale_status.json.BackendState | default('unavailable') }}.

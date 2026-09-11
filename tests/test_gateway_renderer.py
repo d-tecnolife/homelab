@@ -36,7 +36,7 @@ class GatewayRendererTests(unittest.TestCase):
                 "OPNSENSE_API_SECRET": "test-api-secret",
             }
             catalog = {
-                "system": {"hostname": "gateway", "domain": "dscim.dev", "timezone": "America/Winnipeg", "wan_block_bogon_networks": True},
+                "system": {"hostname": "gateway", "domain": "dscim.dev", "timezone": "America/Winnipeg", "dns_resolvers": ["1.1.1.1", "1.0.0.1"], "wan_block_bogon_networks": True},
                 "interfaces": {
                     "wan": {"device": "vtnet0", "address": "192.168.1.2/24", "gateway": "192.168.1.1"},
                     "infra": {"device": "vlan0", "vlan": {"parent": "vtnet1", "id": 10}, "address": "172.16.10.1/24"},
@@ -87,6 +87,10 @@ class GatewayRendererTests(unittest.TestCase):
 
             self.assertIsNone(tree.find("./system/noantilockout"))
             self.assertEqual(tree.findtext("./system/webgui/protocol"), "https")
+            self.assertEqual(
+                [server.text for server in tree.findall("./system/dnsserver")],
+                ["1.1.1.1", "1.0.0.1"],
+            )
             self.assertEqual(tree.findtext("./interfaces/wan/if"), "vtnet0")
             self.assertEqual(tree.findtext("./interfaces/lan/if"), "vlan0")
             self.assertEqual(tree.findtext("./interfaces/opt1/if"), "vlan1")
