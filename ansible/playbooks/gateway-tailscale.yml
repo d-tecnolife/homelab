@@ -32,7 +32,8 @@
         gateway_url: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^OPNSENSE_URL=(.+)$', '\\1') | first | trim }}"
         gateway_api_key: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_KEY=(.+)$', '\\1') | first | trim }}"
         gateway_api_secret: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_SECRET=(.+)$', '\\1') | first | trim }}"
-        gateway_tailscale_auth_key: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_AUTH_KEY=(.+)$', '\\1') | first | trim }}"
+        gateway_tailscale_oauth_client_id: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_OAUTH_CLIENT_ID=(.+)$', '\\1') | first | trim }}"
+        gateway_tailscale_oauth_client_secret: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_OAUTH_CLIENT_SECRET=(.+)$', '\\1') | first | trim }}"
       no_log: true
       tags: [always]
 
@@ -42,8 +43,50 @@
           - gateway_url | length > 0
           - gateway_api_key | length > 0
           - gateway_api_secret | length > 0
-          - gateway_tailscale_auth_key | length > 0
+          - gateway_tailscale_oauth_client_id | length > 0
+          - gateway_tailscale_oauth_client_secret | length > 0
         fail_msg: gateway.sops.env is incomplete.
+      no_log: true
+      tags: [always]
+
+    - name: Exchange the Tailscale OAuth client for a short-lived API token
+      ansible.builtin.uri:
+        url: https://api.tailscale.com/api/v2/oauth/token
+        method: POST
+        body_format: form-urlencoded
+        body:
+          client_id: "{{ gateway_tailscale_oauth_client_id }}"
+          client_secret: "{{ gateway_tailscale_oauth_client_secret }}"
+          grant_type: client_credentials
+        status_code: 200
+      register: gateway_tailscale_oauth_token
+      no_log: true
+      tags: [always]
+
+    - name: Mint a single-use tagged Tailscale auth key for Gateway
+      ansible.builtin.uri:
+        url: https://api.tailscale.com/api/v2/tailnet/-/keys
+        method: POST
+        headers:
+          Authorization: "Bearer {{ gateway_tailscale_oauth_token.json.access_token }}"
+        body_format: json
+        body:
+          capabilities:
+            devices:
+              create:
+                reusable: false
+                ephemeral: false
+                preauthorized: true
+                tags: ["tag:gateway"]
+          expirySeconds: 3600
+        status_code: 200
+      register: gateway_tailscale_minted_key
+      no_log: true
+      tags: [always]
+
+    - name: Extract the minted Tailscale auth key
+      ansible.builtin.set_fact:
+        gateway_tailscale_auth_key: "{{ gateway_tailscale_minted_key.json.key }}"
       no_log: true
       tags: [always]
 
@@ -287,6 +330,20 @@
         password: "{{ gateway_api_secret }}"
         force_basic_auth: true
         validate_certs: false
+      no_log: true
+
+    # reconfigure only rewrites tailscaled's config; it does not set
+    # tailscaled_enable in rc.conf or start the daemon on a host where it has
+    # never run before, so the explicit start below is required.
+    - name: Start the Gateway Tailscale service
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/service/start"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
       no_log: true
 
     - name: Read Gateway Tailscale daemon status

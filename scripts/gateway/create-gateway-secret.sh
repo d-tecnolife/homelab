@@ -14,17 +14,20 @@ printf '\n'
 [[ -n "$root_password" ]] || { echo "a Gateway root password is required" >&2; exit 1; }
 [[ "$root_password" != *$'\n'* && "$root_password" != *$'\r'* && "$root_password" != *=* && "$root_password" != *\\* ]] \
     || { echo "Gateway root password cannot contain a newline, '=' or '\\'" >&2; exit 1; }
-read -r -s -p "Reusable Tailscale auth key: " tailscale_auth_key
+read -r -s -p "Tailscale OAuth client ID (Auth Keys write scope): " tailscale_oauth_client_id
 printf '\n'
-[[ -n "$tailscale_auth_key" ]] || { echo "a Tailscale auth key is required" >&2; exit 1; }
+[[ -n "$tailscale_oauth_client_id" ]] || { echo "a Tailscale OAuth client ID is required" >&2; exit 1; }
+read -r -s -p "Tailscale OAuth client secret: " tailscale_oauth_client_secret
+printf '\n'
+[[ -n "$tailscale_oauth_client_secret" ]] || { echo "a Tailscale OAuth client secret is required" >&2; exit 1; }
 
 api_key="$(openssl rand -base64 60 | tr -d '\n')"
 api_secret="$(openssl rand -base64 60 | tr -d '\n')"
 encrypted_tmp="$(mktemp)"
 trap 'rm -f "$encrypted_tmp"' EXIT
 umask 077
-printf 'GATEWAY_ROOT_PASSWORD=%s\nOPNSENSE_URL=https://172.16.10.1\nOPNSENSE_API_KEY=%s\nOPNSENSE_API_SECRET=%s\nTAILSCALE_AUTH_KEY=%s\n' \
-    "$root_password" "$api_key" "$api_secret" "$tailscale_auth_key" \
+printf 'GATEWAY_ROOT_PASSWORD=%s\nOPNSENSE_URL=https://172.16.10.1\nOPNSENSE_API_KEY=%s\nOPNSENSE_API_SECRET=%s\nTAILSCALE_OAUTH_CLIENT_ID=%s\nTAILSCALE_OAUTH_CLIENT_SECRET=%s\n' \
+    "$root_password" "$api_key" "$api_secret" "$tailscale_oauth_client_id" "$tailscale_oauth_client_secret" \
     | sops --config "$repo_root/.sops.yaml" --filename-override "ansible/secrets/gateway.sops.env" --encrypt --input-type dotenv --output-type dotenv /dev/stdin > "$encrypted_tmp"
 mv "$encrypted_tmp" "$secret_file"
 chmod 600 "$secret_file"

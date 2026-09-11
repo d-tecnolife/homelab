@@ -58,10 +58,12 @@ permissions. Tasks handling plaintext use `no_log: true`.
 ## Gateway Tailscale enrollment
 
 OPNsense Gateway is the sole Tailscale node and advertises the three homelab
-VLANs. Create a tag-owned, one-off Gateway enrollment key and store it with the
-OPNsense API credentials in an encrypted Gateway baseline. Do not install
-Tailscale on Door or workload VMs: that would create paths which bypass the
-Gateway's inter-VLAN enforcement.
+VLANs. Store a Tailscale OAuth client (Auth Keys write scope) alongside the
+OPNsense API credentials in an encrypted Gateway baseline; `gateway-tailscale.yml`
+exchanges it for a short-lived, single-use `tag:gateway` auth key on every run
+instead of relying on a long-lived stored key. Do not install Tailscale on
+Door or workload VMs: that would create paths which bypass the Gateway's
+inter-VLAN enforcement.
 
 The separate `terraform/environments/labyrinthian-estate/tailscale` root uses
 a scoped OAuth client from encrypted process environment to own the tailnet
