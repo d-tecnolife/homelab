@@ -4,6 +4,9 @@ node_name         = "specify-name-here"
 vm_username       = "username-here"
 gateway_iso_file_id = "local:iso/OPNsense-<version>-dvd-amd64.iso"
 gateway_bootstrap_iso_file_id = "local:iso/homelab-opnsense-gateway-bootstrap.iso"
+# Keep true while installing OPNsense from the bootstrap ISO. The finalizer
+# switches the VM to disk boot and ejects the ISO after installation.
+gateway_bootstrap_media_attached = true
 # Leave false for phase 1. Set true only after the Gateway policy playbook
 # has completed its verification successfully.
 gateway_policy_ready = false

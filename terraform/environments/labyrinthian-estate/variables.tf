@@ -131,6 +131,12 @@ variable "gateway_bootstrap_iso_file_id" {
   type        = string
 }
 
+variable "gateway_bootstrap_media_attached" {
+  description = "Keep the generated Gateway installer ISO attached and first in boot order. Set false only after the attended OPNsense installation completes."
+  type        = bool
+  default     = true
+}
+
 variable "gateway_policy_ready" {
   description = "Set true only after the OPNsense baseline and declarative policy have been applied and verified. This gates workload creation."
   type        = bool

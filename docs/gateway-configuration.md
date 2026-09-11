@@ -25,10 +25,15 @@ restored and verified.
 6. The same rendering process seeds a dedicated API-only `homelab-automation`
    account. Its credential is generated into the encrypted input; no Gateway
    web-GUI access or manual API-key creation is required.
-7. Create Ops (VMID `1010`) as the only controller exception. From its console,
+7. Complete the one console-attended OPNsense install using the bootstrap ISO.
+   Then run `scripts/terraform/plan-gateway-install-finalize.ps1`, review its
+   Gateway-only plan, and apply it after confirmation. It ejects the installer
+   media and makes the installed disk first in boot order; do not do either in
+   the Proxmox UI.
+8. Create Ops (VMID `1010`) as the only controller exception. From its console,
    run the Gateway reconciliation playbook, which installs and configures the
    OPNsense Tailscale plugin, then apply the separate Tailscale Terraform root.
-8. Set `gateway_policy_ready = true` only after those steps complete, review
+9. Set `gateway_policy_ready = true` only after those steps complete, review
    the workload plan, and apply it.
 
 The bootstrap ISO carries an unencrypted `/conf/config.xml`, so the encrypted

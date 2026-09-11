@@ -30,7 +30,9 @@ resource "proxmox_virtual_environment_vm" "gateway" {
   }
 
   cdrom {
-    file_id   = var.gateway_bootstrap_iso_file_id
+    # A configured but empty drive is retained after the attended install. The
+    # conditional boot order makes each phase explicit and Terraform-owned.
+    file_id   = var.gateway_bootstrap_media_attached ? var.gateway_bootstrap_iso_file_id : "none"
     interface = "ide2"
   }
 
@@ -46,4 +48,13 @@ resource "proxmox_virtual_environment_vm" "gateway" {
 
   on_boot = true
   started = true
+  boot_order = var.gateway_bootstrap_media_attached ? [
+    "ide2",
+    "virtio0",
+    "net0",
+  ] : [
+    "virtio0",
+    "ide2",
+    "net0",
+  ]
 }
