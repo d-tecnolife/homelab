@@ -15,7 +15,9 @@ resource "proxmox_virtual_environment_vm" "gateway" {
     type  = "host"
   }
   memory {
-    dedicated = 2048
+    # The OPNsense DVD installer clones the live system and requires at least
+    # 3 GiB of RAM. Keep 4 GiB permanently for a reliable rebuild and plugins.
+    dedicated = 4096
   }
   vga {
     # Keep the Proxmox graphical console available for the OPNsense installer.

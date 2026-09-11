@@ -5,6 +5,10 @@ Proxmox VM; OPNsense owns the routed interfaces, NAT, DNS overrides, and packet
 policy. Guest bootstrapping is intentionally blocked until this policy has been
 restored and verified.
 
+Gateway has 4 GiB of RAM. The OPNsense DVD installer clones its live system to
+disk and requires at least 3 GiB during that operation; do not reduce this to
+the runtime minimum before an installation or rebuild.
+
 ## Rebuild order
 
 1. Upload an OPNsense DVD ISO to Proxmox ISO storage and set its exact volume ID
