@@ -153,6 +153,8 @@ def main() -> None:
     for key in ("hostname", "domain", "timezone"):
         child(system, key, catalog["system"][key])
     child(system, "dnsallowoverride", 0)
+    for resolver in catalog["system"]["dns_resolvers"]:
+        child(system, "dnsserver", resolver)
     child(system, "disablenatreflection", "yes")
     webgui = child(system, "webgui")
     # OPNsense's supported sample configuration explicitly declares HTTPS.
