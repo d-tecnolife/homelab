@@ -237,6 +237,13 @@
     # Core/Api/ServiceController.php, which only defines search/start/
     # restart/stop actions taking a service name, no "system" controller and
     # no "reconfigure" action. This is that real, verified restartAction.
+    # Restarting the web GUI necessarily kills the lighttpd/PHP-FPM worker
+    # that is itself serving this very request, so the honest outcome is
+    # never a clean 200 -- the connection drops mid-response. Confirmed live:
+    # this call reaches the real endpoint (no 404) and the connection is
+    # closed by the far end exactly as restarting the server that's
+    # answering it would cause. Treat that as this task's success signal;
+    # the next task's retry loop is what actually confirms the GUI came back.
     - name: Restart OPNsense Web GUI to register new API routes
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/core/service/restart/webgui"
@@ -245,7 +252,9 @@
         password: "{{ gateway_api_secret }}"
         force_basic_auth: true
         validate_certs: false
-        status_code: 200
+      register: gateway_webgui_restart
+      failed_when: >-
+        gateway_webgui_restart.status | default(-1) not in [200, -1]
       no_log: true
 
     - name: Wait for the OPNsense Tailscale plugin API
