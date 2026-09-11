@@ -122,6 +122,68 @@
       register: gateway_tailscale_install
       no_log: true
 
+   - name: Trigger OPNsense firmware check to refresh package metadata
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/firmware/check"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_firmware_check
+      changed_when: true
+      no_log: true
+
+    - name: Wait for the OPNsense firmware check job to complete
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/firmware/upgradestatus"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_firmware_check_status
+      until: gateway_firmware_check_status.json.status | default('running') != 'running'
+      retries: 60
+      delay: 5
+      changed_when: false
+      no_log: true
+
+    - name: Retrieve OPNsense firmware package information
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/firmware/info"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_firmware_info
+      no_log: true
+
+    - name: Confirm os-tailscale is available in the plugin repository
+      ansible.builtin.assert:
+        that:
+          - (gateway_firmware_info.json.plugin | selectattr('name', 'equalto', 'os-tailscale') | list | length > 0) or (gateway_firmware_info.json.package | selectattr('name', 'equalto', 'os-tailscale') | list | length > 0)
+        fail_msg: >-
+          os-tailscale was not found in the refreshed package metadata. Check upstream repository connectivity.
+      no_log: true
+
+    - name: Install the OPNsense Tailscale plugin through the seeded Gateway API
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/firmware/install/os-tailscale"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_tailscale_install
+      changed_when: true
+      no_log: true
+
     - name: Wait for the OPNsense firmware job that installs Tailscale
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/core/firmware/upgradestatus"
