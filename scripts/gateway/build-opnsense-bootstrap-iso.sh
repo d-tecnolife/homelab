@@ -47,11 +47,11 @@ if [[ "$proxmox_host" == "localhost" || "$proxmox_host" == "127.0.0.1" ]]; then
     # OPNsense 26.7 stores hidden El Torito images. Replay discards those
     # images because they are not regular ISO files; keep preserves them.
     xorriso -indev "$remote_source" -outdev "$remote_output" -boot_image any keep -map "$remote_tmp" /conf/config.xml -commit -end
-    xorriso -indev "$remote_output" -find /conf/config.xml -print
+    xorriso -indev "$remote_output" -find /conf/config.xml -exec lsdl
     xorriso -indev "$remote_output" -report_el_torito plain 2>&1 | grep -q "El Torito boot img"
     rm -f "$remote_tmp"
 else
     scp "$config_xml" "root@$proxmox_host:$remote_tmp"
-    ssh "root@$proxmox_host" "command -v xorriso >/dev/null && test -r '$remote_source' && rm -f '$remote_output' && xorriso -indev '$remote_source' -outdev '$remote_output' -boot_image any keep -map '$remote_tmp' /conf/config.xml -commit -end && xorriso -indev '$remote_output' -find /conf/config.xml -print && xorriso -indev '$remote_output' -report_el_torito plain 2>&1 | grep -q 'El Torito boot img' && rm -f '$remote_tmp'"
+    ssh "root@$proxmox_host" "command -v xorriso >/dev/null && test -r '$remote_source' && rm -f '$remote_output' && xorriso -indev '$remote_source' -outdev '$remote_output' -boot_image any keep -map '$remote_tmp' /conf/config.xml -commit -end && xorriso -indev '$remote_output' -find /conf/config.xml -exec lsdl && xorriso -indev '$remote_output' -report_el_torito plain 2>&1 | grep -q 'El Torito boot img' && rm -f '$remote_tmp'"
 fi
 printf 'gateway_bootstrap_iso_file_id = "local:iso/%s"\n' "$output_name"
