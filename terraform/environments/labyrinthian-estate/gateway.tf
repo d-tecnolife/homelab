@@ -52,7 +52,7 @@ resource "proxmox_virtual_environment_vm" "gateway" {
     "ide2",
     "virtio0",
     "net0",
-  ] : [
+    ] : [
     "virtio0",
     "ide2",
     "net0",

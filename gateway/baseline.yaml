@@ -54,12 +54,16 @@ firewall:
   rules:
     # Shared guest egress: public services only; no direct private-network path.
     - { interface: [infra, internal, dmz], action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: package_ports, description: "Public package and image HTTPS/HTTP" }
+    # Git-over-SSH is shared infrastructure capability for present and future
+    # guests. It reaches public destinations only, never private networks.
+    - { interface: infra, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [22], description: "Public Git SSH - Infra" }
+    - { interface: internal, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [22], description: "Public Git SSH - Internal" }
+    - { interface: dmz, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [22], description: "Public Git SSH - DMZ" }
     - { interface: [infra, internal, dmz], action: pass, protocol: "tcp/udp", source: interface_network, destination: "!private_networks", ports: dns_ports, description: "Public DNS resolvers" }
     - { interface: [infra, internal, dmz], action: pass, protocol: udp, source: interface_network, destination: "!private_networks", ports: [123], description: "Public NTP" }
 
     # Ops is the sole administration exception.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }
-    - { interface: infra, action: pass, protocol: tcp, source: ops, destination: "!private_networks", ports: [22], description: "Ops Git SSH" }
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [22, 443], description: "Ops Gateway administration" }
     - { interface: [infra, internal, dmz], action: pass, protocol: "tcp/udp", source: interface_network, destination: this_firewall, ports: dns_ports, description: "Gateway split DNS" }
 

@@ -81,11 +81,12 @@ connection originates.
   (`172.16.30.10`) and only the declared game ports to Games
   (`172.16.30.20`; currently Minecraft TCP `25565`). Do not expose Gateway,
   Infra, or Internal hosts.
-- All VLANs: allow DNS only to the selected resolvers, NTP, and outbound TCP
-  `80`/`443` for package updates and image pulls. Ops alone also needs outbound
-  TCP `22` for Git over SSH. Gateway reconciliation declares this narrow rule
-  through the OPNsense API on an installed appliance as well. These are
-  permanent shared bootstrap rules, not per-VM exceptions.
+- All VLANs: allow DNS only to the selected resolvers, NTP, outbound TCP
+  `80`/`443` for package updates and image pulls, and outbound TCP `22` to
+  public destinations for Git over SSH. Gateway reconciliation declares the
+  same three VLAN-wide rules through the OPNsense API on an installed appliance.
+  These are permanent shared capabilities, not per-VM exceptions; private
+  networks remain excluded.
 - Ops: permit administration to guest TCP `22` and Gateway management.
 - Monitoring: permit only ICMP, TCP `9100` to guest exporters and Proxmox, and
   TCP `9150` to Games. Guests may send logs only to Monitoring TCP `3100`.

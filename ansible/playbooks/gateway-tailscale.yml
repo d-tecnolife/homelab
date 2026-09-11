@@ -42,23 +42,26 @@
         fail_msg: gateway.sops.env is incomplete.
       no_log: true
 
-    # This is a permanent, narrow bootstrap capability. It lets only Ops use
-    # Git-over-SSH to public destinations; all other private and public SSH
-    # remains subject to the default-deny policy.
-    - name: Find the declarative Ops Git SSH firewall rule
+    # Git-over-SSH is a permanent VLAN-wide capability for current and future
+    # guests. It still excludes every private destination.
+    - name: Find declarative public Git SSH firewall rules
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=100&searchPhrase=Ops%20Git%20SSH"
+        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=100&searchPhrase={{ item.description | urlencode }}"
         method: GET
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
         force_basic_auth: true
         validate_certs: false
         status_code: 200
-      register: gateway_ops_git_ssh_rule
+      loop:
+        - { interface: lan, description: "Public Git SSH - Infra" }
+        - { interface: opt1, description: "Public Git SSH - Internal" }
+        - { interface: opt2, description: "Public Git SSH - DMZ" }
+      register: gateway_public_git_ssh_rules
       changed_when: false
       no_log: true
 
-    - name: Declare the Ops Git SSH firewall rule when absent
+    - name: Declare absent public Git SSH firewall rules
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/add_rule"
         method: POST
@@ -74,19 +77,20 @@
             sequence: "90"
             action: pass
             quick: "1"
-            interface: lan
+            interface: "{{ item.item.interface }}"
             direction: in
             ipprotocol: inet
             protocol: TCP
-            source_net: ops
+            source_net: "{{ item.item.interface }}"
             destination_net: "!private_networks"
             destination_port: "22"
-            description: Ops Git SSH
-      when: (gateway_ops_git_ssh_rule.json.rows | default([]) | length) == 0
-      register: gateway_ops_git_ssh_rule_added
+            description: "{{ item.item.description }}"
+      loop: "{{ gateway_public_git_ssh_rules.results }}"
+      when: (item.json.rows | default([]) | length) == 0
+      register: gateway_public_git_ssh_rules_added
       no_log: true
 
-    - name: Apply the Gateway firewall policy when Ops Git SSH was added
+    - name: Apply the Gateway firewall policy when public Git SSH was added
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/apply"
         method: POST
@@ -95,7 +99,7 @@
         force_basic_auth: true
         validate_certs: false
         status_code: 200
-      when: gateway_ops_git_ssh_rule_added.changed | default(false)
+      when: gateway_public_git_ssh_rules_added.results | selectattr('changed') | list | length > 0
       no_log: true
 
     - name: Install the OPNsense Tailscale plugin through the seeded Gateway API

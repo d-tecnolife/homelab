@@ -48,7 +48,9 @@ class GatewayRendererTests(unittest.TestCase):
                     "outbound_nat": "automatic",
                     "rules": [
                         {"interface": ["infra", "internal", "dmz"], "action": "pass", "protocol": "tcp/udp", "source": "interface_network", "destination": "this_firewall", "ports": "dns_ports", "description": "Gateway split DNS"},
-                        {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "ops", "destination": "!private_networks", "ports": [22], "description": "Ops Git SSH"},
+                        {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - Infra"},
+                        {"interface": "internal", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - Internal"},
+                        {"interface": "dmz", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - DMZ"},
                     ],
                     "port_forwards": [
                         {"interface": "wan", "protocol": "tcp", "destination_port": 80, "target": "door", "target_port": 80, "description": "WAN HTTP to Door"},
@@ -107,7 +109,10 @@ class GatewayRendererTests(unittest.TestCase):
             self.assertEqual({host.findtext("hostname") for host in hosts}, {"gitea", "monitoring", "k3s", "apps", "nolife", "door", "games"})
             rules = tree.findall("./OPNsense/Firewall/Filter/rules/rule")
             self.assertTrue(any(rule.findtext("description") == "Gateway split DNS" for rule in rules))
-            self.assertTrue(any(rule.findtext("description") == "Ops Git SSH" for rule in rules))
+            self.assertEqual(
+                {rule.findtext("description") for rule in rules if rule.findtext("description").startswith("Public Git SSH")},
+                {"Public Git SSH - Infra", "Public Git SSH - Internal", "Public Git SSH - DMZ"},
+            )
 
 
 if __name__ == "__main__":
