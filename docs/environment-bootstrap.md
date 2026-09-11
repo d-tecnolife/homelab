@@ -43,25 +43,30 @@ The remaining workloads are gated until Gateway policy and Tailscale routing
 have been reconciled. Apply only in a console-attended maintenance window after
 an explicit network/rebuild confirmation.
 
-## 3. Install and configure Gateway
+## 3. Build and apply Gateway
 
-Use the Proxmox console to install the ISO on VMID 100. Assign WAN to `vmbr0`
-and the tagged trunk to the LAN interface; create VLAN interfaces 10, 20, and
-30. Configure WAN as `192.168.1.2/24` with upstream gateway `192.168.1.1` and
-disable WAN blocking of private networks. Apply the exact policy in
-[Gateway configuration](gateway-configuration.md) before starting workloads.
+On the Proxmox node (or an existing Ops VM), after restoring the age identity,
+create the single encrypted Gateway input once with
+`scripts/gateway/create-gateway-secret.sh`. It generates the OPNsense API key
+and secret without printing them. Build the bootstrap ISO with
+`scripts/gateway/build-opnsense-bootstrap-iso.sh`; when running on Proxmox,
+pass `localhost` as its host argument. It renders the WAN, VLAN, firewall, SSH,
+and API-account configuration into the installer media.
 
-No route or inbound management exception is required on the upstream LAN for
-initial setup. Keep WAN default-deny. Use the Proxmox console for VMID 1010
-(Ops) as the out-of-band bootstrap path.
+Run the Gateway-only Terraform plan on the Windows runner and apply it only
+after the separate network/rebuild confirmation. No OPNsense console setup or
+upstream-LAN management rule is part of the process. Gateway remains
+WAN-default-deny.
 
-## 4. Configure Gateway from Ops
+## 4. Create Ops, then configure Gateway
 
-Restore the encrypted Gateway API/enrollment input, run
-`playbooks/gateway-tailscale.yml` using `ansible/secrets/gateway.sops.env`, then apply the separate Tailscale Terraform
-root. The root owns the tailnet policy and automatic approval for the three
-Gateway-advertised VLAN routes. Set `gateway_policy_ready = true` only after
-that succeeds.
+Review and apply `scripts/terraform/plan-ops-bootstrap.ps1`. This phase creates
+only VMID 1010; all other workloads remain blocked by `gateway_policy_ready`.
+From the Ops console, run `playbooks/gateway-tailscale.yml`. It installs the
+OPNsense Tailscale plugin through Gateway's seeded API account and configures
+the subnet router. Then apply the separate Tailscale Terraform root. The root
+owns the tailnet policy and automatic approval for the three Gateway-advertised
+VLAN routes. Set `gateway_policy_ready = true` only after that succeeds.
 
 ## 5. Configure Ubuntu guests from Ops
 

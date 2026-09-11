@@ -12,17 +12,16 @@ restored and verified.
 2. Run `scripts/terraform/plan-gateway-rebuild.ps1` to create the reviewed
    phase-one plan. It explicitly replaces the appliance, destroying VMID `100`
    and its disk; it never modifies workloads.
-3. Install OPNsense, importing the encrypted baseline as `config.xml` during the
-   installer import step. The baseline assigns `vtnet0` as WAN and `vtnet1`
-   VLANs `10`, `20`, and `30` as LAN, OPT1, and OPT2. It disables WAN private-
-   network blocking because the WAN is `192.168.1.2/24` behind `192.168.1.1`.
-4. Create an API key for the restricted Gateway automation user and add it,
-   together with the Gateway password and one-time Tailscale auth key, to the
-   single encrypted `ansible/secrets/gateway.sops.env` file. Never commit a
-   plaintext API key, a password, or a decrypted `config.xml`.
+3. Build a bootstrap ISO using the encrypted `gateway.sops.env` input. The
+   rendered `config.xml` assigns `vtnet0` as WAN and `vtnet1` VLANs `10`, `20`,
+   and `30` as LAN, OPT1, and OPT2. It disables WAN private-network blocking
+   because the WAN is `192.168.1.2/24` behind `192.168.1.1`.
+4. The same rendering process seeds a dedicated API-only `homelab-automation`
+   account. Its credential is generated into the encrypted input; no Gateway
+   web-GUI access or manual API-key creation is required.
 5. Create Ops (VMID `1010`) as the only controller exception. From its console,
-   run the Gateway reconciliation playbook, then apply the separate Tailscale
-   Terraform root.
+   run the Gateway reconciliation playbook, which installs and configures the
+   OPNsense Tailscale plugin, then apply the separate Tailscale Terraform root.
 6. Set `gateway_policy_ready = true` only after those steps complete, review
    the workload plan, and apply it.
 
@@ -89,8 +88,8 @@ source NAT enabled, so every workload sees Gateway as the return path and its
 existing VLAN rules remain authoritative. Do not enable Tailscale SSH, an exit
 node, Funnel, Serve, or Tailscale on Door/workloads.
 
-After Ops exists, create the encrypted API/enrollment input from
-`ansible/secrets/gateway.sops.env.example`, then run:
+After Ops exists, run the Gateway reconciliation playbook. It uses the same
+encrypted input used to build Gateway:
 
 ```bash
 cd ~/homelab/ansible

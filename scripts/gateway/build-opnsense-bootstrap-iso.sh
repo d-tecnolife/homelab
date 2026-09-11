@@ -32,6 +32,19 @@ source_name="${source_id#local:iso/}"
 remote_tmp="/tmp/homelab-gateway-config.xml"
 remote_source="/var/lib/vz/template/iso/$source_name"
 remote_output="/var/lib/vz/template/iso/$output_name"
-scp "$config_xml" "root@$proxmox_host:$remote_tmp"
-ssh "root@$proxmox_host" "command -v xorriso >/dev/null && test -r '$remote_source' && rm -f '$remote_output' && xorriso -indev '$remote_source' -outdev '$remote_output' -boot_image any replay -map '$remote_tmp' /conf/config.xml -commit -end && xorriso -indev '$remote_output' -find /conf/config.xml -print && rm -f '$remote_tmp'"
+if [[ "$proxmox_host" == "localhost" || "$proxmox_host" == "127.0.0.1" ]]; then
+    if ! command -v xorriso >/dev/null; then
+        sudo apt-get update
+        sudo env DEBIAN_FRONTEND=noninteractive apt-get install --yes xorriso
+    fi
+    test -r "$remote_source"
+    install -m 0600 "$config_xml" "$remote_tmp"
+    rm -f "$remote_output"
+    xorriso -indev "$remote_source" -outdev "$remote_output" -boot_image any replay -map "$remote_tmp" /conf/config.xml -commit -end
+    xorriso -indev "$remote_output" -find /conf/config.xml -print
+    rm -f "$remote_tmp"
+else
+    scp "$config_xml" "root@$proxmox_host:$remote_tmp"
+    ssh "root@$proxmox_host" "command -v xorriso >/dev/null && test -r '$remote_source' && rm -f '$remote_output' && xorriso -indev '$remote_source' -outdev '$remote_output' -boot_image any replay -map '$remote_tmp' /conf/config.xml -commit -end && xorriso -indev '$remote_output' -find /conf/config.xml -print && rm -f '$remote_tmp'"
+fi
 printf 'gateway_bootstrap_iso_file_id = "local:iso/%s"\n' "$output_name"

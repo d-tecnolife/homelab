@@ -7,6 +7,7 @@ import argparse
 import base64
 import os
 from pathlib import Path
+import secrets
 import subprocess
 from xml.etree import ElementTree as ET
 
@@ -27,6 +28,18 @@ def ports(value: object) -> str:
     if isinstance(value, list):
         return ",".join(str(item) for item in value)
     return str(value)
+
+
+def sha512_crypt(value: str) -> str:
+    """Return the FreeBSD-compatible SHA-512 crypt hash OPNsense stores."""
+    result = subprocess.run(
+        ["openssl", "passwd", "-6", "-stdin"],
+        input=f"{value}\n",
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return result.stdout.strip()
 
 
 def rule(parent: ET.Element, spec: dict, interface: str, sequence: int) -> None:
@@ -67,8 +80,13 @@ def main() -> None:
     args = parser.parse_args()
 
     password = os.environ.get("GATEWAY_ROOT_PASSWORD")
-    if not password:
-        raise SystemExit("GATEWAY_ROOT_PASSWORD must be supplied from encrypted deployment input")
+    api_key = os.environ.get("OPNSENSE_API_KEY")
+    api_secret = os.environ.get("OPNSENSE_API_SECRET")
+    if not all((password, api_key, api_secret)):
+        raise SystemExit(
+            "GATEWAY_ROOT_PASSWORD, OPNSENSE_API_KEY, and OPNSENSE_API_SECRET "
+            "must be supplied from encrypted deployment input"
+        )
     result = subprocess.run(
         ["htpasswd", "-i", "-nB", "root"],
         input=f"{password}\n",
@@ -95,6 +113,24 @@ def main() -> None:
     public_key = args.ssh_public_key.read_text(encoding="utf-8").strip().encode()
     for key, value in {"name": "root", "scope": "system", "groupname": "admins", "password": password_hash, "authorizedkeys": base64.b64encode(public_key).decode(), "uid": 0}.items():
         child(user, key, value)
+    # This account is API-only: its web-login password is random and discarded.
+    # The Tailscale plugin exposes an authentication endpoint outside its narrow
+    # ACL, so page-all is required until the upstream plugin narrows that API.
+    automation_user = child(system, "user")
+    for key, value in {
+        "name": "homelab-automation",
+        "scope": "user",
+        "uid": 2000,
+        "disabled": 0,
+        "password": sha512_crypt(secrets.token_urlsafe(48)),
+        "priv": "page-all",
+        "descr": "Homelab Gateway bootstrap automation",
+    }.items():
+        child(automation_user, key, value)
+    api_keys = child(automation_user, "apikeys")
+    api_key_item = child(api_keys, "item")
+    child(api_key_item, "key", api_key)
+    child(api_key_item, "secret", sha512_crypt(api_secret))
 
     vlans = child(root, "vlans")
     interfaces = child(root, "interfaces")

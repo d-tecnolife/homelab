@@ -42,6 +42,32 @@
         fail_msg: gateway.sops.env is incomplete.
       no_log: true
 
+    - name: Install the OPNsense Tailscale plugin through the seeded Gateway API
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/firmware/install/os-tailscale"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      no_log: true
+
+    - name: Wait for the OPNsense Tailscale plugin API
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/settings/get"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_tailscale_plugin
+      until: gateway_tailscale_plugin.status == 200
+      retries: 60
+      delay: 5
+      no_log: true
+
     - name: Configure Tailscale authentication on Gateway
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/tailscale/authentication/set"
