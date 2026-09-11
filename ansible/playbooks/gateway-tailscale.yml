@@ -303,11 +303,13 @@
       retries: 12
       delay: 5
       changed_when: false
+      failed_when: false
       no_log: true
 
     - name: Assert Gateway Tailscale service reports running
       ansible.builtin.assert:
         that: >-
           gateway_tailscale_status.json.BackendState | default('') == 'Running'
-        fail_msg: Gateway did not report a running Tailscale service.
-      no_log: true
+        fail_msg: >-
+          Gateway Tailscale BackendState is
+          {{ gateway_tailscale_status.json.BackendState | default('unavailable') }}.
