@@ -58,7 +58,7 @@ initial setup. Keep WAN default-deny. Use the Proxmox console for VMID 1010
 ## 4. Configure Gateway from Ops
 
 Restore the encrypted Gateway API/enrollment input, run
-`playbooks/gateway-tailscale.yml`, then apply the separate Tailscale Terraform
+`playbooks/gateway-tailscale.yml` using `ansible/secrets/gateway.sops.env`, then apply the separate Tailscale Terraform
 root. The root owns the tailnet policy and automatic approval for the three
 Gateway-advertised VLAN routes. Set `gateway_policy_ready = true` only after
 that succeeds.

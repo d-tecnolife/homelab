@@ -7,7 +7,7 @@ proxmox_host="${1:?usage: $0 <proxmox-host> <source-iso-file-id> <output-iso-fil
 source_id="${2:?missing source ISO file ID}"
 output_name="${3:?missing output ISO filename}"
 ssh_public_key="${4:?missing SSH public key path}"
-secret_file="$repo_root/ansible/secrets/gateway-bootstrap.sops.env"
+secret_file="$repo_root/ansible/secrets/gateway.sops.env"
 
 [[ "$source_id" == local:iso/* ]] || { echo "source ISO must use local:iso/<name>" >&2; exit 2; }
 [[ "$output_name" =~ ^[A-Za-z0-9._-]+\.iso$ ]] || { echo "output must be a simple .iso filename" >&2; exit 2; }

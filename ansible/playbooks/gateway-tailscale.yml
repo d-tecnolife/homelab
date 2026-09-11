@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    gateway_tailscale_secret_path: "{{ playbook_dir }}/../secrets/gateway-tailscale.sops.env"
+    gateway_tailscale_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
 
   tasks:
     - name: Require encrypted Gateway API and Tailscale enrollment input
@@ -15,7 +15,7 @@
       ansible.builtin.assert:
         that: gateway_tailscale_secret.stat.isreg | default(false)
         fail_msg: >-
-          Create and encrypt ansible/secrets/gateway-tailscale.sops.env first.
+          Create and encrypt ansible/secrets/gateway.sops.env first.
 
     - name: Decrypt Gateway credentials in memory
       ansible.builtin.command:
@@ -39,7 +39,7 @@
           - gateway_api_key | length > 0
           - gateway_api_secret | length > 0
           - gateway_tailscale_auth_key | length > 0
-        fail_msg: gateway-tailscale.sops.env is incomplete.
+        fail_msg: gateway.sops.env is incomplete.
       no_log: true
 
     - name: Configure Tailscale authentication on Gateway

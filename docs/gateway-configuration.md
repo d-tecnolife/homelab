@@ -16,9 +16,10 @@ restored and verified.
    installer import step. The baseline assigns `vtnet0` as WAN and `vtnet1`
    VLANs `10`, `20`, and `30` as LAN, OPT1, and OPT2. It disables WAN private-
    network blocking because the WAN is `192.168.1.2/24` behind `192.168.1.1`.
-4. Create an API key for the restricted Gateway automation user and encrypt it
-   as `ansible/secrets/gateway-api.sops.env`. Never commit a plaintext API key,
-   a password, or a decrypted `config.xml`.
+4. Create an API key for the restricted Gateway automation user and add it,
+   together with the Gateway password and one-time Tailscale auth key, to the
+   single encrypted `ansible/secrets/gateway.sops.env` file. Never commit a
+   plaintext API key, a password, or a decrypted `config.xml`.
 5. Create Ops (VMID `1010`) as the only controller exception. From its console,
    run the Gateway reconciliation playbook, then apply the separate Tailscale
    Terraform root.
@@ -89,7 +90,7 @@ existing VLAN rules remain authoritative. Do not enable Tailscale SSH, an exit
 node, Funnel, Serve, or Tailscale on Door/workloads.
 
 After Ops exists, create the encrypted API/enrollment input from
-`ansible/secrets/gateway-tailscale.sops.env.example`, then run:
+`ansible/secrets/gateway.sops.env.example`, then run:
 
 ```bash
 cd ~/homelab/ansible
