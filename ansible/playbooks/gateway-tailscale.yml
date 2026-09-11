@@ -123,7 +123,7 @@
 
     - name: Restart OPNsense Web GUI to register new API routes
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/core/system/restart/webgui"
+        url: "{{ gateway_url }}/api/core/service/reconfigure/webgui"
         method: POST
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
