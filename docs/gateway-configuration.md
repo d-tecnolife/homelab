@@ -83,8 +83,9 @@ connection originates.
   Infra, or Internal hosts.
 - All VLANs: allow DNS only to the selected resolvers, NTP, and outbound TCP
   `80`/`443` for package updates and image pulls. Ops alone also needs outbound
-  TCP `22` for Git over SSH. These are permanent shared bootstrap rules, not
-  per-VM exceptions.
+  TCP `22` for Git over SSH. Gateway reconciliation declares this narrow rule
+  through the OPNsense API on an installed appliance as well. These are
+  permanent shared bootstrap rules, not per-VM exceptions.
 - Ops: permit administration to guest TCP `22` and Gateway management.
 - Monitoring: permit only ICMP, TCP `9100` to guest exporters and Proxmox, and
   TCP `9150` to Games. Guests may send logs only to Monitoring TCP `3100`.

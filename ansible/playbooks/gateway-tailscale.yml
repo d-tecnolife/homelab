@@ -42,6 +42,62 @@
         fail_msg: gateway.sops.env is incomplete.
       no_log: true
 
+    # This is a permanent, narrow bootstrap capability. It lets only Ops use
+    # Git-over-SSH to public destinations; all other private and public SSH
+    # remains subject to the default-deny policy.
+    - name: Find the declarative Ops Git SSH firewall rule
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=100&searchPhrase=Ops%20Git%20SSH"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_ops_git_ssh_rule
+      changed_when: false
+      no_log: true
+
+    - name: Declare the Ops Git SSH firewall rule when absent
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/add_rule"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          rule:
+            enabled: "1"
+            sequence: "90"
+            action: pass
+            quick: "1"
+            interface: lan
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
+            source_net: ops
+            destination_net: "!private_networks"
+            destination_port: "22"
+            description: Ops Git SSH
+      when: (gateway_ops_git_ssh_rule.json.rows | default([]) | length) == 0
+      register: gateway_ops_git_ssh_rule_added
+      no_log: true
+
+    - name: Apply the Gateway firewall policy when Ops Git SSH was added
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/apply"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      when: gateway_ops_git_ssh_rule_added.changed | default(false)
+      no_log: true
+
     - name: Install the OPNsense Tailscale plugin through the seeded Gateway API
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/core/firmware/install/os-tailscale"
