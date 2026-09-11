@@ -7,6 +7,22 @@ param(
 
 $ErrorActionPreference = "Stop"
 $environmentDirectory = Join-Path $PSScriptRoot "..\..\terraform\environments\labyrinthian-estate"
+$bootstrapOverride = Join-Path $environmentDirectory "gateway-install.auto.tfvars"
+
+# Persist the post-install state outside Git. Without this override a later
+# unqualified plan would use the fresh-rebuild default and reattach the ISO.
+if (Test-Path -LiteralPath $bootstrapOverride) {
+    $existingOverride = Get-Content -LiteralPath $bootstrapOverride -Raw
+    if ($existingOverride -notmatch '(?m)^\s*gateway_bootstrap_media_attached\s*=\s*false\s*$') {
+        throw "$bootstrapOverride exists but does not keep Gateway in installed disk-boot mode. Resolve it before finalizing."
+    }
+}
+else {
+    @(
+        "# Created by plan-gateway-install-finalize.ps1 after OPNsense disk installation.",
+        "gateway_bootstrap_media_attached = false"
+    ) | Set-Content -LiteralPath $bootstrapOverride -Encoding utf8
+}
 
 Push-Location $environmentDirectory
 try {
@@ -22,7 +38,6 @@ try {
         "-target=proxmox_virtual_environment_vm.gateway",
         "-var=gateway_iso_file_id=$GatewaySourceIso",
         "-var=gateway_bootstrap_iso_file_id=$GatewayBootstrapIso",
-        "-var=gateway_bootstrap_media_attached=false",
         "-out=$Out"
     )
     & terraform.exe @terraformArguments

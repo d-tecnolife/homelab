@@ -36,9 +36,10 @@ return it to this runtime baseline after installation.
    web-GUI access or manual API-key creation is required.
 7. Complete the one console-attended OPNsense install using the bootstrap ISO.
    Then run `scripts/terraform/plan-gateway-install-finalize.ps1`, review its
-   Gateway-only plan, and apply it after confirmation. It ejects the installer
-   media and makes the installed disk first in boot order; do not do either in
-   the Proxmox UI.
+   Gateway-only plan, and apply it after confirmation. It writes the ignored,
+   non-secret `gateway-install.auto.tfvars` override so future Terraform plans
+   preserve installed disk-boot mode, ejects the installer media, and makes the
+   installed disk first in boot order; do not do any of these in the Proxmox UI.
 8. Create Ops (VMID `1010`) as the only controller exception. From its console,
    run the Gateway reconciliation playbook, which installs and configures the
    OPNsense Tailscale plugin, then apply the separate Tailscale Terraform root.
