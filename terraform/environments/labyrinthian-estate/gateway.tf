@@ -30,7 +30,7 @@ resource "proxmox_virtual_environment_vm" "gateway" {
   }
 
   cdrom {
-    file_id   = var.gateway_iso_file_id
+    file_id   = var.gateway_bootstrap_iso_file_id
     interface = "ide2"
   }
 

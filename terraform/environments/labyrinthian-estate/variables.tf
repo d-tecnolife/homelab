@@ -122,7 +122,12 @@ variable "gateway_vm_id" {
 }
 
 variable "gateway_iso_file_id" {
-  description = "Proxmox ISO volume ID for the uploaded OPNsense DVD installer, for example local:iso/OPNsense-<version>-dvd-amd64.iso."
+  description = "Proxmox ISO volume ID for the immutable OPNsense DVD source, for example local:iso/OPNsense-<version>-dvd-amd64.iso."
+  type        = string
+}
+
+variable "gateway_bootstrap_iso_file_id" {
+  description = "Generated OPNsense installer ISO containing the rendered Gateway config.xml."
   type        = string
 }
 

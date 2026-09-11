@@ -40,14 +40,11 @@ From the repository root on Ops:
 
 ```bash
 export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
-cp ansible/secrets/caddy.env ansible/secrets/caddy.sops.env
-sops encrypt --in-place ansible/secrets/caddy.sops.env
-sops decrypt ansible/secrets/caddy.sops.env
+sops ansible/secrets/caddy.sops.env
 ```
 
-The final command is a visual verification. Do not paste its output into logs,
-issues, commits, or agent chats. Commit only `caddy.sops.env`, then remove the
-ignored plaintext file after a successful Caddy deployment.
+Do not paste the editor contents into logs, issues, commits, or agent chats.
+Commit only `caddy.sops.env`.
 
 Edit an encrypted file with:
 
@@ -104,8 +101,7 @@ sops encrypt --in-place secrets/compose/vaultwarden.sops.env
 ```
 
 `deploy-compose.yml` decrypts each available stack file in memory and installs
-it as `/opt/compose/<stack>/.env` with mode `0640`. Stacks without an encrypted
-file retain their existing `.env` during migration.
+it as `/opt/compose/<stack>/.env` with mode `0640`.
 
 ## Vault SSH host-CA token
 

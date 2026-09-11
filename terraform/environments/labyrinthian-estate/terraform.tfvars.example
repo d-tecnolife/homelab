@@ -3,6 +3,7 @@ proxmox_api_token = "terraform@pve!provider=replace-me"
 node_name         = "specify-name-here"
 vm_username       = "username-here"
 gateway_iso_file_id = "local:iso/OPNsense-<version>-dvd-amd64.iso"
+gateway_bootstrap_iso_file_id = "local:iso/homelab-opnsense-gateway-bootstrap.iso"
 # Leave false for phase 1. Set true only after the Gateway policy playbook
 # has completed its verification successfully.
 gateway_policy_ready = false

@@ -17,7 +17,6 @@ try {
     $terraformArguments = @(
         "plan",
         "-refresh=false",
-        "-target=proxmox_virtual_environment_vm.pfsense",
         "-target=proxmox_virtual_environment_vm.gateway",
         "-replace=proxmox_virtual_environment_vm.gateway",
         "-out=$Out"

@@ -1,0 +1,86 @@
+# Declarative source for the generated OPNsense 26.7 Gateway baseline.
+# This file is intentionally secret-free. The renderer supplies credentials and
+# public SSH keys from encrypted/local deployment inputs.
+system:
+  hostname: gateway
+  domain: dscim.dev
+  timezone: America/Winnipeg
+  dns_resolvers: [1.1.1.1, 1.0.0.1]
+  nat_reflection: false
+  wan_block_private_networks: false
+  wan_block_bogon_networks: true
+
+interfaces:
+  wan:
+    device: vtnet0
+    address: 192.168.1.2/24
+    gateway: 192.168.1.1
+  infra:
+    device: vtnet1.10
+    vlan: { parent: vtnet1, id: 10 }
+    address: 172.16.10.1/24
+  internal:
+    device: vtnet1.20
+    vlan: { parent: vtnet1, id: 20 }
+    address: 172.16.20.1/24
+  dmz:
+    device: vtnet1.30
+    vlan: { parent: vtnet1, id: 30 }
+    address: 172.16.30.1/24
+
+aliases:
+  private_networks:
+    type: network
+    values: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+  homelab_networks:
+    type: network
+    values: [172.16.10.0/24, 172.16.20.0/24, 172.16.30.0/24]
+  internal_network:
+    type: network
+    values: [172.16.20.0/24]
+  ops: { type: host, values: [172.16.10.10] }
+  monitoring: { type: host, values: [172.16.10.20] }
+  door: { type: host, values: [172.16.30.10] }
+  games: { type: host, values: [172.16.30.20] }
+  package_ports: { type: port, values: [80, 443] }
+  dns_ports: { type: port, values: [53] }
+
+# Rules are evaluated on the interface where a connection begins. All omitted
+# traffic is denied statefully.
+firewall:
+  outbound_nat: automatic
+  rules:
+    # Shared guest egress: public services only; no direct private-network path.
+    - { interface: [infra, internal, dmz], action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: package_ports, description: "Public package and image HTTPS/HTTP" }
+    - { interface: [infra, internal, dmz], action: pass, protocol: "tcp/udp", source: interface_network, destination: "!private_networks", ports: dns_ports, description: "Public DNS resolvers" }
+    - { interface: [infra, internal, dmz], action: pass, protocol: udp, source: interface_network, destination: "!private_networks", ports: [123], description: "Public NTP" }
+
+    # Ops is the sole administration exception.
+    - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }
+    - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [22, 443], description: "Ops Gateway administration" }
+
+    # Monitoring sees every current and future homelab VM through standard
+    # exporter ports. New VMs need no firewall-specific change.
+    - { interface: infra, action: pass, protocol: icmp, source: monitoring, destination: homelab_networks, description: "Monitoring ICMP" }
+    - { interface: infra, action: pass, protocol: tcp, source: monitoring, destination: homelab_networks, ports: [9100, 9150], description: "Monitoring exporters" }
+    - { interface: [infra, internal, dmz], action: pass, protocol: tcp, source: interface_network, destination: monitoring, ports: [3100], description: "Loki log delivery" }
+
+    # Door is the sole trusted DMZ proxy. It may reach Internal TCP services so
+    # new published Docker applications need only a Caddy route, not a firewall
+    # change. Other DMZ hosts retain default-deny private-network access.
+    - { interface: dmz, action: pass, protocol: tcp, source: door, destination: internal_network, ports: "1-65535", description: "Door Internal backends" }
+    - { interface: dmz, action: pass, protocol: tcp, source: door, destination: monitoring, ports: [3000], description: "Door monitoring backend" }
+
+  port_forwards:
+    - { interface: wan, protocol: tcp, destination_port: 80, target: door, target_port: 80, description: "WAN HTTP to Door" }
+    - { interface: wan, protocol: tcp, destination_port: 443, target: door, target_port: 443, description: "WAN HTTPS to Door" }
+    - { interface: wan, protocol: tcp, destination_port: 25565, target: games, target_port: 25565, description: "WAN Minecraft to Games" }
+
+tailscale:
+  enabled: true
+  subnet_routes: [172.16.10.0/24, 172.16.20.0/24, 172.16.30.0/24]
+  source_nat: true
+  exit_node: false
+  ssh: false
+  serve: false
+  funnel: false

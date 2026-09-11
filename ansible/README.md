@@ -103,9 +103,7 @@ Both commands read `ansible/inventory/hosts.yml`. Update that inventory first
 whenever an address changes.
 
 Before deploying Caddy, follow [Secrets management](../secrets/README.md) and
-create `secrets/caddy.sops.env`. The playbook temporarily accepts the ignored
-plaintext `secrets/caddy.env` to support migration, but new deployments should
-use the encrypted file.
+create `secrets/caddy.sops.env`.
 
 Deploy CrowdSec after Caddy so Caddy access logs are available:
 
