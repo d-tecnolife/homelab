@@ -15,12 +15,11 @@ and the context's freshness is unverified. Never stash, replace, or overwrite
 local work to make a pull succeed.
 
 Update the routed Homelab IaC context in the sibling Notes repository only when
-the `architect` role (`gpt-5.6-sol`, high reasoning) was needed and its outcome
-creates a material, reusable architectural or operational decision. Do not
-update Notes for routine, localized implementation, configuration, or repair
-work. When an update is required, follow the Notes repository's own authoring,
-validation, commit, and push rules, and never mix its commit with the Homelab
-repository commit.
+the task produced a material, reusable architectural or operational decision.
+Do not update Notes for routine, localized implementation, configuration, or
+repair work. When an update is required, follow the Notes repository's own
+authoring, validation, commit, and push rules, and never mix its commit with
+the Homelab repository commit.
 
 ## Change boundary
 
@@ -30,9 +29,8 @@ repository commit.
 - Run live Ansible playbooks, Terraform apply, restarts, or other infrastructure
   mutations only when the user explicitly asks to deploy or apply the named
   change.
-- Require an independent pre-deployment validation pass only when the
-  `architect` role (`gpt-5.6-sol`, high reasoning) was needed because the
-  proposed deployment is significant or could break dependent systems. Give the
+- Require an independent pre-deployment validation pass only when the proposed
+  deployment is significant or could break dependent systems. Give the
   validator the exact change and scope, require a concise pass/fail result, and
   stop on failure. Routine localized deployments still require the nearest
   local validation, but do not require a separate agent pass.
@@ -97,23 +95,15 @@ protection.
 - Stop diagnosis at the first broken dependency, prepare its fix, apply only
   within the deployment authorization above, and verify it once.
 
-## Model routing and delegation
+## Delegation
 
-- The sibling Notes repository's root `AGENTS.md` is the canonical model-routing
-  and delegation policy. Read and apply it before choosing a primary or
-  specialist. This project adds only the infrastructure-specific constraints
-  below; it must not redefine global agent behavior.
-- Default to at most two delegated agents. The primary agent owns scope,
-  decisions, edits that cross ownership boundaries, deployment authorization,
-  and final verification. Do not delegate the same files concurrently or add
-  agents merely to repeat a check already covered by a passing preflight.
+- Default to at most two delegated subagents per task. The primary agent owns
+  scope, decisions, edits that cross ownership boundaries, deployment
+  authorization, and final verification. Do not delegate the same files
+  concurrently or add agents merely to repeat a check already covered by a
+  passing preflight.
 - For changes that can mutate infrastructure, complete one batched preflight
   before editing or deploying: connectivity and credentials, required
   inventory/targets, service permissions, and the nearest syntax/render check.
   After deployment, run one end-to-end smoke test of the requested outcome;
   repeat checks only when that test exposes a new dependency.
-- If the available spawn tool selects models directly instead of named roles,
-  pass the model and reasoning explicitly with a bounded context fork; do not
-  use a full-history fork when it prevents model overrides.
-- Use separate Codex tasks only for independent, long-running projects and only
-  when requested. Within one incident or change, use subagents.
