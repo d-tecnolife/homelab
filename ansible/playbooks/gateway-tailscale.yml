@@ -289,9 +289,9 @@
         validate_certs: false
       no_log: true
 
-    - name: Require Gateway Tailscale service to be running
+    - name: Read Gateway Tailscale daemon status
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/tailscale/service/status"
+        url: "{{ gateway_url }}/api/tailscale/status/status"
         method: GET
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
@@ -299,12 +299,15 @@
         validate_certs: false
         return_content: true
       register: gateway_tailscale_status
+      until: gateway_tailscale_status.json.BackendState | default('') == 'Running'
+      retries: 12
+      delay: 5
       changed_when: false
       no_log: true
 
     - name: Assert Gateway Tailscale service reports running
       ansible.builtin.assert:
         that: >-
-          gateway_tailscale_status.json.status | default('') in ['running', 'ok']
+          gateway_tailscale_status.json.BackendState | default('') == 'Running'
         fail_msg: Gateway did not report a running Tailscale service.
       no_log: true
