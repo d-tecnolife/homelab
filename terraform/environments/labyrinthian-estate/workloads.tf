@@ -7,8 +7,8 @@ resource "proxmox_virtual_environment_vm" "workload" {
 
   depends_on  = [proxmox_virtual_environment_vm.gateway]
   name        = each.key
-  description = "${each.key} workload managed by Terraform"
-  tags        = distinct(concat(["terraform", "ubuntu"], try(each.value.roles, [])))
+  description = each.value.description
+  tags        = each.value.tags
   node_name   = var.node_name
   vm_id       = each.value.vm_id
 

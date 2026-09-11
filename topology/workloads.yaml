@@ -1,10 +1,10 @@
 # Canonical workload catalog. Terraform and generated Ansible inventory consume
 # this file; adding an ordinary VM requires one entry here.
 workloads:
-  gitea: { vm_id: 1030, vlan_id: 10, address: 172.16.10.30/24, gateway: 172.16.10.1, cores: 2, memory_mb: 2048, disk_gb: 32, roles: [gitea] }
-  monitoring: { vm_id: 1020, vlan_id: 10, address: 172.16.10.20/24, gateway: 172.16.10.1, cores: 2, memory_mb: 2048, disk_gb: 40, roles: [monitoring] }
-  k3s: { vm_id: 1040, vlan_id: 10, address: 172.16.10.40/24, gateway: 172.16.10.1, cores: 4, memory_mb: 4096, disk_gb: 60, roles: [k3s] }
-  apps: { vm_id: 2010, vlan_id: 20, address: 172.16.20.10/24, gateway: 172.16.20.1, cores: 8, memory_mb: 4096, disk_gb: 100, roles: [docker, apps] }
-  nolife: { vm_id: 2020, vlan_id: 20, address: 172.16.20.20/24, gateway: 172.16.20.1, cores: 4, memory_mb: 4096, disk_gb: 80, roles: [development] }
-  door: { vm_id: 3010, vlan_id: 30, address: 172.16.30.10/24, gateway: 172.16.30.1, cores: 2, memory_mb: 2048, disk_gb: 32, roles: [docker, caddy, crowdsec] }
-  games: { vm_id: 3020, vlan_id: 30, address: 172.16.30.20/24, gateway: 172.16.30.1, cores: 6, memory_mb: 10240, disk_gb: 150, roles: [docker, games] }
+  gitea: { vm_id: 1030, vlan_id: 10, address: 172.16.10.30/24, gateway: 172.16.10.1, cores: 2, memory_mb: 2048, disk_gb: 32, roles: [gitea], description: "Gitea VM managed by Terraform", tags: [terraform, ubuntu, gitea] }
+  monitoring: { vm_id: 1020, vlan_id: 10, address: 172.16.10.20/24, gateway: 172.16.10.1, cores: 2, memory_mb: 2048, disk_gb: 40, roles: [monitoring], description: "Monitoring VM managed by Terraform", tags: [terraform, ubuntu, monitoring] }
+  k3s: { vm_id: 1040, vlan_id: 10, address: 172.16.10.40/24, gateway: 172.16.10.1, cores: 4, memory_mb: 4096, disk_gb: 60, roles: [k3s], description: "Single-node k3s VM managed by Terraform", tags: [terraform, ubuntu, k3s] }
+  apps: { vm_id: 2010, vlan_id: 20, address: 172.16.20.10/24, gateway: 172.16.20.1, cores: 8, memory_mb: 4096, disk_gb: 100, roles: [docker, apps], description: "Primary Docker application host managed by Terraform", tags: [terraform, ubuntu, apps] }
+  nolife: { vm_id: 2020, vlan_id: 20, address: 172.16.20.20/24, gateway: 172.16.20.1, cores: 4, memory_mb: 4096, disk_gb: 80, roles: [development], description: "Always-on development VM managed by Terraform", tags: [terraform, ubuntu, nolife] }
+  door: { vm_id: 3010, vlan_id: 30, address: 172.16.30.10/24, gateway: 172.16.30.1, cores: 2, memory_mb: 2048, disk_gb: 32, roles: [docker, caddy, crowdsec], description: "DMZ Door reverse-proxy VM managed by Terraform", tags: [terraform, ubuntu, caddy, dmz, door] }
+  games: { vm_id: 3020, vlan_id: 30, address: 172.16.30.20/24, gateway: 172.16.30.1, cores: 6, memory_mb: 10240, disk_gb: 150, roles: [docker, games], description: "Priority game-server VM managed by Terraform", tags: [terraform, ubuntu, games] }
