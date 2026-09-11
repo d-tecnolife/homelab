@@ -47,8 +47,11 @@ an explicit network/rebuild confirmation.
 
 On the Proxmox node (or an existing Ops VM), after restoring the age identity,
 create the single encrypted Gateway input once with
-`scripts/gateway/create-gateway-secret.sh`. It generates the OPNsense API key
-and secret without printing them. Build the bootstrap ISO with
+`scripts/gateway/create-gateway-secret.sh`. Enter one memorable, unique
+Gateway console password when asked; it is encrypted with the rest of the
+input and is the password used for the one attended OPNsense installation. The
+script generates the OPNsense API key and secret without printing them. Build
+the bootstrap ISO with
 `scripts/gateway/build-opnsense-bootstrap-iso.sh`; when running on Proxmox,
 pass `localhost` as its host argument. It renders the WAN, VLAN, firewall, SSH,
 and API-account configuration into the installer media.

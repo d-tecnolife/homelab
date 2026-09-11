@@ -12,6 +12,10 @@ restored and verified.
 2. Build the bootstrap ISO from the encrypted `gateway.sops.env` input. This is
    an explicit ISO-storage write; review and confirm it before running
    `scripts/gateway/build-opnsense-bootstrap-iso.sh`.
+   The root console password is the memorable password entered when creating
+   that encrypted input. If it must change before installation, run
+   `scripts/gateway/rotate-gateway-root-password.sh`, then rebuild the ISO;
+   neither helper prints decrypted credentials.
 3. Run `scripts/terraform/migrate-workload-state.ps1 -Apply`. This changes only
    local Terraform addresses, preserving each remote VM and allowing Gateway to
    be planned independently.

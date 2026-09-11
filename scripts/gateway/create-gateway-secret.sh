@@ -9,11 +9,11 @@ command -v sops >/dev/null || { echo "sops is required" >&2; exit 1; }
 command -v openssl >/dev/null || { echo "openssl is required" >&2; exit 1; }
 [[ ! -e "$secret_file" ]] || { echo "refusing to overwrite existing encrypted input: $secret_file" >&2; exit 1; }
 
-read -r -s -p "Gateway root password (leave blank to generate one): " root_password
+read -r -s -p "Gateway root password (stored encrypted; use a memorable unique password): " root_password
 printf '\n'
-if [[ -z "$root_password" ]]; then
-    root_password="$(openssl rand -base64 48 | tr -d '\n')"
-fi
+[[ -n "$root_password" ]] || { echo "a Gateway root password is required" >&2; exit 1; }
+[[ "$root_password" != *$'\n'* && "$root_password" != *$'\r'* && "$root_password" != *=* && "$root_password" != *\\* ]] \
+    || { echo "Gateway root password cannot contain a newline, '=' or '\\'" >&2; exit 1; }
 read -r -s -p "Reusable Tailscale auth key: " tailscale_auth_key
 printf '\n'
 [[ -n "$tailscale_auth_key" ]] || { echo "a Tailscale auth key is required" >&2; exit 1; }
