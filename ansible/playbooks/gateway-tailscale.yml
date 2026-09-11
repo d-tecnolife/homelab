@@ -10,12 +10,14 @@
       ansible.builtin.stat:
         path: "{{ gateway_tailscale_secret_path }}"
       register: gateway_tailscale_secret
+      tags: [always]
 
     - name: Refuse to configure Gateway without encrypted credentials
       ansible.builtin.assert:
         that: gateway_tailscale_secret.stat.isreg | default(false)
         fail_msg: >-
           Create and encrypt ansible/secrets/gateway.sops.env first.
+      tags: [always]
 
     - name: Decrypt Gateway credentials in memory
       ansible.builtin.command:
@@ -23,6 +25,7 @@
       register: gateway_tailscale_secret_content
       changed_when: false
       no_log: true
+      tags: [always]
 
     - name: Extract Gateway API and enrollment values
       ansible.builtin.set_fact:
@@ -31,6 +34,7 @@
         gateway_api_secret: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_SECRET=(.+)$', '\\1') | first | trim }}"
         gateway_tailscale_auth_key: "{{ gateway_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_AUTH_KEY=(.+)$', '\\1') | first | trim }}"
       no_log: true
+      tags: [always]
 
     - name: Require complete Gateway API and enrollment values
       ansible.builtin.assert:
@@ -41,6 +45,7 @@
           - gateway_tailscale_auth_key | length > 0
         fail_msg: gateway.sops.env is incomplete.
       no_log: true
+      tags: [always]
 
     # Git-over-SSH is a permanent VLAN-wide capability for current and future
     # guests. It still excludes every private destination.
@@ -60,6 +65,7 @@
       register: gateway_public_git_ssh_rules
       changed_when: false
       no_log: true
+      tags: [git_ssh]
 
     - name: Declare absent public Git SSH firewall rules
       ansible.builtin.uri:
@@ -89,6 +95,7 @@
       when: (item.json.rows | default([]) | length) == 0
       register: gateway_public_git_ssh_rules_added
       no_log: true
+      tags: [git_ssh]
 
     - name: Apply the Gateway firewall policy when public Git SSH was added
       ansible.builtin.uri:
@@ -101,6 +108,7 @@
         status_code: 200
       when: gateway_public_git_ssh_rules_added.results | selectattr('changed') | list | length > 0
       no_log: true
+      tags: [git_ssh]
 
     - name: Install the OPNsense Tailscale plugin through the seeded Gateway API
       ansible.builtin.uri:
