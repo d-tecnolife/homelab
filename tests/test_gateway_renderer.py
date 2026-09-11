@@ -39,9 +39,9 @@ class GatewayRendererTests(unittest.TestCase):
                 "system": {"hostname": "gateway", "domain": "dscim.dev", "timezone": "America/Winnipeg", "wan_block_bogon_networks": True},
                 "interfaces": {
                     "wan": {"device": "vtnet0", "address": "192.168.1.2/24", "gateway": "192.168.1.1"},
-                    "infra": {"device": "vtnet1.10", "vlan": {"parent": "vtnet1", "id": 10}, "address": "172.16.10.1/24"},
-                    "internal": {"device": "vtnet1.20", "vlan": {"parent": "vtnet1", "id": 20}, "address": "172.16.20.1/24"},
-                    "dmz": {"device": "vtnet1.30", "vlan": {"parent": "vtnet1", "id": 30}, "address": "172.16.30.1/24"},
+                    "infra": {"device": "vlan0", "vlan": {"parent": "vtnet1", "id": 10}, "address": "172.16.10.1/24"},
+                    "internal": {"device": "vlan1", "vlan": {"parent": "vtnet1", "id": 20}, "address": "172.16.20.1/24"},
+                    "dmz": {"device": "vlan2", "vlan": {"parent": "vtnet1", "id": 30}, "address": "172.16.30.1/24"},
                 },
                 "aliases": {},
                 "firewall": {
@@ -81,6 +81,17 @@ class GatewayRendererTests(unittest.TestCase):
             tree = ET.parse(output)
 
             self.assertEqual(tree.findtext("./system/noantilockout"), "1")
+            self.assertEqual(tree.findtext("./interfaces/wan/if"), "vtnet0")
+            self.assertEqual(tree.findtext("./interfaces/lan/if"), "vlan0")
+            self.assertEqual(tree.findtext("./interfaces/opt1/if"), "vlan1")
+            self.assertEqual(tree.findtext("./interfaces/opt2/if"), "vlan2")
+            self.assertEqual(
+                [
+                    (vlan.findtext("if"), vlan.findtext("tag"), vlan.findtext("vlanif"))
+                    for vlan in tree.findall("./vlans/vlan")
+                ],
+                [("vtnet1", "10", "vlan0"), ("vtnet1", "20", "vlan1"), ("vtnet1", "30", "vlan2")],
+            )
             forwards = tree.findall("./nat/rule")
             self.assertEqual(
                 [(rule.findtext("destination/port"), rule.findtext("target")) for rule in forwards],

@@ -16,15 +16,17 @@ interfaces:
     address: 192.168.1.2/24
     gateway: 192.168.1.1
   infra:
-    device: vtnet1.10
+    # OPNsense config.xml refers to VLAN interfaces by its own vlanN device
+    # names, not a Linux-style parent.tag name.
+    device: vlan0
     vlan: { parent: vtnet1, id: 10 }
     address: 172.16.10.1/24
   internal:
-    device: vtnet1.20
+    device: vlan1
     vlan: { parent: vtnet1, id: 20 }
     address: 172.16.20.1/24
   dmz:
-    device: vtnet1.30
+    device: vlan2
     vlan: { parent: vtnet1, id: 30 }
     address: 172.16.30.1/24
 

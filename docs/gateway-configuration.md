@@ -53,9 +53,9 @@ configuration in Git or Terraform state.
 | OPNsense interface | Proxmox NIC | Address | Purpose |
 | --- | --- | --- | --- |
 | WAN | `vtnet0` on `vmbr0` | `192.168.1.2/24`, gateway `192.168.1.1` | upstream network |
-| LAN | `vtnet1.10` on tagged `vmbr1` | `172.16.10.1/24` | Infra |
-| OPT1 | `vtnet1.20` on tagged `vmbr1` | `172.16.20.1/24` | Internal |
-| OPT2 | `vtnet1.30` on tagged `vmbr1` | `172.16.30.1/24` | DMZ |
+| LAN | OPNsense `vlan0` (VLAN 10 on `vtnet1` / tagged `vmbr1`) | `172.16.10.1/24` | Infra |
+| OPT1 | OPNsense `vlan1` (VLAN 20 on `vtnet1` / tagged `vmbr1`) | `172.16.20.1/24` | Internal |
+| OPT2 | OPNsense `vlan2` (VLAN 30 on `vtnet1` / tagged `vmbr1`) | `172.16.30.1/24` | DMZ |
 
 Unbound serves catalog-derived `dscim.dev` host overrides to every VLAN guest;
 Terraform therefore configures each guest to use its VLAN Gateway as DNS. Do
