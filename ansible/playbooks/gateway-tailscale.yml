@@ -121,17 +121,6 @@
         status_code: 200
       no_log: true
 
-    - name: Restart OPNsense Web GUI to register new API routes
-      ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/core/service/reconfigure/webgui"
-        method: POST
-        user: "{{ gateway_api_key }}"
-        password: "{{ gateway_api_secret }}"
-        force_basic_auth: true
-        validate_certs: false
-        status_code: 200
-      no_log: true
-
     - name: Wait for the OPNsense Tailscale plugin API
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/tailscale/settings/get"
