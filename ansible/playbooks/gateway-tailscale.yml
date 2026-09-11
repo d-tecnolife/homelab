@@ -166,7 +166,7 @@
     - name: Confirm os-tailscale is available in the plugin repository
       ansible.builtin.assert:
         that:
-          - (gateway_firmware_info.json.plugin | selectattr('name', 'equalto', 'os-tailscale') | list | length > 0) or (gateway_firmware_info.json.package | selectattr('name', 'equalto', 'os-tailscale') | list | length > 0)
+          - (gateway_firmware_info.json.plugin | selectattr('name', 'equalto', 'os-tailscale') or selectattr('origin', 'equalto', 'security/tailscale') | list | length > 0) or (gateway_firmware_info.json.package | selectattr('name', 'equalto', 'os-tailscale') | list | length > 0)
         fail_msg: >-
           os-tailscale was not found in the refreshed package metadata. Check upstream repository connectivity.
       no_log: true
