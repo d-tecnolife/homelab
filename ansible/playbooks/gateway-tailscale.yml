@@ -229,13 +229,17 @@
     # A freshly installed plugin's API routes are not registered until the web
     # GUI backend (lighttpd/PHP-FPM) restarts and reloads the MVC controller
     # map; without this, every /api/tailscale/* call 404s regardless of how
-    # long the wait/retry loop below runs. Fixed once already (c5affc4) and
-    # silently dropped by a later rewrite of this section (93a3bd6/6ac35c2) —
-    # confirmed missing by reproducing the exact 404 on a from-scratch
-    # rebuild. Keep this the moment the plugin install completes.
+    # long the wait/retry loop below runs (reproduced live on a from-scratch
+    # rebuild). Two earlier attempts at this exact task both used endpoints
+    # that never existed (/api/core/system/restart/webgui, then
+    # /api/core/service/reconfigure/webgui) and were abandoned within minutes
+    # without ever being verified — see opnsense/core's actual
+    # Core/Api/ServiceController.php, which only defines search/start/
+    # restart/stop actions taking a service name, no "system" controller and
+    # no "reconfigure" action. This is that real, verified restartAction.
     - name: Restart OPNsense Web GUI to register new API routes
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/core/system/restart/webgui"
+        url: "{{ gateway_url }}/api/core/service/restart/webgui"
         method: POST
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
