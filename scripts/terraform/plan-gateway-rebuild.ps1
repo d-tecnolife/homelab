@@ -45,6 +45,10 @@ try {
         "-target=proxmox_virtual_environment_vm.gateway",
         "-var=gateway_iso_file_id=$GatewaySourceIso",
         "-var=gateway_bootstrap_iso_file_id=$GatewayBootstrapIso",
+        # The post-install local override intentionally detaches media for
+        # steady state. A replacement must explicitly reattach it so the new
+        # appliance imports the reviewed bootstrap configuration.
+        "-var=gateway_bootstrap_media_attached=true",
         "-out=$Out"
     )
     & terraform.exe @terraformArguments
