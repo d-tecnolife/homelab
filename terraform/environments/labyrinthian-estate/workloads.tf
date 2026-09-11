@@ -50,7 +50,9 @@ resource "proxmox_virtual_environment_vm" "workload" {
     datastore_id = var.datastore_id
     interface    = "scsi1"
     dns {
-      servers = var.dns_servers
+      # OPNsense Unbound supplies split DNS for dscim.dev. Each workload uses
+      # the Gateway address declared beside its static network configuration.
+      servers = [each.value.gateway]
     }
     ip_config {
       ipv4 {

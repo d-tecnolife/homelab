@@ -58,6 +58,7 @@ firewall:
     # Ops is the sole administration exception.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [22, 443], description: "Ops Gateway administration" }
+    - { interface: [infra, internal, dmz], action: pass, protocol: "tcp/udp", source: interface_network, destination: this_firewall, ports: dns_ports, description: "Gateway split DNS" }
 
     # Monitoring sees every current and future homelab VM through standard
     # exporter ports. New VMs need no firewall-specific change.

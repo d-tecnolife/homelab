@@ -72,9 +72,60 @@ def rule(parent: ET.Element, spec: dict, interface: str, sequence: int) -> None:
         child(item, "destination_port", ports(spec["ports"]))
 
 
+def port_forward(parent: ET.Element, spec: dict, sequence: int) -> None:
+    item = child(parent, "rule")
+    for key, value in {
+        "sequence": sequence,
+        "interface": INTERFACES[spec["interface"]],
+        "ipprotocol": "inet",
+        "protocol": spec["protocol"],
+        "target": spec["target"],
+        "local-port": spec["target_port"],
+        "descr": spec["description"],
+        # Split DNS supplies internal answers; never generate hairpin rules.
+        "natreflection": "disable",
+        # Permit only the translated flow; this is not a broad WAN rule.
+        "pass": "pass",
+    }.items():
+        child(item, key, value)
+    source = child(item, "source")
+    child(source, "any", 1)
+    destination = child(item, "destination")
+    child(destination, "network", "wanip")
+    child(destination, "port", spec["destination_port"])
+
+
+def add_unbound_config(root: ET.Element, catalog: dict, workloads: dict) -> None:
+    unbound = child(child(root, "OPNsense"), "unboundplus")
+    general = child(unbound, "general")
+    for key, value in {
+        "enabled": 1,
+        "port": 53,
+        "active_interface": "lan,opt1,opt2",
+        "dnssec": 1,
+        "local_zone_type": "transparent",
+    }.items():
+        child(general, key, value)
+
+    hosts = child(unbound, "hosts")
+    for name, spec in workloads.items():
+        host = child(hosts, "host")
+        for key, value in {
+            "enabled": 1,
+            "hostname": name,
+            "domain": catalog["system"]["domain"],
+            "rr": "A",
+            "server": spec["address"].split("/", 1)[0],
+            "addptr": 1,
+            "description": f"Homelab {name}",
+        }.items():
+            child(host, key, value)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
+    parser.add_argument("--workloads", type=Path, required=True)
     parser.add_argument("--ssh-public-key", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -96,12 +147,16 @@ def main() -> None:
     )
     password_hash = result.stdout.rstrip("\n").split(":", 1)[1]
     catalog = yaml.safe_load(args.catalog.read_text(encoding="utf-8"))
+    workloads = yaml.safe_load(args.workloads.read_text(encoding="utf-8"))["workloads"]
     root = ET.Element("opnsense")
     system = child(root, "system")
     for key in ("hostname", "domain", "timezone"):
         child(system, key, catalog["system"][key])
     child(system, "dnsallowoverride", 0)
     child(system, "disablenatreflection", "yes")
+    # The generated anti-lockout rule permits all LAN clients to reach the web
+    # UI and SSH. The catalog supplies the narrower Ops-only management rule.
+    child(system, "noantilockout", 1)
     ssh = child(system, "ssh")
     child(ssh, "enable", 1)
     child(ssh, "permitrootlogin", 1)
@@ -157,6 +212,8 @@ def main() -> None:
         child(gateway, key, value)
     nat = child(root, "nat")
     child(child(nat, "outbound"), "mode", catalog["firewall"]["outbound_nat"])
+    for sequence, spec in enumerate(catalog["firewall"]["port_forwards"], start=1):
+        port_forward(nat, spec, sequence)
 
     model = child(child(root, "OPNsense"), "Firewall")
     aliases = child(child(model, "Alias"), "aliases")
@@ -170,6 +227,9 @@ def main() -> None:
         for interface in spec["interface"] if isinstance(spec["interface"], list) else [spec["interface"]]:
             rule(rules, spec, interface, sequence)
             sequence += 10
+    settings = child(model, "settings")
+    child(child(settings, "nat"), "snat_mode", catalog["firewall"]["outbound_nat"])
+    add_unbound_config(root, catalog, workloads)
     ET.indent(root, space="  ")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(args.output, encoding="utf-8", xml_declaration=True)

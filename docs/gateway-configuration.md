@@ -25,10 +25,13 @@ restored and verified.
 6. Set `gateway_policy_ready = true` only after those steps complete, review
    the workload plan, and apply it.
 
-The OPNsense installer accepts an unencrypted `/conf/config.xml` on installer
-media, so the encrypted baseline must be decrypted only into a protected,
-temporary build location and removed after the ISO is prepared. Do not place a
-decrypted configuration in Git or Terraform state.
+The bootstrap ISO carries an unencrypted `/conf/config.xml`, so the encrypted
+baseline is decrypted only into a protected temporary build location and
+removed after the ISO is prepared. The OPNsense DVD installer is interactive:
+it requires a console-attended installation and configuration-import step.
+The ISO removes policy entry and credential creation from that step; it does
+not make the upstream installer unattended. Do not place a decrypted
+configuration in Git or Terraform state.
 
 ## Baseline interfaces
 
@@ -39,8 +42,14 @@ decrypted configuration in Git or Terraform state.
 | OPT1 | `vtnet1.20` on tagged `vmbr1` | `172.16.20.1/24` | Internal |
 | OPT2 | `vtnet1.30` on tagged `vmbr1` | `172.16.30.1/24` | DMZ |
 
-Use split DNS host overrides for internal names. Do not enable NAT reflection.
-Outbound NAT translates the three VLAN networks to WAN.
+Unbound serves catalog-derived `dscim.dev` host overrides to every VLAN guest;
+Terraform therefore configures each guest to use its VLAN Gateway as DNS. Do
+not enable NAT reflection. Outbound NAT translates the three VLAN networks to
+WAN.
+
+OPNsense's automatic LAN anti-lockout rule is disabled in the rendered
+configuration. Gateway SSH and HTTPS are reachable only through the catalog's
+Ops administration rule, rather than from every Infra-VLAN client.
 
 ## Required policy
 
