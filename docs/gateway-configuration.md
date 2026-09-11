@@ -9,20 +9,23 @@ restored and verified.
 
 1. Upload an OPNsense DVD ISO to Proxmox ISO storage and set its exact volume ID
    in the local `gateway_iso_file_id` Terraform variable.
-2. Run `scripts/terraform/plan-gateway-rebuild.ps1` to create the reviewed
+2. Run `scripts/terraform/migrate-workload-state.ps1 -Apply`. This changes only
+   local Terraform addresses, preserving each remote VM and allowing Gateway to
+   be planned independently.
+3. Run `scripts/terraform/plan-gateway-rebuild.ps1` to create the reviewed
    phase-one plan. It explicitly replaces the appliance, destroying VMID `100`
    and its disk; it never modifies workloads.
-3. Build a bootstrap ISO using the encrypted `gateway.sops.env` input. The
+4. Build a bootstrap ISO using the encrypted `gateway.sops.env` input. The
    rendered `config.xml` assigns `vtnet0` as WAN and `vtnet1` VLANs `10`, `20`,
    and `30` as LAN, OPT1, and OPT2. It disables WAN private-network blocking
    because the WAN is `192.168.1.2/24` behind `192.168.1.1`.
-4. The same rendering process seeds a dedicated API-only `homelab-automation`
+5. The same rendering process seeds a dedicated API-only `homelab-automation`
    account. Its credential is generated into the encrypted input; no Gateway
    web-GUI access or manual API-key creation is required.
-5. Create Ops (VMID `1010`) as the only controller exception. From its console,
+6. Create Ops (VMID `1010`) as the only controller exception. From its console,
    run the Gateway reconciliation playbook, which installs and configures the
    OPNsense Tailscale plugin, then apply the separate Tailscale Terraform root.
-6. Set `gateway_policy_ready = true` only after those steps complete, review
+7. Set `gateway_policy_ready = true` only after those steps complete, review
    the workload plan, and apply it.
 
 The bootstrap ISO carries an unencrypted `/conf/config.xml`, so the encrypted

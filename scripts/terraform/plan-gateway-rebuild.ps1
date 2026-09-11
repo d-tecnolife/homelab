@@ -13,14 +13,14 @@ try {
     terraform.exe fmt -check
     terraform.exe validate
 
-    # Address moves require a complete graph. This plan replaces only VMID 100;
-    # existing workload resources are included solely to migrate their state
-    # addresses into the catalog-driven resource.
+    # This is the network-foundation checkpoint: replace VMID 100 only.
+    # Workload DNS updates and Terraform state-address moves happen later,
+    # after Gateway is installed and connectivity has been verified.
     $terraformArguments = @(
         "plan",
         "-refresh=false",
         "-replace=proxmox_virtual_environment_vm.gateway",
-        "-var=gateway_policy_ready=true",
+        "-target=proxmox_virtual_environment_vm.gateway",
         "-var=gateway_iso_file_id=$GatewaySourceIso",
         "-var=gateway_bootstrap_iso_file_id=$GatewayBootstrapIso",
         "-out=$Out"
