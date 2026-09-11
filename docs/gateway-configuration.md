@@ -5,9 +5,10 @@ Proxmox VM; OPNsense owns the routed interfaces, NAT, DNS overrides, and packet
 policy. Guest bootstrapping is intentionally blocked until this policy has been
 restored and verified.
 
-Gateway has 4 GiB of RAM. The OPNsense DVD installer clones its live system to
-disk and requires at least 3 GiB during that operation; do not reduce this to
-the runtime minimum before an installation or rebuild.
+Gateway uses 2 GiB of RAM. This VM's OPNsense installer completes successfully
+at that allocation. If a future upstream installer rejects the available
+memory, temporarily increase it only through a reviewed Terraform plan, then
+return it to this runtime baseline after installation.
 
 ## Rebuild order
 
