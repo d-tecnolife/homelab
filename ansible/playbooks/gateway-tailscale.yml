@@ -277,6 +277,37 @@
             disableSNAT: "0"
       no_log: true
 
+    # The rendered /etc/rc.conf.d/tailscaled only sets tailscaled_enable=YES
+    # when OPNsense.tailscale.settings.enabled is non-empty in config.xml
+    # (see security/tailscale/.../templates/OPNsense/Tailscale/rc.conf.d in
+    # opnsense/plugins). If settings/set above did not actually persist that
+    # field, OPNsense's own service reconciliation stops tailscaled shortly
+    # after the service/start call below reports success — the daemon looks
+    # started, then dies, and status.BackendState reads "unavailable" with no
+    # indication why. Catch that here instead of guessing from the symptom.
+    - name: Verify Gateway Tailscale settings persisted as enabled
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/tailscale/settings/get"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_tailscale_settings_check
+      no_log: true
+
+    - name: Require settings.enabled to have actually persisted
+      ansible.builtin.assert:
+        that: gateway_tailscale_settings_check.json.settings.enabled | default('0') == '1'
+        fail_msg: >-
+          OPNsense settings/get reports settings.enabled did not persist as
+          "1" after settings/set. The generated rc.conf.d will read
+          tailscaled_enable=NO regardless of what service/reconfigure or
+          service/start report; do not proceed until this is fixed upstream
+          in the plugin or worked around here.
+      no_log: true
+
     - name: Read existing Gateway Tailscale subnet advertisements
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/tailscale/settings/search_subnet"
