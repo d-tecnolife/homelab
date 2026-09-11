@@ -353,22 +353,22 @@
           description: DMZ
       no_log: true
 
-    - name: Apply Gateway Tailscale configuration
+    # ServiceController::reconfigureAction (/api/tailscale/service/reconfigure)
+    # is the generic OPNsense base-class action; the Tailscale plugin ships
+    # its own SettingsController::reloadAction (/api/tailscale/settings/reload)
+    # that explicitly re-renders templates AND runs `configd tailscale start`
+    # or `stop` based on the just-saved settings.enabled field:
+    #   https://github.com/opnsense/plugins/blob/master/security/tailscale/src/opnsense/mvc/app/controllers/OPNsense/Tailscale/Api/SettingsController.php
+    # Calling reconfigure+start instead left /etc/rc.conf.d/tailscaled reading
+    # tailscaled_enable="NO" even with settings.enabled confirmed "1" moments
+    # earlier: `service start` (unlike `onestart`) honors that rcvar and
+    # silently no-ops, which is why the daemon looked started (HTTP 200) but
+    # was never actually running. settings/reload is what the GUI itself
+    # calls on save and is the endpoint that keeps enabled and running state
+    # consistent.
+    - name: Apply Gateway Tailscale configuration and start the service
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/tailscale/service/reconfigure"
-        method: POST
-        user: "{{ gateway_api_key }}"
-        password: "{{ gateway_api_secret }}"
-        force_basic_auth: true
-        validate_certs: false
-      no_log: true
-
-    # reconfigure only rewrites tailscaled's config; it does not set
-    # tailscaled_enable in rc.conf or start the daemon on a host where it has
-    # never run before, so the explicit start below is required.
-    - name: Start the Gateway Tailscale service
-      ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/tailscale/service/start"
+        url: "{{ gateway_url }}/api/tailscale/settings/reload"
         method: POST
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
