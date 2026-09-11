@@ -154,11 +154,15 @@ def main() -> None:
         child(system, key, catalog["system"][key])
     child(system, "dnsallowoverride", 0)
     child(system, "disablenatreflection", "yes")
+    webgui = child(system, "webgui")
+    # OPNsense's supported sample configuration explicitly declares HTTPS.
+    # Without it, an imported minimal config can leave the API endpoint on an
+    # unexpected protocol and strand the automated bootstrap controller.
+    child(webgui, "protocol", "https")
     # Keep OPNsense's built-in LAN anti-lockout path on VLAN 10. This is the
     # bootstrap control plane for the Gateway API before Tailscale and guest
     # automation exist; disabling it creates an unrecoverable circular
     # dependency if a rendered policy does not load. WAN remains default-deny.
-    child(system, "noantilockout", 0)
     ssh = child(system, "ssh")
     child(ssh, "enable", 1)
     child(ssh, "permitrootlogin", 1)

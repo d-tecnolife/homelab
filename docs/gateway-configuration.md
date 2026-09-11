@@ -72,7 +72,8 @@ OPNsense's automatic LAN anti-lockout rule remains enabled on VLAN 10 during
 bootstrap. This keeps Gateway SSH and HTTPS reachable from the Infra network
 until the API-driven reconciliation and Tailscale router are working, avoiding
 a circular dependency. WAN remains default-deny and has no Gateway-management
-forward.
+forward. The rendered configuration explicitly binds the management API to
+HTTPS, matching OPNsense's supported default configuration.
 
 ## Required policy
 

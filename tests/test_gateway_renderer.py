@@ -85,7 +85,8 @@ class GatewayRendererTests(unittest.TestCase):
                 renderer.main()
             tree = ET.parse(output)
 
-            self.assertEqual(tree.findtext("./system/noantilockout"), "0")
+            self.assertIsNone(tree.find("./system/noantilockout"))
+            self.assertEqual(tree.findtext("./system/webgui/protocol"), "https")
             self.assertEqual(tree.findtext("./interfaces/wan/if"), "vtnet0")
             self.assertEqual(tree.findtext("./interfaces/lan/if"), "vlan0")
             self.assertEqual(tree.findtext("./interfaces/opt1/if"), "vlan1")
