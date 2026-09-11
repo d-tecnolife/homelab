@@ -25,7 +25,7 @@ trap 'rm -f "$encrypted_tmp"' EXIT
 umask 077
 printf 'GATEWAY_ROOT_PASSWORD=%s\nOPNSENSE_URL=https://172.16.10.1\nOPNSENSE_API_KEY=%s\nOPNSENSE_API_SECRET=%s\nTAILSCALE_AUTH_KEY=%s\n' \
     "$root_password" "$api_key" "$api_secret" "$tailscale_auth_key" \
-    | sops --config "$repo_root/.sops.yaml" --filename-override "$secret_file" --encrypt --input-type dotenv --output-type dotenv /dev/stdin > "$encrypted_tmp"
+    | sops --config "$repo_root/.sops.yaml" --filename-override "ansible/secrets/gateway.sops.env" --encrypt --input-type dotenv --output-type dotenv /dev/stdin > "$encrypted_tmp"
 mv "$encrypted_tmp" "$secret_file"
 chmod 600 "$secret_file"
 echo "Created encrypted Gateway input at $secret_file. API credentials were generated and never printed."
