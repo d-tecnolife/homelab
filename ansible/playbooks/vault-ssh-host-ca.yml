@@ -136,7 +136,12 @@
         mode: "0600"
         marker: "# {mark} ANSIBLE MANAGED VAULT SSH HOST CA"
         block: |
+          # Two hostname patterns are required: Ansible connects to managed_vms
+          # by their inventory IP (see topology/workloads.yaml), not by DNS name,
+          # so OpenSSH's cert-authority pattern match needs the VLAN address
+          # ranges in addition to the *.dscim.dev names people use interactively.
           @cert-authority *.dscim.dev {{ vault_ssh_ca_public_key.content | trim }}
+          @cert-authority 172.16.10.*,172.16.20.*,172.16.30.* {{ vault_ssh_ca_public_key.content | trim }}
       delegate_to: ops
       run_once: true
 
@@ -169,7 +174,9 @@
         body:
           cert_type: host
           public_key: "{{ vault_ssh_host_public_key.content | b64decode | trim }}"
-          valid_principals: "{{ inventory_hostname }}.dscim.dev"
+          # Both principals matter: the DNS name for interactive use, and the
+          # inventory IP because Ansible itself connects by address.
+          valid_principals: "{{ inventory_hostname }}.dscim.dev,{{ ansible_host }}"
         status_code: 200
         validate_certs: true
       delegate_to: ops
@@ -207,3 +214,14 @@
         name: ssh
         state: reloaded
       when: vault_ssh_host_certificate_file.changed or vault_ssh_host_sshd_config.changed
+
+    # This host now presents a CA-signed certificate and Ops trusts the CA
+    # (see the @cert-authority lines above), so the individual pinned key that
+    # bootstrap-ssh-host-keys.yml recorded by ssh-keyscan is no longer needed
+    # for trust and would only be stale weight after a future host rebuild.
+    - name: Retire the individually pinned host key on Ops
+      ansible.builtin.known_hosts:
+        name: "{{ ansible_host }}"
+        path: /home/dtec/.ssh/known_hosts
+        state: absent
+      delegate_to: ops

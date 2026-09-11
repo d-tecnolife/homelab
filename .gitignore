@@ -6,6 +6,8 @@
 !*.example
 crash.log
 crash.*.log
+__pycache__/
+*.pyc
 token.json
 credentials.json
 .env

@@ -61,6 +61,11 @@ after the separate network/rebuild confirmation. No OPNsense console setup or
 upstream-LAN management rule is part of the process. Gateway remains
 WAN-default-deny.
 
+Steps 3-4 are `scripts/terraform/rebuild.ps1`, which runs the same phase
+scripts referenced below in order with a confirmation gate before each apply;
+see [Gateway configuration](gateway-configuration.md#rebuild-order) for the
+full phase list including the attended OPNsense install between them.
+
 ## 4. Create Ops, then configure Gateway
 
 Review and apply `scripts/terraform/plan-ops-bootstrap.ps1`. This phase creates
@@ -103,8 +108,29 @@ Before running the command, restore the existing age identity and the required
 SOPS-encrypted Compose and Caddy inputs. The playbook deliberately stops rather
 than creating replacement credentials that cannot decrypt existing data.
 
+## 6. Certificate-based SSH trust (after Vault is initialized)
+
+This step is separate from `bootstrap-lab.sh` because it depends on things
+`bootstrap-lab.sh` itself creates: the `vault` Compose stack on Apps and the
+`ssh-ca.dscim.dev` DNS record Caddy publishes. It cannot run any earlier.
+
+1. Manually initialize and unseal Vault (`docker compose exec vault vault
+   operator init`, then `vault operator unseal`) — this stays a manual,
+   admin-authenticated action, never automated.
+2. From Ops, with a temporary Vault administrator token in `VAULT_TOKEN`, run
+   `ansible-playbook playbooks/vault-ssh-host-ca-bootstrap.yml` once. It
+   creates the SSH secrets engine, the CA, the `homelab-hosts` signing role,
+   and a signing-only policy.
+3. Create and encrypt the periodic signing token per
+   [Secrets management](../secrets/README.md#vault-ssh-host-ca-token).
+4. Run `ansible-playbook playbooks/vault-ssh-host-ca.yml`. It signs every
+   managed VM's host key, installs the certificate, and — once each host's
+   certificate is confirmed working — retires that host's individually pinned
+   `known_hosts` entry on Ops in favor of trusting the CA. A weekly timer
+   keeps certificates renewed after this; you should not need to touch this
+   again.
+
 ## Related details
 
-- [Proxmox access bootstrap](proxmox-bootstrap.md)
 - [Terraform environment](../terraform/environments/labyrinthian-estate/README.md)
 - [Ansible playbooks](../ansible/README.md)

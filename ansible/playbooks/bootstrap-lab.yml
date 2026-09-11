@@ -11,6 +11,7 @@
 - import_playbook: caddy.yml
 - import_playbook: crowdsec.yml
 - import_playbook: deploy-compose.yml
+- import_playbook: playwright.yml
 - import_playbook: monitoring-agents.yml
 - import_playbook: monitoring-targets.yml
 - import_playbook: monitoring-inventory-automation.yml

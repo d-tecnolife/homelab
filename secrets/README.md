@@ -107,10 +107,23 @@ it as `/opt/compose/<stack>/.env` with mode `0640`.
 
 ## Vault SSH host-CA token
 
-After initializing HashiCorp Vault and creating its limited host-signing token,
-copy `secrets/vault-ssh-ca.env.example` to `secrets/vault-ssh-ca.sops.env`, set
-`VAULT_TOKEN`, and encrypt it with SOPS. The host-certificate playbook decrypts
-it only on Ops with mode `0600`. Do not store Vault root or unseal tokens here.
+After initializing HashiCorp Vault, run `vault-ssh-host-ca-bootstrap.yml` once
+with a temporary Vault administrator token (`VAULT_TOKEN` env var) to create
+the `ssh-host-signer` mount, the `homelab-hosts` signing role, and the
+`homelab-ssh-host-signer` policy. That playbook creates the policy only — it
+does not mint a token bound to it. As a Vault admin, create the periodic
+signing-only token the policy authorizes:
+
+```bash
+vault token create -policy=homelab-ssh-host-signer -period=768h -no-default-policy
+```
+
+Copy `secrets/vault-ssh-ca.env.example` to `secrets/vault-ssh-ca.sops.env`, set
+`VAULT_TOKEN` to that token's value, and encrypt it with SOPS. The
+host-certificate playbook decrypts it only on Ops with mode `0600`, installs a
+weekly renewal timer that calls `vault-ssh-host-ca.yml --tags renew`, and
+extends the token's TTL each run via `auth/token/renew-self` — do not let it
+lapse past its period. Do not store Vault root or unseal tokens here.
 
 ## Secret classes
 

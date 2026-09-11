@@ -12,6 +12,13 @@ return it to this runtime baseline after installation.
 
 ## Rebuild order
 
+Steps 3-4 and 7-8 below are one Terraform apply each, gated by a typed
+confirmation; `scripts/terraform/rebuild.ps1` runs them in order instead of
+requiring you to invoke each phase script by hand. It pauses for step 1-2
+(prerequisites, done once) and for the attended install in step 7. Read the
+full order below at least once before using it; `-StartAt` resumes a
+partially completed rebuild at any phase.
+
 1. Upload an OPNsense DVD ISO to Proxmox ISO storage and set its exact volume ID
    in the local `gateway_iso_file_id` Terraform variable.
 2. Build the bootstrap ISO from the encrypted `gateway.sops.env` input. This is

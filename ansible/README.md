@@ -9,49 +9,67 @@ for the required execution order.
 ## Playbooks
 
 Run `../scripts/ops/bootstrap-lab.sh` from the Ops console for the ordered
-post-Terraform bootstrap. It creates the ignored inventory from the committed
-example when absent, generates the Ops management key, and then runs the
-playbooks below in their required order. Restore the existing age identity and
-encrypted deployment inputs first.
+post-Terraform bootstrap. It renders the inventory, then runs, in order:
+`bootstrap-ssh-host-keys.yml` (scans fresh guest SSH host keys into Ops's
+`known_hosts` so Ansible has something to verify against), `bootstrap-ops-ssh.yml`
+--limit ops (generates the permanent Ops management key using the temporary
+Terraform-issued bootstrap key), then `bootstrap-lab.yml`, which is a pure
+`import_playbook` chain run with the permanent key, in this order:
 
-- `playbooks/bootstrap-ops-ssh.yml` generates the Ops management key and adds
-  its public key to every managed VM without replacing remembered SSH host
-  keys.
+1. `hosts-file.yml` — short-name and `dscim.dev` mappings in `/etc/hosts` on
+   every reachable managed VM, from inventory addresses.
+2. `network-preflight.yml` — asserts DNS resolution and public HTTP/HTTPS
+   egress before anything else runs; a final assertion, not what establishes
+   connectivity (that's the Gateway policy — see `docs/gateway-configuration.md`).
+3. `docker.yml` — Docker Engine and Compose plugin on Docker hosts, management
+   user added to the `docker` group, `/opt/compose` created.
+4. `maintenance-schedule.yml` — installs three Ops systemd timers (daily,
+   weekly, monthly-reboot) that each call the merged `maintenance.yml` with
+   the matching `--tags`.
+5. `secrets.yml` — installs SOPS/age on Ops and generates (or restores) the
+   administrator age identity used for deploy-time decryption.
+6. `ops-codex.yml` — deploys project Codex model-routing config to `dtec`'s
+   checkout.
+7. `homelab-health.yml` — installs the discretionary JSON health command.
+8. `caddy.yml` — Cloudflare-enabled Caddy build on Door, sites, config
+   validation, health endpoint and JSON logs.
+9. `crowdsec.yml` — CrowdSec and its nftables bouncer on Door, run after Caddy
+   so its JSON access logs already exist.
+10. `deploy-compose.yml` — copies each host's assigned Compose stacks,
+    decrypts any matching `secrets/compose/<stack>.sops.env` in memory,
+    pulls and applies with Docker Compose.
+11. `playwright.yml` — private Ops→Apps SSH tunnel to the Playwright MCP
+    endpoint deployed by `deploy-compose.yml`; must run after it.
+12. `monitoring-agents.yml` — node_exporter everywhere plus Grafana Alloy on
+    guests.
+13. `monitoring-targets.yml` — renders Prometheus file-discovery targets from
+    inventory; `monitoring-inventory-automation.yml` installs the Ops watcher
+    that reruns it automatically whenever inventory changes.
+14. `minecraft-backups.yml` — daily backup service and timer on Games,
+    five-archive retention, RCON-safe flush.
+15. `lock-bootstrap-console.yml` — removes the temporary bootstrap key and the
+    Proxmox-console auto-login. Bootstrap is complete after this step.
+
+Run standalone, outside `bootstrap-lab.yml`:
+
 - `playbooks/nolife-development.yml` bootstraps Nolife as an Ubuntu development
   VM with build tools, Homebrew, Python/pip, Node/npm, Go, Zig, Rustup/Cargo,
   ChezMoi, and a LazyVim starter configuration. It intentionally leaves Docker
   to `playbooks/docker.yml` and only applies ChezMoi when given a dotfiles
   repository URL.
-- `playbooks/secrets.yml` installs SOPS and age on Ops and generates the
-  administrator-owned age identity used for deploy-time decryption.
-- `playbooks/vault-ssh-host-ca-bootstrap.yml` configures Vault's restricted
-  SSH host-signing role after manual Vault initialization.
-- `playbooks/vault-ssh-host-ca.yml` installs and renews signed SSH host
-  certificates from Ops; it uses a SOPS-encrypted, signing-only Vault token.
-- `playbooks/ops-codex.yml` configures project model routing for `dtec`.
-- `playbooks/homelab-health.yml` installs the discretionary JSON health command on Ops.
-- `playbooks/monitoring-agents.yml` installs node_exporter and Alloy across
-  managed VMs and node_exporter on the Proxmox host.
-- `playbooks/monitoring-targets.yml` renders Prometheus file-discovery targets
-  from inventory. `playbooks/monitoring-inventory-automation.yml` installs the
-  Ops watcher that runs it whenever the private inventory changes.
-- `playbooks/hosts-file.yml` maintains short-name and `dscim.dev` mappings in
-  `/etc/hosts` on every reachable managed VM using the inventory addresses.
-- `playbooks/crowdsec.yml` installs CrowdSec and its nftables bouncer on Caddy,
-  consumes community decisions, and parses Linux and Caddy logs.
-- `playbooks/minecraft-backups.yml` installs the daily Minecraft backup service
-  and timer on Games, with five-archive retention and RCON-safe world flushing.
-- `playbooks/caddy.yml` installs a Cloudflare-enabled Caddy build on Caddy,
-  deploys its sites, validates the configuration, and maintains its health
-  endpoint and JSON logs.
-- `playbooks/docker.yml` installs Docker Engine and Compose on Docker hosts,
-  grants the management user Docker access, and creates `/opt/compose`.
-- `playbooks/maintenance-schedule.yml` installs Ops systemd timers for daily
-  security updates, weekly safe upgrades, and monthly conditional reboots.
-- `playbooks/deploy-compose.yml` copies the stacks assigned to each host and
-  decrypts any matching `secrets/compose/<stack>.sops.env` file in memory,
-  validates, pulls, and applies the stacks with Docker Compose. Each host
-  receives only the stacks assigned to it in the playbook.
+- `playbooks/gateway-tailscale.yml` configures the OPNsense Gateway as the
+  Tailscale subnet router through its seeded API account. Part of the Gateway
+  rebuild order in `docs/gateway-configuration.md`, not the guest bootstrap
+  chain — it runs against `localhost` before most guests exist.
+- `playbooks/vault-ssh-host-ca-bootstrap.yml` and `playbooks/vault-ssh-host-ca.yml`
+  establish certificate-based SSH host trust, replacing the ssh-keyscan pinning
+  from `bootstrap-ssh-host-keys.yml` host by host as each one is signed. These
+  can only run after Vault (the `vault` Compose stack on Apps) has been
+  manually initialized/unsealed and Caddy has published `ssh-ca.dscim.dev` —
+  both postdate the guest bootstrap chain, so they cannot be folded into it.
+  See [Secrets management](../secrets/README.md#vault-ssh-host-ca-token) for
+  the exact one-time setup, then the weekly `homelab-vault-ssh-renew.timer`
+  keeps every host's certificate current with no further action.
 
 `inventory/hosts.yml` is created from `inventory/hosts.yml.example` and ignored
 because it contains local network details. The repository-local `ansible.cfg`

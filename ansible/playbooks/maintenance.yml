@@ -1,0 +1,84 @@
+---
+# Merged recurring maintenance. maintenance-schedule.yml installs one systemd
+# timer per tag below and calls this file with --tags <name>; each tag remains
+# independently runnable by hand.
+- name: Install daily security updates
+  hosts: managed_vms
+  become: true
+  serial: 2
+  ignore_unreachable: true
+  tags: [daily]
+
+  tasks:
+    - name: Install unattended-upgrades
+      ansible.builtin.apt:
+        name: unattended-upgrades
+        state: present
+        update_cache: true
+        cache_valid_time: 86400
+
+    - name: Apply updates allowed by unattended-upgrades
+      ansible.builtin.command:
+        argv:
+          - unattended-upgrade
+          - --minimal-upgrade-steps
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      register: unattended_upgrade
+      changed_when: unattended_upgrade.stdout | length > 0
+
+- name: Install weekly package upgrades
+  hosts: managed_vms
+  become: true
+  serial: 2
+  ignore_unreachable: true
+  tags: [weekly]
+
+  tasks:
+    - name: Apply safe package upgrades
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+        upgrade: safe
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+- name: Reboot managed VMs when required
+  hosts: managed_vms:!ops
+  become: true
+  serial: 1
+  ignore_unreachable: true
+  tags: [monthly-reboot]
+
+  tasks:
+    - name: Check whether a reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Reboot when required
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+      when: reboot_required.stat.exists
+
+- name: Schedule the Ops reboot after Ansible exits
+  hosts: ops
+  become: true
+  tags: [monthly-reboot]
+
+  tasks:
+    - name: Check whether Ops requires a reboot
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: ops_reboot_required
+
+    - name: Schedule the Ops reboot
+      ansible.builtin.command:
+        argv:
+          - systemd-run
+          - "--unit=homelab-maintenance-reboot-{{ ansible_date_time.epoch }}"
+          - --on-active=1m
+          - /usr/bin/systemctl
+          - reboot
+      when: ops_reboot_required.stat.exists
+      changed_when: true

@@ -1,7 +1,11 @@
 ---
 # Terraform rebuilds create new SSH host keys. Refresh only the managed guest
 # addresses before Ansible's first SSH connection, then retain strict host-key
-# verification for all subsequent tasks.
+# verification for all subsequent tasks. This pinning is a temporary bridge:
+# once vault-ssh-host-ca.yml has signed a host's certificate, that host's
+# individually pinned entry is retired in favor of CA trust (see that
+# playbook). A freshly rebuilt host still needs this scan to be reachable at
+# all before it can be signed.
 - name: Refresh managed guest SSH host keys after a rebuild
   hosts: localhost
   gather_facts: false
