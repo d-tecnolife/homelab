@@ -68,9 +68,11 @@ Terraform therefore configures each guest to use its VLAN Gateway as DNS. Do
 not enable NAT reflection. Outbound NAT translates the three VLAN networks to
 WAN.
 
-OPNsense's automatic LAN anti-lockout rule is disabled in the rendered
-configuration. Gateway SSH and HTTPS are reachable only through the catalog's
-Ops administration rule, rather than from every Infra-VLAN client.
+OPNsense's automatic LAN anti-lockout rule remains enabled on VLAN 10 during
+bootstrap. This keeps Gateway SSH and HTTPS reachable from the Infra network
+until the API-driven reconciliation and Tailscale router are working, avoiding
+a circular dependency. WAN remains default-deny and has no Gateway-management
+forward.
 
 ## Required policy
 
@@ -87,7 +89,9 @@ connection originates.
   same three VLAN-wide rules through the OPNsense API on an installed appliance.
   These are permanent shared capabilities, not per-VM exceptions; private
   networks remain excluded.
-- Ops: permit administration to guest TCP `22` and Gateway management.
+- Ops: permit administration to guest TCP `22`; Gateway's VLAN-10 bootstrap
+  management path is provided by OPNsense anti-lockout until automation is
+  available.
 - Monitoring: permit only ICMP, TCP `9100` to guest exporters and Proxmox, and
   TCP `9150` to Games. Guests may send logs only to Monitoring TCP `3100`.
 - Door: permit only its named Apps backends on TCP `3005`, `8200`, `8280`, and

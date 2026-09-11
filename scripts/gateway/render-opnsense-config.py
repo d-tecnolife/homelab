@@ -154,9 +154,11 @@ def main() -> None:
         child(system, key, catalog["system"][key])
     child(system, "dnsallowoverride", 0)
     child(system, "disablenatreflection", "yes")
-    # The generated anti-lockout rule permits all LAN clients to reach the web
-    # UI and SSH. The catalog supplies the narrower Ops-only management rule.
-    child(system, "noantilockout", 1)
+    # Keep OPNsense's built-in LAN anti-lockout path on VLAN 10. This is the
+    # bootstrap control plane for the Gateway API before Tailscale and guest
+    # automation exist; disabling it creates an unrecoverable circular
+    # dependency if a rendered policy does not load. WAN remains default-deny.
+    child(system, "noantilockout", 0)
     ssh = child(system, "ssh")
     child(ssh, "enable", 1)
     child(ssh, "permitrootlogin", 1)
