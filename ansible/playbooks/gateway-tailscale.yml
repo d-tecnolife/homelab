@@ -225,7 +225,25 @@
           OPNsense failed to install os-tailscale. Inspect the firmware log in
           the Gateway web UI before retrying.
       no_log: true
-    
+
+    # A freshly installed plugin's API routes are not registered until the web
+    # GUI backend (lighttpd/PHP-FPM) restarts and reloads the MVC controller
+    # map; without this, every /api/tailscale/* call 404s regardless of how
+    # long the wait/retry loop below runs. Fixed once already (c5affc4) and
+    # silently dropped by a later rewrite of this section (93a3bd6/6ac35c2) —
+    # confirmed missing by reproducing the exact 404 on a from-scratch
+    # rebuild. Keep this the moment the plugin install completes.
+    - name: Restart OPNsense Web GUI to register new API routes
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/core/system/restart/webgui"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      no_log: true
+
     - name: Wait for the OPNsense Tailscale plugin API
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/tailscale/settings/get"
