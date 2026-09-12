@@ -1,0 +1,65 @@
+---
+# Only terraform/environments/labyrinthian-estate/opnsense needs to run from
+# Ops rather than the Windows Terraform runner: it targets Gateway's private
+# Infra-VLAN address, which only Ops has a route to. See that root's README.
+- name: Install Terraform on Ops
+  hosts: ops
+  become: true
+  gather_facts: true
+  vars:
+    terraform_version: "1.16.1"
+    terraform_release_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+    terraform_download_dir: /tmp/ansible-terraform-install
+
+  tasks:
+    - name: Require a supported Ops architecture
+      ansible.builtin.assert:
+        that: ansible_architecture in ['x86_64', 'aarch64']
+        fail_msg: "The Terraform installer supports only x86_64 and aarch64 Ops hosts."
+
+    - name: Install unzip
+      ansible.builtin.apt:
+        name: unzip
+        state: present
+        update_cache: true
+
+    - name: Create a scratch directory for the download
+      ansible.builtin.file:
+        path: "{{ terraform_download_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Download the pinned Terraform release with checksum verification
+      ansible.builtin.get_url:
+        url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_{{ terraform_release_arch }}.zip"
+        dest: "{{ terraform_download_dir }}/terraform.zip"
+        mode: "0600"
+        checksum: "sha256:https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_SHA256SUMS"
+
+    - name: Install the Terraform binary
+      ansible.builtin.unarchive:
+        src: "{{ terraform_download_dir }}/terraform.zip"
+        dest: /usr/local/bin
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+        include: [terraform]
+
+    - name: Remove the download scratch directory
+      ansible.builtin.file:
+        path: "{{ terraform_download_dir }}"
+        state: absent
+
+    - name: Verify the installed Terraform version
+      ansible.builtin.command:
+        argv: [terraform, version]
+      changed_when: false
+      register: terraform_installed_version
+
+    - name: Require the pinned version to be what's actually running
+      ansible.builtin.assert:
+        that: terraform_version in terraform_installed_version.stdout
+        fail_msg: >-
+          Installed Terraform reports "{{ terraform_installed_version.stdout_lines[0] }}",
+          expected version {{ terraform_version }}.
