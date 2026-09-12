@@ -188,6 +188,28 @@ variable "ops_ipv4_gateway" {
   nullable    = true
 }
 
+variable "ops_ipv4_internal_address" {
+  description = "IPv4 address in CIDR notation for Ops's Internal-VLAN NIC (Tailscale subnet routing only, no default route)."
+  type        = string
+  default     = "172.16.20.2/24"
+
+  validation {
+    condition     = can(cidrnetmask(var.ops_ipv4_internal_address))
+    error_message = "ops_ipv4_internal_address must be an IPv4 address in CIDR notation."
+  }
+}
+
+variable "ops_ipv4_dmz_address" {
+  description = "IPv4 address in CIDR notation for Ops's DMZ-VLAN NIC (Tailscale subnet routing only, no default route)."
+  type        = string
+  default     = "172.16.30.2/24"
+
+  validation {
+    condition     = can(cidrnetmask(var.ops_ipv4_dmz_address))
+    error_message = "ops_ipv4_dmz_address must be an IPv4 address in CIDR notation."
+  }
+}
+
 # Per-workload sizing, addressing, and VMIDs live in topology/workloads.yaml,
 # consumed directly by workloads.tf's for_each. Do not add per-workload
 # Terraform variables here; add or edit the catalog entry instead.

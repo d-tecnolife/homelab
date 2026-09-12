@@ -5,29 +5,36 @@
 provider "tailscale" {}
 
 locals {
-  gateway_routes = [
+  subnet_routes = [
     "172.16.10.0/24",
     "172.16.20.0/24",
     "172.16.30.0/24",
   ]
 
-  # Membership of the tailnet is the simple sharing mechanism: invite a person
-  # to the tailnet and their own device can use the VPN. OPNsense remains the
-  # authoritative port and VLAN firewall for traffic reaching these subnets.
+  # Ops is the subnet router (ansible/playbooks/ops-tailscale.yml), not
+  # Gateway -- OPNsense's os-tailscale plugin hit two separate confirmed
+  # bugs (a core service-manager bug and its own broken config template)
+  # with no available fix, so Tailscale now runs as an ordinary systemd
+  # service on Ops instead. Traffic reaching these subnets over Tailscale is
+  # NOT filtered by Gateway's firewall as a result (Ops has direct NICs on
+  # all three VLANs for this purpose) -- this ACL policy is the actual
+  # enforcement point for VPN-originated traffic now. Membership of the
+  # tailnet remains the simple sharing mechanism: invite a person to the
+  # tailnet and their own device can use the VPN.
   policy = {
     tagOwners = {
-      "tag:gateway" = ["autogroup:admin"]
+      "tag:ops" = ["autogroup:admin"]
     }
     grants = [
       {
         src = ["autogroup:member"]
-        dst = local.gateway_routes
+        dst = local.subnet_routes
         ip  = ["*"]
       },
     ]
     autoApprovers = {
       routes = {
-        for route in local.gateway_routes : route => ["tag:gateway"]
+        for route in local.subnet_routes : route => ["tag:ops"]
       }
     }
   }

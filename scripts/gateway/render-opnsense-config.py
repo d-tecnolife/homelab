@@ -148,8 +148,10 @@ def main() -> None:
     for key, value in {"name": "root", "scope": "system", "groupname": "admins", "password": password_hash, "authorizedkeys": base64.b64encode(public_key).decode(), "uid": 0}.items():
         child(user, key, value)
     # This account is API-only: its web-login password is random and discarded.
-    # The Tailscale plugin exposes an authentication endpoint outside its narrow
-    # ACL, so page-all is required until the upstream plugin narrows that API.
+    # page-all keeps this a single general-purpose Gateway API credential
+    # (currently used by playbooks/gateway-firewall-reconcile.yml and
+    # scripts/gateway/mint-automation-api-key.sh) rather than something that
+    # needs re-scoping every time a new API-driven task is added.
     automation_user = child(system, "user")
     for key, value in {
         "name": "homelab-automation",

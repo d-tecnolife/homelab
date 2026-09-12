@@ -1,0 +1,115 @@
+---
+# Defensive reconciliation for firewall rules that are also hand-rendered
+# into the bootstrap ISO's config.xml (see gateway/baseline.yaml and
+# scripts/gateway/render-opnsense-config.py). Firewall rules, unlike
+# Unbound's versioned MVC model, take effect correctly when hand-rendered
+# (confirmed: Gateway's rule enforcement has worked correctly all along),
+# so this only matters if a rule was later removed independently of a
+# rebuild (e.g. manual GUI edit). Extracted from the retired
+# gateway-tailscale.yml, which bundled this with Tailscale-specific tasks
+# for no clear reason -- the two are unrelated.
+- name: Reconcile Gateway's public Git SSH firewall rules
+  hosts: localhost
+  gather_facts: false
+  vars:
+    gateway_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
+
+  tasks:
+    - name: Require encrypted Gateway API input
+      ansible.builtin.stat:
+        path: "{{ gateway_secret_path }}"
+      register: gateway_secret
+      tags: [always]
+
+    - name: Refuse to configure Gateway without encrypted credentials
+      ansible.builtin.assert:
+        that: gateway_secret.stat.isreg | default(false)
+        fail_msg: >-
+          Create and encrypt ansible/secrets/gateway.sops.env first.
+      tags: [always]
+
+    - name: Decrypt Gateway credentials in memory
+      ansible.builtin.command:
+        argv: [sops, decrypt, "{{ gateway_secret_path }}"]
+      register: gateway_secret_content
+      changed_when: false
+      no_log: true
+      tags: [always]
+
+    - name: Extract Gateway API values
+      ansible.builtin.set_fact:
+        gateway_url: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_URL=(.+)$', '\\1') | first | trim }}"
+        gateway_api_key: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_KEY=(.+)$', '\\1') | first | trim }}"
+        gateway_api_secret: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_SECRET=(.+)$', '\\1') | first | trim }}"
+      no_log: true
+      tags: [always]
+
+    - name: Require complete Gateway API values
+      ansible.builtin.assert:
+        that:
+          - gateway_url | length > 0
+          - gateway_api_key | length > 0
+          - gateway_api_secret | length > 0
+        fail_msg: gateway.sops.env is incomplete.
+      no_log: true
+      tags: [always]
+
+    # Git-over-SSH is a permanent VLAN-wide capability for current and future
+    # guests. It still excludes every private destination.
+    - name: Find declarative public Git SSH firewall rules
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=100&searchPhrase={{ item.description | urlencode }}"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      loop:
+        - { interface: lan, description: "Public Git SSH - Infra" }
+        - { interface: opt1, description: "Public Git SSH - Internal" }
+        - { interface: opt2, description: "Public Git SSH - DMZ" }
+      register: gateway_public_git_ssh_rules
+      changed_when: false
+      no_log: true
+
+    - name: Declare absent public Git SSH firewall rules
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/add_rule"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          rule:
+            enabled: "1"
+            sequence: "90"
+            action: pass
+            quick: "1"
+            interface: "{{ item.item.interface }}"
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
+            source_net: "{{ item.item.interface }}"
+            destination_net: "!private_networks"
+            destination_port: "22"
+            description: "{{ item.item.description }}"
+      loop: "{{ gateway_public_git_ssh_rules.results }}"
+      when: (item.json.rows | default([]) | length) == 0
+      register: gateway_public_git_ssh_rules_added
+      no_log: true
+
+    - name: Apply the Gateway firewall policy when public Git SSH was added
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/apply"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      when: gateway_public_git_ssh_rules_added.results | selectattr('changed') | list | length > 0
+      no_log: true

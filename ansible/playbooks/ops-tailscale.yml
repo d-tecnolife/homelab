@@ -1,0 +1,185 @@
+---
+# Ops is the homelab Tailscale subnet router, replacing the OPNsense
+# os-tailscale plugin on Gateway. That plugin hit two separate confirmed
+# bugs: OPNsense 26.7's own service manager doesn't reliably survive a
+# reboot (opnsense/core#10723), and the plugin's own config template
+# rendered the service disabled even with correctly-persisted, versioned
+# settings. Neither is fixable from here. Ops runs Tailscale as an ordinary
+# systemd service instead, which has none of those problems. VPN-originated
+# traffic to the three VLANs is no longer filtered by Gateway's firewall as
+# a result -- Tailscale's own ACL policy is the replacement enforcement
+# point for that traffic; see terraform/environments/labyrinthian-estate/tailscale.
+- name: Configure Ops as the homelab Tailscale subnet router
+  hosts: localhost
+  gather_facts: true
+  vars:
+    ops_tailscale_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
+    ops_tailscale_subnets:
+      - 172.16.10.0/24
+      - 172.16.20.0/24
+      - 172.16.30.0/24
+
+  tasks:
+    - name: Require encrypted Tailscale enrollment input
+      ansible.builtin.stat:
+        path: "{{ ops_tailscale_secret_path }}"
+      register: ops_tailscale_secret
+      tags: [always]
+
+    - name: Refuse to configure Tailscale without encrypted credentials
+      ansible.builtin.assert:
+        that: ops_tailscale_secret.stat.isreg | default(false)
+        fail_msg: >-
+          Create and encrypt ansible/secrets/gateway.sops.env first.
+      tags: [always]
+
+    - name: Decrypt Tailscale enrollment credentials in memory
+      ansible.builtin.command:
+        argv: [sops, decrypt, "{{ ops_tailscale_secret_path }}"]
+      register: ops_tailscale_secret_content
+      changed_when: false
+      no_log: true
+      tags: [always]
+
+    - name: Extract Tailscale enrollment values
+      ansible.builtin.set_fact:
+        ops_tailscale_oauth_client_id: "{{ ops_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_OAUTH_CLIENT_ID=(.+)$', '\\1') | first | trim }}"
+        ops_tailscale_oauth_client_secret: "{{ ops_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_OAUTH_CLIENT_SECRET=(.+)$', '\\1') | first | trim }}"
+      no_log: true
+      tags: [always]
+
+    - name: Require complete Tailscale enrollment values
+      ansible.builtin.assert:
+        that:
+          - ops_tailscale_oauth_client_id | length > 0
+          - ops_tailscale_oauth_client_secret | length > 0
+        fail_msg: gateway.sops.env is incomplete.
+      no_log: true
+      tags: [always]
+
+    - name: Add the Tailscale apt signing key
+      ansible.builtin.get_url:
+        url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.noarmor.gpg"
+        dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+        mode: "0644"
+      become: true
+
+    - name: Add the Tailscale apt repository
+      ansible.builtin.get_url:
+        url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.tailscale-keyring.list"
+        dest: /etc/apt/sources.list.d/tailscale.list
+        mode: "0644"
+      become: true
+      register: ops_tailscale_apt_repo
+
+    - name: Update apt cache after adding the Tailscale repository
+      ansible.builtin.apt:
+        update_cache: true
+      become: true
+      when: ops_tailscale_apt_repo.changed
+
+    - name: Install tailscale
+      ansible.builtin.apt:
+        name: tailscale
+        state: present
+      become: true
+
+    - name: Enable IPv4/IPv6 forwarding for subnet routing
+      ansible.posix.sysctl:
+        name: "{{ item }}"
+        value: "1"
+        sysctl_set: true
+        state: present
+        reload: true
+      loop:
+        - net.ipv4.ip_forward
+        - net.ipv6.conf.all.forwarding
+      become: true
+
+    - name: Enable and start tailscaled
+      ansible.builtin.systemd:
+        name: tailscaled
+        enabled: true
+        state: started
+      become: true
+
+    - name: Check current Tailscale login state
+      ansible.builtin.command:
+        argv: [tailscale, status, --json]
+      changed_when: false
+      register: ops_tailscale_current_status
+      become: true
+
+    - name: Parse current Tailscale login state
+      ansible.builtin.set_fact:
+        ops_tailscale_logged_in: "{{ (ops_tailscale_current_status.stdout | from_json).BackendState | default('') == 'Running' }}"
+
+    - name: Exchange the Tailscale OAuth client for a short-lived API token
+      ansible.builtin.uri:
+        url: https://api.tailscale.com/api/v2/oauth/token
+        method: POST
+        body_format: form-urlencoded
+        body:
+          client_id: "{{ ops_tailscale_oauth_client_id }}"
+          client_secret: "{{ ops_tailscale_oauth_client_secret }}"
+          grant_type: client_credentials
+        status_code: 200
+      register: ops_tailscale_oauth_token
+      no_log: true
+      when: not ops_tailscale_logged_in
+
+    - name: Mint a single-use tagged Tailscale auth key for Ops
+      ansible.builtin.uri:
+        url: https://api.tailscale.com/api/v2/tailnet/-/keys
+        method: POST
+        headers:
+          Authorization: "Bearer {{ ops_tailscale_oauth_token.json.access_token }}"
+        body_format: json
+        body:
+          capabilities:
+            devices:
+              create:
+                reusable: false
+                ephemeral: false
+                preauthorized: true
+                tags: ["tag:ops"]
+          expirySeconds: 3600
+        status_code: 200
+      register: ops_tailscale_minted_key
+      no_log: true
+      when: not ops_tailscale_logged_in
+
+    - name: Bring up Tailscale as the homelab subnet router
+      ansible.builtin.command:
+        argv:
+          - tailscale
+          - up
+          - "--authkey={{ ops_tailscale_minted_key.json.key }}"
+          - "--advertise-routes={{ ops_tailscale_subnets | join(',') }}"
+          - "--accept-dns=false"
+          - "--ssh=false"
+      become: true
+      no_log: true
+      when: not ops_tailscale_logged_in
+
+    - name: Ensure advertised routes stay current on an already-authenticated node
+      ansible.builtin.command:
+        argv:
+          - tailscale
+          - set
+          - "--advertise-routes={{ ops_tailscale_subnets | join(',') }}"
+      become: true
+      changed_when: true
+      when: ops_tailscale_logged_in
+
+    - name: Verify Tailscale is actually running
+      ansible.builtin.command:
+        argv: [tailscale, status, --json]
+      changed_when: false
+      register: ops_tailscale_final_status
+      become: true
+
+    - name: Require Ops Tailscale to report BackendState Running
+      ansible.builtin.assert:
+        that: (ops_tailscale_final_status.stdout | from_json).BackendState | default('') == 'Running'
+        fail_msg: "Ops Tailscale BackendState is not Running."

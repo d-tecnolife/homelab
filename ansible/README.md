@@ -57,10 +57,15 @@ Run standalone, outside `bootstrap-lab.yml`:
   ChezMoi, and a LazyVim starter configuration. It intentionally leaves Docker
   to `playbooks/docker.yml` and only applies ChezMoi when given a dotfiles
   repository URL.
-- `playbooks/gateway-tailscale.yml` configures the OPNsense Gateway as the
-  Tailscale subnet router through its seeded API account. Part of the Gateway
-  rebuild order in `docs/gateway-configuration.md`, not the guest bootstrap
-  chain — it runs against `localhost` before most guests exist.
+- `playbooks/ops-tailscale.yml` configures Ops as the homelab's Tailscale
+  subnet router (installed as an ordinary systemd service, not an OPNsense
+  plugin — see `terraform/environments/labyrinthian-estate/tailscale/README.md`
+  for why). Part of the Gateway rebuild order in `docs/gateway-configuration.md`,
+  not the guest bootstrap chain.
+- `playbooks/gateway-firewall-reconcile.yml` defensively reconciles the
+  public Git SSH firewall rules that are also hand-rendered into the
+  bootstrap ISO, through Gateway's seeded API account. Only matters if a
+  rule was removed independently of a rebuild (e.g. a manual GUI edit).
 - `playbooks/vault-ssh-host-ca-bootstrap.yml` and `playbooks/vault-ssh-host-ca.yml`
   establish certificate-based SSH host trust, replacing the ssh-keyscan pinning
   from `bootstrap-ssh-host-keys.yml` host by host as each one is signed. These

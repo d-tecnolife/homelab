@@ -83,11 +83,9 @@ firewall:
     - { interface: wan, protocol: tcp, destination_port: 443, target: door, target_port: 443, description: "WAN HTTPS to Door" }
     - { interface: wan, protocol: tcp, destination_port: 25565, target: games, target_port: 25565, description: "WAN Minecraft to Games" }
 
-tailscale:
-  enabled: true
-  subnet_routes: [172.16.10.0/24, 172.16.20.0/24, 172.16.30.0/24]
-  source_nat: true
-  exit_node: false
-  ssh: false
-  serve: false
-  funnel: false
+# Tailscale runs on Ops now (ansible/playbooks/ops-tailscale.yml), not
+# Gateway -- see terraform/environments/labyrinthian-estate/tailscale/README.md
+# for why. This section was never actually read by render-opnsense-config.py
+# even when Tailscale did run on Gateway; Tailscale was always configured
+# live through its own API (playbooks/gateway-tailscale.yml, now retired),
+# never rendered here.

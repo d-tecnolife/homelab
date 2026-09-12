@@ -47,20 +47,27 @@ partially completed rebuild at any phase.
    non-secret `gateway-install.auto.tfvars` override so future Terraform plans
    preserve installed disk-boot mode, ejects the installer media, and makes the
    installed disk first in boot order; do not do any of these in the Proxmox UI.
-8. Create Ops (VMID `1010`) as the only controller exception. From its console,
-   run the Gateway reconciliation playbook, which installs and configures the
-   OPNsense Tailscale plugin, then apply the separate Tailscale Terraform root.
+8. Create Ops (VMID `1010`) as the only controller exception. Ops is the
+   homelab's Tailscale subnet router (`playbooks/ops-tailscale.yml`), not
+   Gateway. Tailscale ran as Gateway's `os-tailscale` plugin originally;
+   that was dropped after hitting two separate, confirmed, unfixable bugs:
+   OPNsense 26.7's own service manager doesn't reliably survive a reboot
+   (<https://github.com/opnsense/core/issues/10723>), and independently the
+   plugin's own config template rendered the service disabled despite
+   correctly-persisted, properly-versioned settings. Ops runs Tailscale as
+   an ordinary systemd service instead, which has neither problem. Because
+   Ops (not Gateway) advertises the three VLAN routes, VPN-originated
+   traffic is no longer filtered by Gateway's firewall -- the separate
+   Tailscale Terraform root's ACL policy is the actual enforcement point
+   for that traffic now; apply it after `ops-tailscale.yml`.
+
    Gateway runs no DNS resolver of its own -- every service this homelab
    needs an internal name for already has a public DNS record, so guests
    and Gateway itself resolve directly through the public resolvers in
-   `dns_servers` / `gateway/baseline.yaml`. Unbound was tried here and
-   dropped after hitting a confirmed, still-open upstream OPNsense bug
-   (<https://github.com/opnsense/core/issues/10723>) where enabled services
-   do not reliably survive a reboot -- the same bug affects Tailscale itself,
-   so after any Gateway reboot or crash `tailscaled` must be started by hand
-   from the console (`service tailscaled onestart`; plain `start` refuses
-   because the bug leaves `tailscaled_enable` at `NO` in rc.conf). No
-   automated recovery exists for this yet.
+   `dns_servers` / `gateway/baseline.yaml`. Unbound hit the same
+   reboot-survival bug as Tailscale and was dropped entirely rather than
+   moved, since split-DNS added no value once every name had a public
+   record.
 9. Set `gateway_policy_ready = true` only after those steps complete, review
    the workload plan, and apply it.
 
@@ -137,20 +144,26 @@ not add a one-off shell rule to continue provisioning.
 
 ## Tailscale
 
-Gateway is the sole tailnet node. It advertises the three VLAN routes with
-source NAT enabled, so every workload sees Gateway as the return path and its
-existing VLAN rules remain authoritative. Do not enable Tailscale SSH, an exit
-node, Funnel, Serve, or Tailscale on Door/workloads.
+Ops is the sole tailnet node, not Gateway (see the rebuild-order note above
+for why). It advertises the three VLAN routes over two extra NICs on
+Internal and DMZ, in addition to its existing Infra NIC. Because this
+traffic reaches those VLANs directly rather than being routed through
+Gateway, it is **not** filtered by Gateway's per-VLAN firewall rules --
+enforcement for VPN-originated traffic happens entirely through the
+Tailscale ACL policy below. Do not enable Tailscale SSH, an exit node,
+Funnel, or Serve on Ops, and do not additionally install Tailscale on
+Door/workloads.
 
-After Ops exists, run the Gateway reconciliation playbook. It uses the same
-encrypted input used to build Gateway:
+Once Ops exists, bring it up as the subnet router. It uses the same
+encrypted input used to build Gateway (the Tailscale OAuth client):
 
 ```bash
 cd ~/homelab/ansible
-ansible-playbook playbooks/gateway-tailscale.yml
+ansible-playbook playbooks/ops-tailscale.yml
 ```
 
 Then apply the separate `terraform/environments/labyrinthian-estate/tailscale`
 root with its scoped OAuth credentials. Its policy makes route approval
-automatic for `tag:gateway`; inviting somebody to the tailnet is all that is
-needed for them to use the VPN.
+automatic for `tag:ops`; inviting somebody to the tailnet is all that is
+needed for them to use the VPN, and its `grants` are the actual access
+control for that VPN traffic now.

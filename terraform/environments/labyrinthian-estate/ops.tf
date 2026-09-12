@@ -121,6 +121,22 @@ resource "proxmox_virtual_environment_vm" "ops" {
     vlan_id = var.infra_vlan_id
   }
 
+  # Ops is the Tailscale subnet router (see ansible/playbooks/ops-tailscale.yml);
+  # these two additional NICs give it direct reach to Internal and DMZ so it
+  # can advertise all three VLANs, the same routes Gateway's now-retired
+  # os-tailscale plugin used to advertise.
+  network_device {
+    bridge  = proxmox_network_linux_bridge.internal.name
+    model   = "virtio"
+    vlan_id = var.internal_vlan_id
+  }
+
+  network_device {
+    bridge  = proxmox_network_linux_bridge.internal.name
+    model   = "virtio"
+    vlan_id = var.dmz_vlan_id
+  }
+
   initialization {
     datastore_id      = var.datastore_id
     interface         = "scsi1"
@@ -134,6 +150,18 @@ resource "proxmox_virtual_environment_vm" "ops" {
       ipv4 {
         address = var.ops_ipv4_address
         gateway = var.ops_ipv4_address == "dhcp" ? null : var.ops_ipv4_gateway
+      }
+    }
+
+    ip_config {
+      ipv4 {
+        address = var.ops_ipv4_internal_address
+      }
+    }
+
+    ip_config {
+      ipv4 {
+        address = var.ops_ipv4_dmz_address
       }
     }
 
