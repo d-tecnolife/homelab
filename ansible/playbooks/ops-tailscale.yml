@@ -43,6 +43,9 @@
       changed_when: false
       no_log: true
       tags: [always]
+      # Decrypting to memory changes nothing, so it must still run under
+      # --check; skipping it leaves every downstream task undefined.
+      check_mode: false
 
     - name: Extract Tailscale enrollment values
       ansible.builtin.set_fact:

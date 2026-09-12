@@ -29,6 +29,9 @@
     - name: Decrypt the Vault signing credential in memory
       ansible.builtin.command:
         argv: [sops, decrypt, "{{ vault_ssh_ca_secret_path }}"]
+      # Decrypting to memory changes nothing, so it must still run under
+      # --check; skipping it leaves every downstream task undefined.
+      check_mode: false
       environment:
         SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
       delegate_to: localhost

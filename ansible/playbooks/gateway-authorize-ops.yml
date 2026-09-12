@@ -40,6 +40,9 @@
       changed_when: false
       no_log: true
       delegate_to: localhost
+      # Decrypting to memory changes nothing, so it must still run under
+      # --check; skipping it leaves every downstream task undefined.
+      check_mode: false
 
     - name: Extract Gateway API values
       ansible.builtin.set_fact:
@@ -68,6 +71,9 @@
         status_code: 200
       register: gateway_users
       changed_when: false
+      # Read-only, so it runs under --check too; otherwise the facts built
+      # from it are undefined and every later task fails.
+      check_mode: false
       no_log: true
 
     - name: Select Gateway's root account
@@ -87,6 +93,9 @@
         status_code: 200
       register: gateway_root_user
       changed_when: false
+      # Read-only, so it runs under --check too; otherwise the facts built
+      # from it are undefined and every later task fails.
+      check_mode: false
       no_log: true
 
     - name: Retain Gateway's currently authorized keys
@@ -141,6 +150,8 @@
           Gateway rejected the authorized key update:
           {{ gateway_root_user_updated.json.validations
              | default(gateway_root_user_updated.json | default('no response')) }}
+      # --check never performs the write, so there is no result to require.
+      when: not ansible_check_mode
 
     - name: Verify Ops can authenticate to Gateway over SSH
       ansible.builtin.command:
@@ -157,8 +168,10 @@
       register: gateway_ssh_check
       changed_when: false
       failed_when: gateway_ssh_check.rc != 0
+      when: not ansible_check_mode
 
     - name: Confirm Gateway answered as itself
       ansible.builtin.assert:
         that: gateway_ssh_check.stdout | trim | length > 0
         success_msg: "Ops authenticated to Gateway as {{ gateway_ssh_check.stdout | trim }}."
+      when: not ansible_check_mode
