@@ -1,0 +1,136 @@
+---
+# Gateway is configured through its API, not by Ansible over SSH, so it is not
+# in the inventory and never received the Ops management key that
+# bootstrap-ops-ssh.yml distributes to every managed VM. Without this, Ops can
+# reach Gateway's SSH port and is then refused on publickey -- the firewall
+# rule and sshd both being correct is not enough.
+#
+# The Ops management key is regenerated per rebuild, so it cannot be baked into
+# the bootstrap ISO; it has to be installed after Ops exists.
+- name: Authorize the Ops management key on Gateway
+  hosts: ops
+  gather_facts: false
+  vars:
+    gateway_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
+    managed_user_home: "/home/{{ ansible_user | default('dtec', true) }}"
+
+  tasks:
+    - name: Require encrypted Gateway API input
+      ansible.builtin.stat:
+        path: "{{ gateway_secret_path }}"
+      register: gateway_secret
+      delegate_to: localhost
+
+    - name: Refuse to configure Gateway without encrypted credentials
+      ansible.builtin.assert:
+        that: gateway_secret.stat.isreg | default(false)
+        fail_msg: >-
+          Create and encrypt ansible/secrets/gateway.sops.env first.
+
+    - name: Decrypt Gateway credentials in memory
+      ansible.builtin.command:
+        argv: [sops, decrypt, "{{ gateway_secret_path }}"]
+      register: gateway_secret_content
+      changed_when: false
+      no_log: true
+      delegate_to: localhost
+
+    - name: Extract Gateway API values
+      ansible.builtin.set_fact:
+        gateway_url: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_URL=(.+)$', '\\1') | first | trim }}"
+        gateway_api_key: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_KEY=(.+)$', '\\1') | first | trim }}"
+        gateway_api_secret: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_SECRET=(.+)$', '\\1') | first | trim }}"
+      no_log: true
+
+    - name: Read the Ops management public key
+      ansible.builtin.slurp:
+        src: "{{ managed_user_home }}/.ssh/id_ed25519.pub"
+      register: ops_management_public_key_file
+
+    - name: Retain the Ops management public key
+      ansible.builtin.set_fact:
+        ops_management_public_key: "{{ ops_management_public_key_file.content | b64decode | trim }}"
+
+    - name: Find Gateway's root account
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/auth/user/search?rowCount=100"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_users
+      changed_when: false
+      no_log: true
+
+    - name: Select Gateway's root account
+      ansible.builtin.set_fact:
+        gateway_root_uuid: >-
+          {{ (gateway_users.json.rows | default([])
+              | selectattr('name', 'equalto', 'root') | list | first).uuid }}
+
+    - name: Read Gateway's currently authorized keys
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/auth/user/get/{{ gateway_root_uuid }}"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_root_user
+      changed_when: false
+      no_log: true
+
+    - name: Retain Gateway's currently authorized keys
+      ansible.builtin.set_fact:
+        # The API hands this back decoded and re-encodes it on write, so the
+        # base64 stored in config.xml never has to be handled here.
+        gateway_authorized_keys: >-
+          {{ (gateway_root_user.json.user.authorizedkeys | default('')).split('\n')
+             | map('trim') | reject('equalto', '') | list }}
+
+    - name: Authorize the Ops management key on Gateway
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/auth/user/set/{{ gateway_root_uuid }}"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          user:
+            authorizedkeys: "{{ (gateway_authorized_keys + [ops_management_public_key]) | join('\\n') }}"
+      when: ops_management_public_key not in gateway_authorized_keys
+      register: gateway_root_user_updated
+      # OPNsense answers 200 even when it rejects the write.
+      changed_when: (gateway_root_user_updated.json.result | default('')) == 'saved'
+      failed_when: false
+      no_log: true
+
+    - name: Require Gateway to accept the Ops management key
+      ansible.builtin.assert:
+        that: (gateway_root_user_updated.json.result | default('')) == 'saved'
+        fail_msg: >-
+          Gateway rejected the authorized key update:
+          {{ gateway_root_user_updated.json.validations
+             | default(gateway_root_user_updated.json | default('no response')) }}
+      when: not (gateway_root_user_updated.skipped | default(false))
+
+    - name: Verify Ops can authenticate to Gateway over SSH
+      ansible.builtin.command:
+        argv:
+          - ssh
+          - -o
+          - ConnectTimeout=5
+          - -o
+          - BatchMode=yes
+          - -o
+          - StrictHostKeyChecking=accept-new
+          - "root@{{ gateway_url | regex_replace('^https?://', '') }}"
+          - hostname
+      register: gateway_ssh_check
+      changed_when: false

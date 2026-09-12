@@ -3,6 +3,9 @@
 # SSH-key phases separately so this process uses Ops' permanent management key.
 - import_playbook: hosts-file.yml
 - import_playbook: network-preflight.yml
+# Gateway is API-managed and absent from the inventory, so the Ops key
+# distribution in bootstrap-ops-ssh.yml does not reach it.
+- import_playbook: gateway-authorize-ops.yml
 - import_playbook: docker.yml
 - import_playbook: maintenance-schedule.yml
 - import_playbook: secrets.yml
