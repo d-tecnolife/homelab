@@ -1,0 +1,10 @@
+# SOPS-encrypted files must round-trip byte-for-byte. Without this, Git on
+# Windows silently converts their LF line endings to CRLF on checkout,
+# corrupting the encrypted structure (SOPS then fails to parse it) even
+# though the file looks fine and diffs fine as plain text.
+*.sops.env -text
+*.sops.yaml -text
+*.sops.json -text
+# The repo-root .sops.yaml is SOPS's own plaintext config (recipient rules),
+# not an encrypted file -- keep it as normal, diffable text.
+/.sops.yaml text
