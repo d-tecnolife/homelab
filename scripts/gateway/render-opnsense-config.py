@@ -149,10 +149,6 @@ def main() -> None:
     # remains the recovery path if one of them is wrong.
     if catalog["system"].get("disable_antilockout"):
         child(webgui, "noantilockout", 1)
-    # Keep OPNsense's built-in LAN anti-lockout path on VLAN 10. This is the
-    # bootstrap control plane for the Gateway API before Tailscale and guest
-    # automation exist; disabling it creates an unrecoverable circular
-    # dependency if a rendered policy does not load. WAN remains default-deny.
     # OPNsense keys every one of these on element *presence* (isset), not on
     # value, and it reads <enabled> -- <enable> is the pfSense spelling, which
     # loads without complaint and never starts sshd. A <passwordauth>0</...>
