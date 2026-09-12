@@ -42,8 +42,13 @@ def fetch_csrf(opener):
     match = CSRF_RE.search(body)
     if not match:
         print("could not find CSRF token on login page", file=sys.stderr)
-        print(f"response length: {len(body)}", file=sys.stderr)
-        print(f"first 500 chars: {body[:500]!r}", file=sys.stderr)
+        idx = body.find("new-password")
+        if idx == -1:
+            idx = body.lower().find("csrf")
+        if idx != -1:
+            print(f"context around match: {body[max(0, idx-200):idx+200]!r}", file=sys.stderr)
+        else:
+            print("no 'new-password' or 'csrf' substring found anywhere in response", file=sys.stderr)
         sys.exit(1)
     return match.group(1), match.group(2), body
 
