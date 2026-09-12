@@ -90,7 +90,7 @@ is the one to use there. It discovers the restored age identity under
 `~/.config/sops/age` when `SOPS_AGE_KEY_FILE` is not already set:
 
 ```powershell
-.\scripts	erraform-with-secrets.ps1 -Component proxmox -Action plan
+.\scripts\terraform-with-secrets.ps1 -Component proxmox -Action plan
 ```
 
 The wrapper uses `sops exec-env`, so Terraform receives `TF_VAR_*` values in
@@ -106,8 +106,8 @@ bash scripts/terraform-with-secrets.sh tailscale plan
 ```
 
 ```powershell
-.\scripts	erraform-with-secrets.ps1 -Component tailscale -Action init
-.\scripts	erraform-with-secrets.ps1 -Component tailscale -Action plan
+.\scripts\terraform-with-secrets.ps1 -Component tailscale -Action init
+.\scripts\terraform-with-secrets.ps1 -Component tailscale -Action plan
 ```
 
 It also stores the seeded `homelab-automation` Gateway API credential (the
