@@ -38,7 +38,10 @@ def build_opener():
 
 def fetch_csrf(opener):
     with opener.open(GATEWAY_URL + "/", timeout=15) as resp:
+        print(f"GET / -> status={resp.status} url={resp.geturl()}", file=sys.stderr)
         body = resp.read().decode("utf-8", errors="replace")
+    title_match = re.search(r"<title>(.*?)</title>", body, re.DOTALL)
+    print(f"page title: {title_match.group(1) if title_match else '(none found)'}", file=sys.stderr)
     match = CSRF_RE.search(body)
     if not match:
         print("could not find CSRF token on login page", file=sys.stderr)
