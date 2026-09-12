@@ -20,9 +20,10 @@ from urllib.parse import urlencode
 GATEWAY_URL = "https://172.16.10.1"
 AUTOMATION_USER = "homelab-automation"
 
-CSRF_RE = re.compile(
+LOGIN_CSRF_RE = re.compile(
     r'<input type="hidden" name="([^"]+)" value="([^"]+)" autocomplete="new-password"'
 )
+AJAX_CSRF_RE = re.compile(r'X-CSRFToken",\s*"([^"]+)"')
 
 
 def build_opener():
@@ -36,24 +37,26 @@ def build_opener():
     ), cookie_jar
 
 
-def fetch_csrf(opener):
+def fetch_login_form(opener):
+    """GET the login page and return (csrf_field_name, csrf_value)."""
     with opener.open(GATEWAY_URL + "/", timeout=15) as resp:
-        print(f"GET / -> status={resp.status} url={resp.geturl()}", file=sys.stderr)
         body = resp.read().decode("utf-8", errors="replace")
-    title_match = re.search(r"<title>(.*?)</title>", body, re.DOTALL)
-    print(f"page title: {title_match.group(1) if title_match else '(none found)'}", file=sys.stderr)
-    match = CSRF_RE.search(body)
+    match = LOGIN_CSRF_RE.search(body)
     if not match:
-        print("could not find CSRF token on login page", file=sys.stderr)
-        idx = body.find("new-password")
-        if idx == -1:
-            idx = body.lower().find("csrf")
-        if idx != -1:
-            print(f"context around match: {body[max(0, idx-200):idx+200]!r}", file=sys.stderr)
-        else:
-            print("no 'new-password' or 'csrf' substring found anywhere in response", file=sys.stderr)
+        print("could not find the login form's CSRF field", file=sys.stderr)
         sys.exit(1)
-    return match.group(1), match.group(2), body
+    return match.group(1), match.group(2)
+
+
+def fetch_ajax_csrf(opener):
+    """GET an authenticated page and return the CSRF token used for AJAX/API calls."""
+    with opener.open(GATEWAY_URL + "/", timeout=15) as resp:
+        body = resp.read().decode("utf-8", errors="replace")
+    match = AJAX_CSRF_RE.search(body)
+    if not match:
+        print("could not find the authenticated-session CSRF token", file=sys.stderr)
+        sys.exit(1)
+    return match.group(1)
 
 
 def main():
@@ -69,7 +72,7 @@ def main():
 
     opener, _ = build_opener()
 
-    csrf_field, csrf_value, _ = fetch_csrf(opener)
+    csrf_field, csrf_value = fetch_login_form(opener)
 
     login_body = urlencode(
         {
@@ -90,7 +93,7 @@ def main():
         sys.exit(1)
 
     # Fetch a fresh CSRF token for the authenticated API call.
-    api_csrf_field, api_csrf_value, _ = fetch_csrf(opener)
+    api_csrf_value = fetch_ajax_csrf(opener)
 
     api_req = urllib.request.Request(
         f"{GATEWAY_URL}/api/auth/user/addApiKey/{AUTOMATION_USER}",
