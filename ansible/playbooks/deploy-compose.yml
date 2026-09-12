@@ -48,7 +48,9 @@
         - {path: vault/data, owner: "100"}
       monitoring:
         - {path: monitoring/prometheus, owner: "65534"}
-        - {path: monitoring/prometheus-targets, owner: "root"}
+        # Owned by the Prometheus container UID so it can read its targets
+        # without depending on a data group's creation-order GID.
+        - {path: monitoring/prometheus-targets, owner: "65534"}
         - {path: monitoring/alertmanager, owner: "65534"}
         - {path: monitoring/loki, owner: "10001"}
         - {path: monitoring/grafana, owner: "472"}

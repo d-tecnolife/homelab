@@ -2,7 +2,13 @@ services:
   prometheus:
     image: prom/prometheus:v3.5.0
     container_name: prometheus
-    user: "65534:1002" # nobody with the prometheus-data group for file-discovery targets
+    # Read access to the generated targets comes from owning their directory,
+    # the same way every other service here owns its data. It previously
+    # borrowed prometheus-data's numeric GID, but deploy-compose creates those
+    # groups without fixed numbers, so the GID follows creation order: on this
+    # build 1002 was alertmanager-data, Prometheus could not read its targets,
+    # and node and Minecraft scraping silently never started.
+    user: "65534:65534"
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml

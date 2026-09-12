@@ -17,7 +17,9 @@
       ansible.builtin.file:
         path: /srv/compose/monitoring/prometheus-targets
         state: directory
-        owner: root
+        # Matches deploy-compose.yml: the Prometheus container UID owns this
+        # directory, so reading the targets does not hinge on a group's GID.
+        owner: "65534"
         group: prometheus-data
         mode: "2770"
 
