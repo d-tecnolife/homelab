@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# One-shot recovery/bootstrap: mint a working homelab-automation API key
-# through OPNsense's own addApiKey REST action, authenticated with a real
-# GUI-style session login (the Gateway root console password, already
-# known-good from the attended install) instead of hand-rendering apikeys
-# XML into the bootstrap ISO. The hand-rendered apikeys entry never
-# authenticated (confirmed 401 on every endpoint via direct curl); a key
-# minted this way is generated and hashed entirely by OPNsense's real code,
-# the same mechanism the GUI's "+" button uses.
+# Rotate the homelab-automation API key through OPNsense's own addApiKey REST
+# action, authenticated with a real GUI-style session login (the Gateway root
+# console password from the attended install). The key is generated and hashed
+# entirely by OPNsense's own code, the same mechanism the GUI's "+" button uses,
+# and this script writes it to both encrypted inputs.
+#
+# This is for ROTATION, not repair. The bootstrap ISO's hand-rendered apikeys
+# entry does authenticate -- the credential from the first version of
+# ansible/secrets/gateway.sops.env still works today. An earlier comment here
+# claimed the opposite; the 401 that prompted it came from rewriting the secret
+# file alone, which cannot change the key Gateway stores in config.xml. Use this
+# script whenever the key itself must change, because it changes it on the box.
 #
 # Must run from a host with a network route to Gateway's Infra-VLAN address
-# (Ops) -- see terraform/environments/labyrinthian-estate/opnsense/README.md.
+# (Ops) -- see docs/gateway-configuration.md.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
