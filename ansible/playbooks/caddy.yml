@@ -9,8 +9,19 @@
     caddy_encrypted_secret_path: "{{ playbook_dir }}/../secrets/caddy.sops.env"
     sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
     cloudflare_zone_name: dscim.dev
-    vault_dns_name: ssh-ca.dscim.dev
-    vault_dns_address: "{{ ansible_host }}"
+    # Every hostname Caddy serves resolves to Door. Only ssh-ca used to be managed
+    # here; the rest were hand-made and still pointed at Gateway's Infra address
+    # after the VLAN move, where OPNsense's own GUI answered with a certificate
+    # for gateway.dscim.dev. tests/test_caddy_dns.py keeps this matched to
+    # files/caddy/sites.
+    caddy_dns_names:
+      - auth.dscim.dev
+      - jobs.dscim.dev
+      - monitor.dscim.dev
+      - ssh-ca.dscim.dev
+      - vault.dscim.dev
+    caddy_dns_address: "{{ ansible_host }}"
+    caddy_dns_comment: Caddy site on Door, managed by Ansible
 
   pre_tasks:
     - name: Check for the encrypted Cloudflare secret
@@ -85,39 +96,48 @@
       become: false
       no_log: true
 
-    - name: Find the Vault DNS record
+    - name: Find the Caddy site DNS records
       ansible.builtin.uri:
         url: >-
-          https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone.json.result[0].id }}/dns_records?type=A&name={{ vault_dns_name }}
+          https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone.json.result[0].id }}/dns_records?type=A&name={{ item }}
         headers:
           Authorization: "Bearer {{ cloudflare_api_token }}"
         return_content: true
         status_code: 200
+      loop: "{{ caddy_dns_names }}"
       delegate_to: localhost
       become: false
-      register: cloudflare_vault_record
+      register: cloudflare_site_records
       no_log: true
       # Read-only lookups have to run under --check as well; skipping them
       # leaves the facts below undefined and fails the whole play.
       check_mode: false
 
-    - name: Publish the routed-subnet Vault DNS record
+    - name: Point each Caddy site's DNS record at Door
       ansible.builtin.uri:
         url: >-
           https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone.json.result[0].id }}/dns_records{{
-          '/' ~ cloudflare_vault_record.json.result[0].id if cloudflare_vault_record.json.result | length else '' }}
-        method: "{{ 'PUT' if cloudflare_vault_record.json.result | length else 'POST' }}"
+          '/' ~ item.json.result[0].id if item.json.result | length else '' }}
+        method: "{{ 'PUT' if item.json.result | length else 'POST' }}"
         headers:
           Authorization: "Bearer {{ cloudflare_api_token }}"
         body_format: json
         body:
           type: A
-          name: "{{ vault_dns_name }}"
-          content: "{{ vault_dns_address }}"
+          name: "{{ item.item }}"
+          content: "{{ caddy_dns_address }}"
           ttl: 1
           proxied: false
-          comment: Routed-subnet Vault endpoint managed by Ansible
+          comment: "{{ caddy_dns_comment }}"
         status_code: 200
+      loop: "{{ cloudflare_site_records.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      # Write only when the record is absent or differs, so re-runs change nothing.
+      when: >-
+        (item.json.result | length == 0)
+        or (item.json.result[0].content != caddy_dns_address)
+        or ((item.json.result[0].comment | default('', true)) != caddy_dns_comment)
       delegate_to: localhost
       become: false
       no_log: true
