@@ -15,11 +15,17 @@ secret_file="$repo_root/ansible/secrets/gateway.sops.env"
 [[ -r "$ssh_public_key" ]] || { echo "cannot read SSH public key: $ssh_public_key" >&2; exit 1; }
 command -v sops >/dev/null || { echo "sops is required" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
-command -v xmllint >/dev/null || { echo "xmllint is required" >&2; exit 1; }
-if ! command -v htpasswd >/dev/null; then
+# sops and python3 are prerequisites of the wider workflow and are expected to
+# be present already. The rest are only needed to build this ISO, so install
+# them rather than sending the operator away mid-rebuild for a package.
+install_package_if_missing() {
+    command -v "$1" >/dev/null && return 0
     sudo apt-get update
-    sudo env DEBIAN_FRONTEND=noninteractive apt-get install --yes apache2-utils
-fi
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install --yes "$2"
+}
+
+install_package_if_missing xmllint libxml2-utils
+install_package_if_missing htpasswd apache2-utils
 if ! python3 -c 'import yaml' >/dev/null 2>&1; then
     sudo apt-get update
     sudo env DEBIAN_FRONTEND=noninteractive apt-get install --yes python3-yaml
@@ -52,6 +58,6 @@ if [[ "$proxmox_host" == "localhost" || "$proxmox_host" == "127.0.0.1" ]]; then
     rm -f "$remote_tmp"
 else
     scp "$config_xml" "root@$proxmox_host:$remote_tmp"
-    ssh "root@$proxmox_host" "command -v xorriso >/dev/null && test -r '$remote_source' && rm -f '$remote_output' && xorriso -indev '$remote_source' -outdev '$remote_output' -boot_image any keep -map '$remote_tmp' /conf/config.xml -commit -end && xorriso -indev '$remote_output' -find /conf/config.xml -exec lsdl && xorriso -indev '$remote_output' -report_el_torito plain 2>&1 | grep -q 'El Torito boot img' && rm -f '$remote_tmp'"
+    ssh "root@$proxmox_host" "{ command -v xorriso >/dev/null || { apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --yes xorriso; }; } && test -r '$remote_source' && rm -f '$remote_output' && xorriso -indev '$remote_source' -outdev '$remote_output' -boot_image any keep -map '$remote_tmp' /conf/config.xml -commit -end && xorriso -indev '$remote_output' -find /conf/config.xml -exec lsdl && xorriso -indev '$remote_output' -report_el_torito plain 2>&1 | grep -q 'El Torito boot img' && rm -f '$remote_tmp'"
 fi
 printf 'gateway_bootstrap_iso_file_id = "local:iso/%s"\n' "$output_name"
