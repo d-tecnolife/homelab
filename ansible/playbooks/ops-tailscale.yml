@@ -14,10 +14,13 @@
   gather_facts: true
   vars:
     ops_tailscale_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
-    ops_tailscale_subnets:
-      - 172.16.10.0/24
-      - 172.16.20.0/24
-      - 172.16.30.0/24
+    # Advertise exactly the VLAN networks the Gateway baseline declares, so the
+    # routes this host offers cannot drift from the ones the Tailscale ACL
+    # approves (terraform/environments/labyrinthian-estate/tailscale reads the
+    # same list). Hand-copying it in both places let them disagree silently.
+    ops_tailscale_subnets: >-
+      {{ (lookup('file', playbook_dir + '/../../gateway/baseline.yaml')
+          | from_yaml).aliases.homelab_networks['values'] }}
 
   tasks:
     - name: Require encrypted Tailscale enrollment input

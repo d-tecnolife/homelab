@@ -11,11 +11,11 @@ provider "tailscale" {
 }
 
 locals {
-  subnet_routes = [
-    "172.16.10.0/24",
-    "172.16.20.0/24",
-    "172.16.30.0/24",
-  ]
+  # The homelab VLAN networks are declared once, in the Gateway baseline that
+  # actually configures them, and reused here. Hand-copying the list let the
+  # subnet router advertise routes this policy had never approved.
+  gateway_baseline = yamldecode(file("${path.module}/../../../../gateway/baseline.yaml"))
+  subnet_routes    = local.gateway_baseline.aliases.homelab_networks.values
 
   # Ops is the subnet router (ansible/playbooks/ops-tailscale.yml), not
   # Gateway -- OPNsense's os-tailscale plugin hit two separate confirmed
