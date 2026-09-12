@@ -102,7 +102,85 @@
       register: gateway_public_git_ssh_rules_added
       no_log: true
 
-    - name: Apply the Gateway firewall policy when public Git SSH was added
+    # Ops' own administration path to Gateway. An installer built before the
+    # renderer learned OPNsense's (self) token left this rule enabled but
+    # unmatchable, which is invisible from the GUI: port 443 keeps working
+    # through the built-in LAN anti-lockout rule while SSH silently times out.
+    # The rule is fully declared in gateway/baseline.yaml, so reconciling it
+    # means replacing the whole body rather than preserving live fields.
+    - name: Find the declarative Ops Gateway administration rule
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=100&searchPhrase={{ 'Ops Gateway administration' | urlencode }}"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_administration_rule
+      changed_when: false
+      no_log: true
+
+    - name: Select the Ops Gateway administration rule needing repair
+      ansible.builtin.set_fact:
+        gateway_administration_matches: >-
+          {{ gateway_administration_rule.json.rows | default([])
+             | selectattr('description', 'equalto', 'Ops Gateway administration')
+             | list }}
+      no_log: true
+
+    - name: Declare the Ops Gateway administration rule body
+      ansible.builtin.set_fact:
+        gateway_administration_body:
+          enabled: "1"
+          sequence: "140"
+          action: pass
+          quick: "1"
+          interface: lan
+          direction: in
+          ipprotocol: inet
+          protocol: TCP
+          source_net: ops
+          destination_net: "(self)"
+          destination_port: "22,443"
+          description: Ops Gateway administration
+      no_log: true
+
+    - name: Correct an unmatchable Ops Gateway administration rule
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/set_rule/{{ gateway_administration_matches[0].uuid }}"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          rule: "{{ gateway_administration_body }}"
+      when:
+        - gateway_administration_matches | length > 0
+        - gateway_administration_matches[0].destination_net != '(self)'
+      register: gateway_administration_rule_corrected
+      no_log: true
+
+    - name: Declare an absent Ops Gateway administration rule
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/add_rule"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          rule: "{{ gateway_administration_body }}"
+      when: gateway_administration_matches | length == 0
+      register: gateway_administration_rule_added
+      no_log: true
+
+    - name: Apply the Gateway firewall policy when a rule was added or corrected
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/apply"
         method: POST
@@ -111,5 +189,8 @@
         force_basic_auth: true
         validate_certs: false
         status_code: 200
-      when: gateway_public_git_ssh_rules_added.results | selectattr('changed') | list | length > 0
+      when: >-
+        (gateway_public_git_ssh_rules_added.results | selectattr('changed') | list | length > 0)
+        or (gateway_administration_rule_corrected.changed | default(false))
+        or (gateway_administration_rule_added.changed | default(false))
       no_log: true
