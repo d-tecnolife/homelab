@@ -7,14 +7,16 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && { pwd -W 2>/dev/null || pwd; })"
 secret_file="$repository_root/secrets/infrastructure.sops.env"
 component="proxmox"
-action="${1:-}"
 
-case "$action" in
+case "${1:-}" in
   proxmox|tailscale)
-    component="$action"
-    action="${2:-}"
+    component="$1"
+    shift
     ;;
 esac
+
+action="${1:-}"
+[[ $# -eq 0 ]] || shift
 
 case "$component" in
   proxmox)
@@ -28,11 +30,14 @@ esac
 case "$action" in
   init|validate|plan|apply|output)
     ;;
+  # import only writes state; it reads the remote object and never changes it.
+  import)
+    ;;
   fmt)
     exec terraform -chdir="$environment_directory" fmt -check
     ;;
   *)
-    echo "usage: $0 [proxmox|tailscale] {init|fmt|validate|plan|apply|output}" >&2
+    echo "usage: $0 [proxmox|tailscale] {init|fmt|validate|plan|apply|output|import} [args...]" >&2
     exit 2
     ;;
 esac
@@ -43,4 +48,9 @@ if [[ ! -f "$secret_file" ]]; then
 fi
 
 export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
-exec sops exec-env "$secret_file" "terraform -chdir=$environment_directory $action"
+arguments=""
+for argument in "$@"; do
+  arguments+=" $(printf '%q' "$argument")"
+done
+
+exec sops exec-env "$secret_file" "terraform -chdir=$environment_directory $action$arguments"
