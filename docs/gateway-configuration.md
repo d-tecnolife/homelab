@@ -1,7 +1,7 @@
 # OPNsense Gateway configuration
 
 `gateway` (VMID `100`) is the OPNsense router and firewall. Terraform owns its
-Proxmox VM; OPNsense owns the routed interfaces, NAT, DNS overrides, and packet
+Proxmox VM; `gateway/baseline.yaml` declares routed interfaces, NAT, and packet
 policy. Guest bootstrapping is intentionally blocked until this policy has been
 restored and verified.
 
@@ -12,7 +12,7 @@ return it to this runtime baseline after installation.
 
 ## Rebuild order
 
-Steps 3-4 and 7-8 below are one Terraform apply each, gated by a typed
+Step 3 migrates local state; steps 4, 7, and 8 each apply a plan, gated by a typed
 confirmation; `scripts/terraform/rebuild.ps1` runs them in order instead of
 requiring you to invoke each phase script by hand. It pauses for step 1-2
 (prerequisites, done once) and for the attended install in step 7. Read the
@@ -88,16 +88,14 @@ configuration in Git or Terraform state.
 | OPT1 | OPNsense `vlan1` (VLAN 20 on `vtnet1` / tagged `vmbr1`) | `172.16.20.1/24` | Internal |
 | OPT2 | OPNsense `vlan2` (VLAN 30 on `vtnet1` / tagged `vmbr1`) | `172.16.30.1/24` | DMZ |
 
-Gateway runs no DNS resolver; Terraform configures every guest (and Gateway
-itself) to use the public resolvers in `dns_servers` directly. Do not enable
+Gateway runs no DNS resolver. Terraform configures guest resolvers through
+`dns_servers`; the Gateway renderer uses `system.dns_resolvers` in its baseline. Do not enable
 NAT reflection. Outbound NAT translates the three VLAN networks to WAN.
 
-OPNsense's automatic LAN anti-lockout rule remains enabled on VLAN 10 during
-bootstrap. This keeps Gateway SSH and HTTPS reachable from the Infra network
-until the API-driven reconciliation and Tailscale router are working, avoiding
-a circular dependency. WAN remains default-deny and has no Gateway-management
-forward. The rendered configuration explicitly binds the management API to
-HTTPS, matching OPNsense's supported default configuration.
+The baseline disables OPNsense's automatic LAN anti-lockout rule. Explicit
+Ops-only SSH and HTTPS rules provide the administration path on VLAN 10 from
+the first boot. WAN remains default-deny and has no Gateway-management
+forward. The rendered configuration explicitly binds the management API to HTTPS, matching OPNsense's supported default configuration.
 
 ## Required policy
 
@@ -108,20 +106,20 @@ connection originates.
   (`172.16.30.10`) and only the declared game ports to Games
   (`172.16.30.20`; currently Minecraft TCP `25565`). Do not expose Gateway,
   Infra, or Internal hosts.
-- All VLANs: allow DNS only to the selected resolvers, NTP, outbound TCP
+- All VLANs: allow DNS and NTP to public destinations, outbound TCP
   `80`/`443` for package updates and image pulls, and outbound TCP `22` to
   public destinations for Git over SSH. Gateway reconciliation declares the
   same three VLAN-wide rules through the OPNsense API on an installed appliance.
   These are permanent shared capabilities, not per-VM exceptions; private
   networks remain excluded.
-- Ops: permit administration to guest TCP `22`; Gateway's VLAN-10 bootstrap
-  management path is provided by OPNsense anti-lockout until automation is
-  available.
-- Monitoring: permit only ICMP, TCP `9100` to guest exporters and Proxmox, and
-  TCP `9150` to Games. Guests may send logs only to Monitoring TCP `3100`.
-- Door: permit only its named Apps backends on TCP `3005`, `8200`, `8280`, and
-  `9000`, plus Monitoring TCP `3000`. DMZ otherwise cannot initiate broad
-  private-network access.
+- Ops: permit administration to guest TCP `22` and Gateway TCP `22`/`443`.
+  Explicit rules use OPNsense's `(self)` destination; anti-lockout is disabled.
+- Monitoring: permit ICMP and the `exporter_ports` alias (TCP `9100`/`9150`)
+  to `homelab_networks`. This baseline does not include Proxmox's upstream-LAN
+  address in that alias. Guests may send logs to Monitoring TCP `3100`.
+- Door: permit TCP `1-65535` to `internal_network`, plus Monitoring TCP `3000`.
+  This deliberate proxy exception supports new Internal backends without new
+  firewall rules. Other DMZ hosts retain default-deny private-network access.
 
 Model hosts, networks, and port lists as OPNsense aliases. This keeps the rules
 small, auditable, and API-manageable rather than requiring console edits during

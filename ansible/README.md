@@ -12,43 +12,19 @@ Run `../scripts/ops/bootstrap-lab.sh` from the Ops console for the ordered
 post-Terraform bootstrap. It renders the inventory, then runs, in order:
 `bootstrap-ssh-host-keys.yml` (scans fresh guest SSH host keys into Ops's
 `known_hosts` so Ansible has something to verify against), `bootstrap-ops-ssh.yml`
---limit ops (generates the permanent Ops management key using the temporary
-Terraform-issued bootstrap key), then `bootstrap-lab.yml`, which is a pure
-`import_playbook` chain run with the permanent key, in this order:
+(generates the permanent Ops management key locally and distributes it to
+workloads using the temporary Terraform-issued bootstrap key), then
+`bootstrap-lab.yml`, an `import_playbook` chain run with the permanent key.
 
-1. `hosts-file.yml` — short-name and `dscim.dev` mappings in `/etc/hosts` on
-   every reachable managed VM, from inventory addresses.
-2. `network-preflight.yml` — asserts DNS resolution and public HTTP/HTTPS
-   egress before anything else runs; a final assertion, not what establishes
-   connectivity (that's the Gateway policy — see `docs/gateway-configuration.md`).
-3. `docker.yml` — Docker Engine and Compose plugin on Docker hosts, management
-   user added to the `docker` group, `/opt/compose` created.
-4. `maintenance-schedule.yml` — installs three Ops systemd timers (daily,
-   weekly, monthly-reboot) that each call the merged `maintenance.yml` with
-   the matching `--tags`.
-5. `secrets.yml` — installs SOPS/age on Ops and generates (or restores) the
-   administrator age identity used for deploy-time decryption.
-6. `ops-codex.yml` — deploys project Codex model-routing config to `dtec`'s
-   checkout.
-7. `homelab-health.yml` — installs the discretionary JSON health command.
-8. `caddy.yml` — Cloudflare-enabled Caddy build on Door, sites, config
-   validation, health endpoint and JSON logs.
-9. `crowdsec.yml` — CrowdSec and its nftables bouncer on Door, run after
-   Caddy so its JSON access logs already exist.
-10. `deploy-compose.yml` — copies each host's assigned Compose stacks,
-    decrypts any matching `secrets/compose/<stack>.sops.env` in memory,
-    pulls and applies with Docker Compose.
-11. `playwright.yml` — private Ops→Apps SSH tunnel to the Playwright MCP
-    endpoint deployed by `deploy-compose.yml`; must run after it.
-12. `monitoring-agents.yml` — node_exporter everywhere plus Grafana Alloy on
-    guests.
-13. `monitoring-targets.yml` — renders Prometheus file-discovery targets from
-    inventory; `monitoring-inventory-automation.yml` installs the Ops watcher
-    that reruns it automatically whenever inventory changes.
-14. `minecraft-backups.yml` — daily backup service and timer on Games,
-    five-archive retention, RCON-safe flush.
-15. `lock-bootstrap-console.yml` — removes the temporary bootstrap key and the
-    Proxmox-console auto-login. Bootstrap is complete after this step.
+See [`playbooks/bootstrap-lab.yml`](playbooks/bootstrap-lab.yml) for the exact
+ordered chain. It configures hostname mappings and network checks, authorizes
+the Ops key on Gateway, configures guests, deploys applications and monitoring,
+then removes the temporary bootstrap key and console auto-login. The tracked
+`.codex/` directory already supplies project agent configuration.
+
+SOPS and the restored age identity must be available before this chain starts:
+Gateway key authorization decrypts its input before the later `secrets.yml`
+verification. Follow the controller preparation in the environment bootstrap.
 
 Run standalone, outside `bootstrap-lab.yml`:
 
@@ -63,9 +39,9 @@ Run standalone, outside `bootstrap-lab.yml`:
   for why). Part of the Gateway rebuild order in `docs/gateway-configuration.md`,
   not the guest bootstrap chain.
 - `playbooks/gateway-firewall-reconcile.yml` defensively reconciles the
-  public Git SSH firewall rules that are also hand-rendered into the
-  bootstrap ISO, through Gateway's seeded API account. Only matters if a
-  rule was removed independently of a rebuild (e.g. a manual GUI edit).
+  public Git SSH and Ops Gateway administration rules through Gateway's seeded
+  API account. It adds missing rules and repairs the administration destination
+  and port fields; it is not a full baseline reconciliation.
 - `playbooks/vault-ssh-host-ca-bootstrap.yml` and `playbooks/vault-ssh-host-ca.yml`
   establish certificate-based SSH host trust, replacing the ssh-keyscan pinning
   from `bootstrap-ssh-host-keys.yml` host by host as each one is signed. These
@@ -76,9 +52,23 @@ Run standalone, outside `bootstrap-lab.yml`:
   the exact one-time setup, then the weekly `homelab-vault-ssh-renew.timer`
   keeps every host's certificate current with no further action.
 
-`inventory/hosts.yml` is created from `inventory/hosts.yml.example` and ignored
-because it contains local network details. The repository-local `ansible.cfg`
-selects it automatically when commands run from this directory. It also keeps
+`inventory/hosts.yml` is generated from `topology/workloads.yaml` and ignored
+because it is derived output. Generate it without deploying anything (from the
+repository root):
+
+```bash
+python3 scripts/ops/render-inventory.py --catalog topology/workloads.yaml --output ansible/inventory/hosts.yml
+```
+
+The catalog owns ordinary VM definitions and default inventory endpoints for
+Ops and Proxmox. Ops retains its separate Terraform bootstrap resource and
+variable overrides. Tests check those defaults and Gateway host aliases agree.
+For a different environment, pass `--ops-host` / `--proxmox-host` to the renderer;
+use an IP or DNS hostname for Proxmox (not its HTTPS URL).
+Set `OPS_HOST` / `PROXMOX_HOST` when using `bootstrap-lab.sh` so it regenerates
+the same inventory. Match Terraform overrides and review Gateway aliases too.
+
+The repository-local `ansible.cfg` selects inventory automatically when commands run from this directory. It also keeps
 Ansible temporary files and SSH control sockets in `/tmp`, so sandboxed runs do
 not need write access to `~/.ansible`. The Ops private key remains only on Ops
 and must never be committed.
@@ -122,8 +112,8 @@ Update a Windows workstation from an elevated PowerShell session:
 .\scripts\Update-HomelabHosts.ps1
 ```
 
-Both commands read `ansible/inventory/hosts.yml`. Update that inventory first
-whenever an address changes.
+Both commands read `ansible/inventory/hosts.yml`. Update the catalog and
+regenerate inventory whenever an address changes.
 
 Before deploying Caddy, follow [Secrets management](../secrets/README.md) and
 create `secrets/caddy.sops.env`.
@@ -136,5 +126,5 @@ ansible-playbook playbooks/crowdsec.yml
 ```
 
 The bouncer enforces community and local decisions on Door. OPNsense Gateway
-owns WAN filtering, game-port forwarding, and Tailscale subnet routing; keep
-those rules in the Gateway policy.
+owns WAN filtering and game-port forwarding. Ops owns Tailscale subnet routing;
+the separate Tailscale Terraform root owns its ACL policy.

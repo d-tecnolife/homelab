@@ -7,7 +7,7 @@ must exist outside the infrastructure being rebuilt.
 
 Keep these outside Proxmox, Ops, Gitea, and the application VMs:
 
-- Private GitHub copies of the `homelab` and `notes` repositories.
+- Access to the public `homelab` repository and a private backup of `notes`.
 - The Ops age identity from `~/.config/sops/age/keys.txt`.
 - Backups of irreplaceable application data, especially Vaultwarden.
 - Access to GitHub, Cloudflare, the password manager, and their recovery codes.
@@ -22,38 +22,25 @@ credentials when their former host is lost or compromised.
 
 ## Fresh rebuild on different hardware
 
-1. Install Proxmox and clone `homelab` from GitHub.
-2. Run the two scripts in `scripts/proxmox/` to create Terraform access and the
-   Cloud-Init template. A new Proxmox API token is expected on a new host.
-3. Create a new local `terraform.tfvars` or encrypted
-   `secrets/infrastructure.sops.env` using the new endpoint and token.
-4. Run Terraform phase one from a trusted workstation to create the OPNsense
-   Gateway. Restore the encrypted Gateway baseline and apply its policy before
-   setting `gateway_policy_ready = true` and applying the workload phase. A
-   genuinely new environment starts with new Terraform state.
-5. Open VMID 1010's Proxmox console; its first boot signs in as `dtec`
-   automatically. Clone `homelab` onto Ops and restore the backed-up age
-   identity to a temporary local file readable only by the administrator. Run
-   `bootstrap-ops-ssh.yml --limit ops -c local` before using Ops to manage the
-   other VMs.
-6. Restore and verify the identity:
+Follow [Environment bootstrap](environment-bootstrap.md) for the executable
+sequence: Proxmox preparation, attended Gateway install, Ops creation, identity
+restoration and Tailscale setup, then workloads. It is the single rebuild
+runbook; the Terraform phase wrappers provide review and confirmation gates.
 
-   ```bash
-   cd ~/homelab/ansible
-   ansible-playbook playbooks/secrets.yml \
-     -e sops_age_recovery_source=/secure/path/keys.txt
-   ```
+Recovery-specific requirements:
 
-   The playbook refuses to generate a replacement key when encrypted repository
-   files already exist and verifies that the restored identity decrypts every
-   committed SOPS file.
-7. Run the remaining bootstrap playbooks, including `ops-codex.yml`, using
-   `dtec`. Restore the operator's repository access and authenticate Codex
-   interactively if needed.
-8. Restore persistent application data before starting its Compose stack, then
-   deploy Caddy and the application stacks through Ansible.
-9. Verify routing, DNS, TLS, application health, backups, monitoring, and a test
-   alert before declaring recovery complete.
+- A genuinely new environment starts with new Terraform state. Reuse matching
+  state when recovering resources that still exist.
+- Restore the original age identity before any credential-consuming playbook.
+  `secrets.yml -e sops_age_recovery_source=/secure/path/keys.txt` installs the
+  tools and verifies the identity, as shown in the bootstrap runbook.
+- Restore persistent application data before running `bootstrap-lab.sh`:
+  its `deploy-compose.yml` step starts the stacks. Consult
+  [Compose](../compose/README.md) for each stack's storage paths.
+- Restore the operator's repository access and authenticate Codex interactively
+  if needed. Git supplies the tracked project configuration.
+- Verify routing, DNS, TLS, application health, backups, monitoring, and a test
+  alert before declaring recovery complete.
 
 ## Existing deployment or control-host recovery
 

@@ -23,34 +23,18 @@
           | from_yaml).aliases.homelab_networks['values'] }}
 
   tasks:
-    - name: Require encrypted Tailscale enrollment input
-      ansible.builtin.stat:
-        path: "{{ ops_tailscale_secret_path }}"
-      register: ops_tailscale_secret
-      tags: [always]
-
-    - name: Refuse to configure Tailscale without encrypted credentials
-      ansible.builtin.assert:
-        that: ops_tailscale_secret.stat.isreg | default(false)
-        fail_msg: >-
+    - name: Load the encrypted input
+      ansible.builtin.import_tasks: tasks/load-sops-input.yml
+      vars:
+        sops_input_path: "{{ ops_tailscale_secret_path }}"
+        sops_input_missing_message: >-
           Create and encrypt ansible/secrets/gateway.sops.env first.
       tags: [always]
 
-    - name: Decrypt Tailscale enrollment credentials in memory
-      ansible.builtin.command:
-        argv: [sops, decrypt, "{{ ops_tailscale_secret_path }}"]
-      register: ops_tailscale_secret_content
-      changed_when: false
-      no_log: true
-      tags: [always]
-      # Decrypting to memory changes nothing, so it must still run under
-      # --check; skipping it leaves every downstream task undefined.
-      check_mode: false
-
     - name: Extract Tailscale enrollment values
       ansible.builtin.set_fact:
-        ops_tailscale_oauth_client_id: "{{ ops_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_OAUTH_CLIENT_ID=(.+)$', '\\1') | first | trim }}"
-        ops_tailscale_oauth_client_secret: "{{ ops_tailscale_secret_content.stdout | regex_search('(?m)^TAILSCALE_OAUTH_CLIENT_SECRET=(.+)$', '\\1') | first | trim }}"
+        ops_tailscale_oauth_client_id: "{{ sops_input_content.stdout | regex_findall('(?m)^TAILSCALE_OAUTH_CLIENT_ID=(.*)$') | first | default('') | trim }}"
+        ops_tailscale_oauth_client_secret: "{{ sops_input_content.stdout | regex_findall('(?m)^TAILSCALE_OAUTH_CLIENT_SECRET=(.*)$') | first | default('') | trim }}"
       no_log: true
       tags: [always]
 

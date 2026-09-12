@@ -21,35 +21,15 @@
     gateway_literal_newline: '\n'
 
   tasks:
-    - name: Require encrypted Gateway API input
-      ansible.builtin.stat:
-        path: "{{ gateway_secret_path }}"
-      register: gateway_secret
-      delegate_to: localhost
-
-    - name: Refuse to configure Gateway without encrypted credentials
-      ansible.builtin.assert:
-        that: gateway_secret.stat.isreg | default(false)
-        fail_msg: >-
+    - name: Load the encrypted input
+      ansible.builtin.import_tasks: tasks/load-sops-input.yml
+      vars:
+        sops_input_path: "{{ gateway_secret_path }}"
+        sops_input_missing_message: >-
           Create and encrypt ansible/secrets/gateway.sops.env first.
 
-    - name: Decrypt Gateway credentials in memory
-      ansible.builtin.command:
-        argv: [sops, decrypt, "{{ gateway_secret_path }}"]
-      register: gateway_secret_content
-      changed_when: false
-      no_log: true
-      delegate_to: localhost
-      # Decrypting to memory changes nothing, so it must still run under
-      # --check; skipping it leaves every downstream task undefined.
-      check_mode: false
-
-    - name: Extract Gateway API values
-      ansible.builtin.set_fact:
-        gateway_url: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_URL=(.+)$', '\\1') | first | trim }}"
-        gateway_api_key: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_KEY=(.+)$', '\\1') | first | trim }}"
-        gateway_api_secret: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_SECRET=(.+)$', '\\1') | first | trim }}"
-      no_log: true
+    - name: Extract and validate Gateway credentials
+      ansible.builtin.import_tasks: tasks/gateway-credentials.yml
 
     - name: Read the Ops management public key
       ansible.builtin.slurp:

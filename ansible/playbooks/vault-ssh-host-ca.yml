@@ -10,35 +10,15 @@
     sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
 
   tasks:
-    - name: Require the encrypted Vault signing credential
-      ansible.builtin.stat:
-        path: "{{ vault_ssh_ca_secret_path }}"
-      delegate_to: localhost
-      become: false
-      register: vault_ssh_ca_secret
-
-    - name: Refuse to run without the Vault signing credential
-      ansible.builtin.assert:
-        that: vault_ssh_ca_secret.stat.isreg | default(false)
-        fail_msg: >-
+    - name: Load the encrypted input
+      ansible.builtin.import_tasks: tasks/load-sops-input.yml
+      vars:
+        sops_input_path: "{{ vault_ssh_ca_secret_path }}"
+        sops_input_missing_message: >-
           Create secrets/vault-ssh-ca.sops.env from its example with a
           signing-only Vault token, then encrypt it with SOPS.
-      delegate_to: localhost
-      become: false
-
-    - name: Decrypt the Vault signing credential in memory
-      ansible.builtin.command:
-        argv: [sops, decrypt, "{{ vault_ssh_ca_secret_path }}"]
-      # Decrypting to memory changes nothing, so it must still run under
-      # --check; skipping it leaves every downstream task undefined.
-      check_mode: false
-      environment:
-        SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
-      delegate_to: localhost
-      become: false
-      register: vault_ssh_ca_secret_content
-      changed_when: false
-      no_log: true
+        sops_input_environment:
+          SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
 
     - name: Create the Vault signing credential directory
       ansible.builtin.file:
@@ -51,7 +31,7 @@
     - name: Install the Vault signing credential on Ops
       ansible.builtin.copy:
         dest: "{{ vault_ssh_ca_token_path }}"
-        content: "{{ vault_ssh_ca_secret_content.stdout | trim }}\n"
+        content: "{{ sops_input_content.stdout | trim }}\n"
         owner: dtec
         group: dtec
         mode: "0600"

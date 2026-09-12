@@ -1,5 +1,5 @@
-# Copy this file to <vm-name>.tf, replace "ops" in resource and variable
-# names, then declare the matching VM-specific variables in variables.tf.
+# Ops has a separate resource for bootstrap keys and its three router NICs.
+# Add ordinary VMs to topology/workloads.yaml, consumed by workloads.tf.
 
 resource "proxmox_virtual_environment_file" "ops_cloud_config" {
   content_type = "snippets"
@@ -52,7 +52,7 @@ resource "proxmox_virtual_environment_file" "ops_cloud_config" {
         }
       ]
       package_update = true
-      packages       = ["ansible-core", "git", "qemu-guest-agent"]
+      packages       = ["ansible", "git", "qemu-guest-agent"]
       runcmd = [
         ["systemctl", "daemon-reload"],
         ["systemctl", "enable", "--now", "qemu-guest-agent"],

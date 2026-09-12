@@ -18,16 +18,16 @@ configuration changes because existing tasks do not switch models retroactively.
 
 The configuration uses the documented [Codex agent settings](https://learn.chatgpt.com/docs/config-file/config-reference)
 and [subagent model selection](https://learn.chatgpt.com/docs/agent-configuration/subagents).
-The deployment source is `ansible/files/codex/`; keep it identical to `.codex/`
-when changing runtime settings. It does not replace the operator's global
-configuration or authentication. Codex must trust the project to load project
+The tracked `.codex/` directory is the single project configuration source.
+Cloning or updating the checkout supplies it; no Ansible copy step is needed.
+It does not replace the operator's global configuration or authentication. Codex must trust the project to load project
 configuration.
 
-After reviewing the diff and explicitly authorizing deployment, run on Ops:
+To install the separate health command after explicitly authorizing deployment,
+run on Ops:
 
 ```bash
 cd /home/dtec/homelab/ansible
-ansible-playbook playbooks/ops-codex.yml
 ansible-playbook playbooks/homelab-health.yml
 ```
 

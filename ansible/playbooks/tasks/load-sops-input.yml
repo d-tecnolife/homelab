@@ -1,0 +1,26 @@
+---
+# Controller-only, in-memory input loading. Callers retain their own parsing
+# and validation because Gateway, Tailscale and Vault consume different keys.
+- name: Locate the encrypted input
+  ansible.builtin.stat:
+    path: "{{ sops_input_path }}"
+  register: sops_input_file
+  delegate_to: localhost
+  become: false
+
+- name: Require the encrypted input
+  ansible.builtin.assert:
+    that: sops_input_file.stat.isreg | default(false)
+    fail_msg: "{{ sops_input_missing_message }}"
+
+- name: Decrypt the input in memory
+  ansible.builtin.command:
+    argv: [sops, decrypt, "{{ sops_input_path }}"]
+  environment: "{{ sops_input_environment | default({}) }}"
+  register: sops_input_content
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  no_log: true
+  # Read-only: --check must populate the facts consumed by later tasks.
+  check_mode: false

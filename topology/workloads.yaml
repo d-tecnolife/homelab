@@ -1,5 +1,10 @@
-# Canonical workload catalog. Terraform and generated Ansible inventory consume
-# this file; adding an ordinary VM requires one entry here.
+# Canonical ordinary-VM catalog and inventory endpoints. Terraform consumes
+# workloads; Ops retains its separate bootstrap resource and variable overrides.
+# Tests keep the default Ops/Proxmox addresses in agreement with Terraform.
+controllers:
+  ops: { address: 172.16.10.10/24 }
+  proxmox: { address: 192.168.1.100 }
+
 workloads:
   gitea: { vm_id: 1030, vlan_id: 10, address: 172.16.10.30/24, gateway: 172.16.10.1, cores: 2, memory_mb: 2048, disk_gb: 32, roles: [gitea], description: "Gitea VM managed by Terraform", tags: [terraform, ubuntu, gitea] }
   monitoring: { vm_id: 1020, vlan_id: 10, address: 172.16.10.20/24, gateway: 172.16.10.1, cores: 2, memory_mb: 2048, disk_gb: 40, roles: [monitoring], description: "Monitoring VM managed by Terraform", tags: [terraform, ubuntu, monitoring] }

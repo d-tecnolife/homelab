@@ -16,11 +16,12 @@ if ! command -v ansible-playbook >/dev/null 2>&1; then
 
     echo "Installing Ansible for the first bootstrap run..."
     sudo apt-get update
-    sudo env DEBIAN_FRONTEND=noninteractive apt-get install --yes ansible-core
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install --yes ansible
 fi
 
 python3 "$repository_root/scripts/ops/render-inventory.py" \
     --catalog "$repository_root/topology/workloads.yaml" \
+    --ops-host "${OPS_HOST:-}" --proxmox-host "${PROXMOX_HOST:-}" \
     --output "$ansible_directory/inventory/hosts.yml"
 echo "Rendered Ansible inventory from topology/workloads.yaml."
 

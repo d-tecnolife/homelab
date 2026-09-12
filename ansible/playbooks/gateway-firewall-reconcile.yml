@@ -15,46 +15,16 @@
     gateway_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
 
   tasks:
-    - name: Require encrypted Gateway API input
-      ansible.builtin.stat:
-        path: "{{ gateway_secret_path }}"
-      register: gateway_secret
-      tags: [always]
-
-    - name: Refuse to configure Gateway without encrypted credentials
-      ansible.builtin.assert:
-        that: gateway_secret.stat.isreg | default(false)
-        fail_msg: >-
+    - name: Load the encrypted input
+      ansible.builtin.import_tasks: tasks/load-sops-input.yml
+      vars:
+        sops_input_path: "{{ gateway_secret_path }}"
+        sops_input_missing_message: >-
           Create and encrypt ansible/secrets/gateway.sops.env first.
       tags: [always]
 
-    - name: Decrypt Gateway credentials in memory
-      ansible.builtin.command:
-        argv: [sops, decrypt, "{{ gateway_secret_path }}"]
-      register: gateway_secret_content
-      changed_when: false
-      no_log: true
-      tags: [always]
-      # Decrypting to memory changes nothing, so it must still run under
-      # --check; skipping it leaves every downstream task undefined.
-      check_mode: false
-
-    - name: Extract Gateway API values
-      ansible.builtin.set_fact:
-        gateway_url: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_URL=(.+)$', '\\1') | first | trim }}"
-        gateway_api_key: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_KEY=(.+)$', '\\1') | first | trim }}"
-        gateway_api_secret: "{{ gateway_secret_content.stdout | regex_search('(?m)^OPNSENSE_API_SECRET=(.+)$', '\\1') | first | trim }}"
-      no_log: true
-      tags: [always]
-
-    - name: Require complete Gateway API values
-      ansible.builtin.assert:
-        that:
-          - gateway_url | length > 0
-          - gateway_api_key | length > 0
-          - gateway_api_secret | length > 0
-        fail_msg: gateway.sops.env is incomplete.
-      no_log: true
+    - name: Extract and validate Gateway credentials
+      ansible.builtin.import_tasks: tasks/gateway-credentials.yml
       tags: [always]
 
     # Git-over-SSH is a permanent VLAN-wide capability for current and future
@@ -125,8 +95,9 @@
     # renderer learned OPNsense's (self) token and its single-port rule model
     # left these enabled but unmatchable, which is invisible from the GUI: the
     # built-in anti-lockout rule keeps 443 working while SSH times out.
-    # Each rule is fully declared in gateway/baseline.yaml, so reconciling one
-    # means replacing its whole body rather than preserving live fields.
+    # This repair checks destination and port drift only. When either differs,
+    # it writes the declared body below. Full baseline reconciliation requires
+    # API normalization and regression coverage before widening this check.
     - name: Read the current Gateway filter rules
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=500"

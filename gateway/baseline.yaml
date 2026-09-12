@@ -71,8 +71,8 @@ firewall:
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }
     # One port only: OPNsense's rule model takes a single port, a range, or
     # a port alias, never a comma-joined list, and rejects anything else the
-    # moment the rule is saved through its API. HTTPS to the firewall is
-    # already covered by the built-in LAN anti-lockout rule retained above.
+    # moment the rule is saved through its API. Declare HTTPS separately;
+    # the built-in LAN anti-lockout rule is disabled above.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [22], description: "Ops Gateway administration" }
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [443], description: "Ops Gateway HTTPS administration" }
 

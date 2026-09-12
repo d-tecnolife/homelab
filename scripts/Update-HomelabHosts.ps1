@@ -9,13 +9,7 @@ $beginMarker = '# BEGIN HOMELAB MANAGED HOSTS'
 $endMarker = '# END HOMELAB MANAGED HOSTS'
 
 if (-not (Test-Path -LiteralPath $InventoryPath)) {
-    $examplePath = "$InventoryPath.example"
-    if (Test-Path -LiteralPath $examplePath) {
-        $InventoryPath = $examplePath
-    }
-    else {
-        throw "Inventory not found: $InventoryPath. Copy hosts.yml.example to hosts.yml first."
-    }
+    throw "Inventory not found: $InventoryPath. Render it first: python scripts/ops/render-inventory.py --catalog topology/workloads.yaml --output ansible/inventory/hosts.yml"
 }
 
 $entries = [System.Collections.Generic.List[object]]::new()

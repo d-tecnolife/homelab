@@ -57,8 +57,8 @@ pass `localhost` as its host argument. It renders the WAN, VLAN, firewall, SSH,
 and API-account configuration into the installer media.
 
 Run the Gateway-only Terraform plan on the Windows runner and apply it only
-after the separate network/rebuild confirmation. No OPNsense console setup or
-upstream-LAN management rule is part of the process. Gateway remains
+after the separate network/rebuild confirmation. The OPNsense install and
+configuration import are console-attended; no upstream-LAN management rule is part of the process. Gateway remains
 WAN-default-deny.
 
 Steps 3-4 are `scripts/terraform/rebuild.ps1`, which runs the same phase
@@ -71,35 +71,42 @@ full phase list including the attended OPNsense install between them.
 Review and apply `scripts/terraform/plan-ops-bootstrap.ps1`. This phase creates
 only VMID 1010, with NICs on all three VLANs (not just Infra) so it can act
 as the Tailscale subnet router; all other workloads remain blocked by
-`gateway_policy_ready`. From the Ops console, run `playbooks/ops-tailscale.yml`.
-It installs Tailscale as an ordinary systemd service on Ops and brings it up
-as the subnet router. Then apply the separate Tailscale Terraform root. The
+`gateway_policy_ready`. Prepare the controller from its Proxmox console before
+running any credential-consuming playbook:
+
+```bash
+git clone https://github.com/d-tecnolife/homelab.git ~/homelab
+# The full distribution supplies collections such as ansible.posix.
+sudo apt-get update
+sudo apt-get install --yes ansible
+cd ~/homelab
+python3 scripts/ops/render-inventory.py --catalog topology/workloads.yaml --output ansible/inventory/hosts.yml
+cd ansible
+ansible-playbook playbooks/bootstrap-ops-ssh.yml --limit ops -c local
+ansible-playbook playbooks/secrets.yml -e sops_age_recovery_source=/secure/path/keys.txt
+ansible-playbook playbooks/ops-tailscale.yml
+```
+
+Restore the backed-up age identity to `/secure/path/keys.txt` (or supply its
+actual protected path) before the `secrets.yml` command. Use the original
+identity; the playbook installs SOPS/age and verifies encrypted inputs. These
+commands are deployment steps, executed only during an authorized rebuild.
+`ops-tailscale.yml` installs Tailscale as an ordinary systemd service on Ops
+and brings it up as the subnet router. Then apply the separate Tailscale Terraform root. The
 root owns the tailnet policy and automatic approval for the three
 Ops-advertised VLAN routes. Set `gateway_policy_ready = true` only after
 that root has applied successfully.
 
-Tailscale runs on Ops rather than Gateway's `os-tailscale` plugin, and
-Gateway runs no DNS resolver at all (it previously ran Unbound). Both were
-tried on Gateway and dropped after hitting a confirmed, still-open upstream
-OPNsense bug (<https://github.com/opnsense/core/issues/10723>) where enabled
-services do not reliably survive a reboot; the Tailscale plugin additionally
-had its own, separate bug where its config template rendered the service
-disabled despite correctly-persisted settings. Unbound added no value once
-every internal service already had a public DNS record, so it was dropped
-entirely rather than moved; Tailscale still needed a subnet router, so it
-runs on Ops instead, as a normal systemd service with none of OPNsense's
-plugin problems. Guests and Gateway itself resolve DNS directly through the
-public resolvers in `var.dns_servers` / `gateway/baseline.yaml`'s
-`dns_resolvers`. Because Ops (not Gateway) advertises the VLAN routes now,
-VPN-originated traffic is no longer filtered by Gateway's firewall -- the
-Tailscale ACL policy in the `tailscale` Terraform root is the actual
-enforcement point for that traffic.
+See [Gateway configuration](gateway-configuration.md#rebuild-order) for the
+retired OPNsense Tailscale/Unbound approach and its failure modes. Ops advertises
+the VLAN routes directly, so the Tailscale ACL enforces VPN-originated access.
+Gateway and guests use public DNS resolvers.
 
 ## 5. Configure Ubuntu guests from Ops
 
 Open VMID 1010 through the **Console → xterm.js** serial console in Proxmox.
-The first boot signs `dtec` in automatically; clone the repository, copy the
-inventory example to the ignored inventory, and run the first playbook locally.
+Use the checkout and restored identity from step 4. Inventory is regenerated
+from the catalog by the bootstrap script.
 xterm.js is the supported bootstrap console because it can paste text; the
 graphical noVNC console remains available as the recovery fallback.
 
@@ -110,14 +117,8 @@ bootstrap script then switches to the permanent Ops management key and removes
 the temporary private key. Terraform state and saved Terraform plans therefore
 contain sensitive bootstrap material; keep them local and out of Git.
 
-```bash
-git clone https://github.com/d-tecnolife/homelab.git ~/homelab
-cd ~/homelab/ansible
-cp inventory/hosts.yml.example inventory/hosts.yml
-ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-ops-ssh.yml --limit ops -c local
-```
-
-Then run the complete ordered configuration from Ops:
+After the workload Terraform phase is complete, run the ordered configuration
+from Ops:
 
 ```bash
 bash ~/homelab/scripts/ops/bootstrap-lab.sh
