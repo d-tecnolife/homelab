@@ -16,7 +16,11 @@ services:
       TYPE: CURSEFORGE
       VERSION: "1.20.1"
       CF_SERVER_MOD: "https://mediafilez.forgecdn.net/files/8619/337/Craft%20to%20Exile%202%20SERVER-2.0.4.zip"
-      MEMORY: 8G
+      # 6G, not 8G: the Games VM has 10 GB, and an 8 GB heap plus the JVM's own
+      # overhead for this modpack left the guest about 85 MB free. It stalled on
+      # memory a fifth of the time and re-read 3.3 TB from disk over two days,
+      # starving sshd too. Raise this only together with the VM's memory.
+      MEMORY: 6G
       MOTD: |-
         §d§lEVENT §f✦ §eDouble Backshots XP
         §7Lasts for all of §aSeptember§7!
