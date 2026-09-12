@@ -16,6 +16,11 @@ import yaml
 
 INTERFACES = {"infra": "lan", "internal": "opt1", "dmz": "opt2", "wan": "wan"}
 
+# OPNsense spells "the firewall's own addresses" as the literal token (self).
+# The catalog uses a readable name for it; anything else silently renders a
+# rule that can never match.
+DESTINATION_TOKENS = {"this_firewall": "(self)"}
+
 
 def child(parent: ET.Element, name: str, value: object | None = None) -> ET.Element:
     element = ET.SubElement(parent, name)
@@ -42,6 +47,11 @@ def sha512_crypt(value: str) -> str:
     return result.stdout.strip()
 
 
+def destination_net(value: str) -> str:
+    target = str(value).removeprefix("!")
+    return DESTINATION_TOKENS.get(target, target)
+
+
 def rule(parent: ET.Element, spec: dict, interface: str, sequence: int) -> None:
     item = child(parent, "rule")
     for key, value in {
@@ -57,7 +67,7 @@ def rule(parent: ET.Element, spec: dict, interface: str, sequence: int) -> None:
         "protocol": spec["protocol"],
         "source_net": INTERFACES[interface] if spec["source"] == "interface_network" else spec["source"],
         "source_not": 0,
-        "destination_net": spec["destination"].removeprefix("!"),
+        "destination_net": destination_net(spec["destination"]),
         "destination_not": int(str(spec["destination"]).startswith("!")),
         "disablereplyto": 0,
         "log": 0,
