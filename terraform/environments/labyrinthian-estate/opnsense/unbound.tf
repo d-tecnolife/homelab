@@ -33,7 +33,7 @@ import {
 
 resource "opnsense_unbound_settings" "settings" {
   general = {
-    enabled         = true
+    enabled         = false
     port            = 53
     enable_dnssec   = true
     local_zone_type = "transparent"
