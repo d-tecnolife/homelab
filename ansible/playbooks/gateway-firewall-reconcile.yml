@@ -133,11 +133,14 @@
             enabled: "1"
             name: "{{ item.name }}"
             type: "{{ item.type }}"
-            content: "{{ item.values | join(gateway_newline) }}"
+            # "members", not "values": Jinja resolves item.values to the
+            # dictionary's own .values() method before the key, which is a
+            # templating error that failed_when cannot suppress.
+            content: "{{ item.members | join(gateway_newline) }}"
             description: "{{ item.description }}"
       loop:
-        - {name: exporter_ports, type: port, values: [9100, 9150], description: "Monitoring exporter ports"}
-        - {name: proxmox, type: host, values: [192.168.1.100], description: "Proxmox host"}
+        - {name: exporter_ports, type: port, members: [9100, 9150], description: "Monitoring exporter ports"}
+        - {name: proxmox, type: host, members: [192.168.1.100], description: "Proxmox host"}
       loop_control:
         label: "{{ item.name }}"
       when: >-
