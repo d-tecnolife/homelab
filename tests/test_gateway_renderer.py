@@ -34,7 +34,7 @@ class GatewayRendererTests(unittest.TestCase):
                 "OPNSENSE_API_SECRET": "test-api-secret",
             }
             catalog = {
-                "system": {"hostname": "gateway", "domain": "dscim.dev", "timezone": "America/Winnipeg", "dns_resolvers": ["1.1.1.1", "1.0.0.1"], "wan_block_bogon_networks": True},
+                "system": {"hostname": "gateway", "domain": "dscim.dev", "timezone": "America/Winnipeg", "dns_resolvers": ["1.1.1.1", "1.0.0.1"], "wan_block_bogon_networks": True, "disable_antilockout": True},
                 "interfaces": {
                     "wan": {"device": "vtnet0", "address": "192.168.1.2/24", "gateway": "192.168.1.1"},
                     "infra": {"device": "vlan0", "vlan": {"parent": "vtnet1", "id": 10}, "address": "172.16.10.1/24"},
@@ -50,6 +50,7 @@ class GatewayRendererTests(unittest.TestCase):
                         {"interface": "dmz", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - DMZ"},
                         {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "ops", "destination": "this_firewall", "ports": [22], "description": "Ops Gateway administration"},
                         {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "monitoring", "destination": "homelab_networks", "ports": "exporter_ports", "description": "Monitoring exporters"},
+                        {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "ops", "destination": "this_firewall", "ports": [443], "description": "Ops Gateway HTTPS administration"},
                     ],
                     "port_forwards": [
                         {"interface": "wan", "protocol": "tcp", "destination_port": 80, "target": "door", "target_port": 80, "description": "WAN HTTP to Door"},
@@ -79,7 +80,18 @@ class GatewayRendererTests(unittest.TestCase):
                 renderer.main()
             tree = ET.parse(output)
 
-            self.assertIsNone(tree.find("./system/noantilockout"))
+            # OPNsense reads <enabled>; <enable> is the pfSense spelling and
+            # silently never starts sshd. These keys are presence-based, so
+            # <passwordauth>0</passwordauth> would read as "on" -- password
+            # authentication is disabled only by omitting the element.
+            self.assertEqual(tree.findtext("./system/ssh/enabled"), "1")
+            self.assertIsNone(tree.find("./system/ssh/enable"))
+            self.assertEqual(tree.findtext("./system/ssh/permitrootlogin"), "1")
+            self.assertIsNone(tree.find("./system/ssh/passwordauth"))
+            # Anti-lockout would open the GUI, and SSH once enabled, to the
+            # whole primary VLAN, past the declared Ops-only policy. The key
+            # lives under webgui, not directly under system.
+            self.assertEqual(tree.findtext("./system/webgui/noantilockout"), "1")
             self.assertEqual(tree.findtext("./system/webgui/protocol"), "https")
             self.assertEqual(
                 [server.text for server in tree.findall("./system/dnsserver")],

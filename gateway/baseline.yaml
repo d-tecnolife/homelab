@@ -9,6 +9,10 @@ system:
   nat_reflection: false
   wan_block_private_networks: false
   wan_block_bogon_networks: true
+  # Ops is the only host permitted to administer Gateway. OPNsense's
+  # built-in anti-lockout rule would otherwise open the GUI, and SSH once
+  # enabled, to every host on the primary VLAN.
+  disable_antilockout: true
 
 interfaces:
   wan:
@@ -70,6 +74,7 @@ firewall:
     # moment the rule is saved through its API. HTTPS to the firewall is
     # already covered by the built-in LAN anti-lockout rule retained above.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [22], description: "Ops Gateway administration" }
+    - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [443], description: "Ops Gateway HTTPS administration" }
 
     # Monitoring sees every current and future homelab VM through standard
     # exporter ports. New VMs need no firewall-specific change.

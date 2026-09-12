@@ -119,52 +119,57 @@
       when: not (item.skipped | default(false))
 
     # Ops' own administration path to Gateway. An installer built before the
-    # renderer learned OPNsense's (self) token left this rule enabled but
-    # unmatchable, which is invisible from the GUI: port 443 keeps working
-    # through the built-in LAN anti-lockout rule while SSH silently times out.
-    # The rule is fully declared in gateway/baseline.yaml, so reconciling it
-    # means replacing the whole body rather than preserving live fields.
-    - name: Find the declarative Ops Gateway administration rule
+    # renderer learned OPNsense's (self) token and its single-port rule model
+    # left these enabled but unmatchable, which is invisible from the GUI: the
+    # built-in anti-lockout rule keeps 443 working while SSH times out.
+    # Each rule is fully declared in gateway/baseline.yaml, so reconciling one
+    # means replacing its whole body rather than preserving live fields.
+    - name: Read the current Gateway filter rules
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=100&searchPhrase={{ 'Ops Gateway administration' | urlencode }}"
+        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=500"
         method: GET
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
         force_basic_auth: true
         validate_certs: false
         status_code: 200
-      register: gateway_administration_rule
+      register: gateway_rules
       changed_when: false
       no_log: true
 
-    - name: Select the Ops Gateway administration rule needing repair
+    - name: Declare the Ops-only Gateway administration rules
       ansible.builtin.set_fact:
-        gateway_administration_matches: >-
-          {{ gateway_administration_rule.json.rows | default([])
-             | selectattr('description', 'equalto', 'Ops Gateway administration')
-             | list }}
-      no_log: true
+        gateway_administration_rules:
+          - enabled: "1"
+            sequence: "140"
+            action: pass
+            quick: "1"
+            interface: lan
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
+            source_net: ops
+            destination_net: "(self)"
+            destination_port: "22"
+            description: Ops Gateway administration
+          - enabled: "1"
+            sequence: "141"
+            action: pass
+            quick: "1"
+            interface: lan
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
+            source_net: ops
+            destination_net: "(self)"
+            destination_port: "443"
+            description: Ops Gateway HTTPS administration
 
-    - name: Declare the Ops Gateway administration rule body
-      ansible.builtin.set_fact:
-        gateway_administration_body:
-          enabled: "1"
-          sequence: "140"
-          action: pass
-          quick: "1"
-          interface: lan
-          direction: in
-          ipprotocol: inet
-          protocol: TCP
-          source_net: ops
-          destination_net: "(self)"
-          destination_port: "22"
-          description: Ops Gateway administration
-      no_log: true
-
-    - name: Correct an unmatchable Ops Gateway administration rule
+    - name: Correct drifted Gateway administration rules
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/firewall/filter/set_rule/{{ gateway_administration_matches[0].uuid }}"
+        url: >-
+          {{ gateway_url }}/api/firewall/filter/set_rule/{{
+            (gateway_rules.json.rows | selectattr('description', 'equalto', item.description) | list)[0].uuid }}
         method: POST
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
@@ -173,25 +178,22 @@
         status_code: 200
         body_format: json
         body:
-          rule: "{{ gateway_administration_body }}"
+          rule: "{{ item }}"
+      loop: "{{ gateway_administration_rules }}"
+      loop_control:
+        label: "{{ item.description }}"
       when:
-        - gateway_administration_matches | length > 0
-        - gateway_administration_matches[0].destination_net != '(self)'
-      register: gateway_administration_rule_corrected
-      changed_when: (gateway_administration_rule_corrected.json.result | default('')) == 'saved'
+        - (gateway_rules.json.rows | selectattr('description', 'equalto', item.description) | list) | length > 0
+        - (gateway_rules.json.rows | selectattr('description', 'equalto', item.description) | list)[0].destination_net != item.destination_net
+          or (gateway_rules.json.rows | selectattr('description', 'equalto', item.description) | list)[0].destination_port != item.destination_port
+      register: gateway_administration_corrected
+      # The apply gate below is driven from the saved results instead, because a
+      # per-item changed_when cannot see its own iteration's response.
+      changed_when: false
       failed_when: false
       no_log: true
 
-    - name: Require the Gateway to accept the corrected administration rule
-      ansible.builtin.assert:
-        that: (gateway_administration_rule_corrected.json.result | default('')) == 'saved'
-        fail_msg: >-
-          Gateway rejected the corrected administration rule:
-          {{ gateway_administration_rule_corrected.json.validations
-             | default(gateway_administration_rule_corrected.json | default('no response')) }}
-      when: not (gateway_administration_rule_corrected.skipped | default(false))
-
-    - name: Declare an absent Ops Gateway administration rule
+    - name: Declare absent Gateway administration rules
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/add_rule"
         method: POST
@@ -202,21 +204,28 @@
         status_code: 200
         body_format: json
         body:
-          rule: "{{ gateway_administration_body }}"
-      when: gateway_administration_matches | length == 0
-      register: gateway_administration_rule_added
-      changed_when: (gateway_administration_rule_added.json.result | default('')) == 'saved'
+          rule: "{{ item }}"
+      loop: "{{ gateway_administration_rules }}"
+      loop_control:
+        label: "{{ item.description }}"
+      when: (gateway_rules.json.rows | selectattr('description', 'equalto', item.description) | list) | length == 0
+      register: gateway_administration_added
+      changed_when: false
       failed_when: false
       no_log: true
 
-    - name: Require the Gateway to accept the added administration rule
+    - name: Require the Gateway to accept every administration rule it was sent
       ansible.builtin.assert:
-        that: (gateway_administration_rule_added.json.result | default('')) == 'saved'
+        that: (item.json.result | default('')) == 'saved'
         fail_msg: >-
-          Gateway rejected the added administration rule:
-          {{ gateway_administration_rule_added.json.validations
-             | default(gateway_administration_rule_added.json | default('no response')) }}
-      when: not (gateway_administration_rule_added.skipped | default(false))
+          Gateway rejected {{ item.item.description | default('an administration rule') }}:
+          {{ item.json.validations | default(item.json | default('no response')) }}
+      loop: >-
+        {{ (gateway_administration_corrected.results | default([]))
+           + (gateway_administration_added.results | default([])) }}
+      loop_control:
+        label: "{{ item.item.description | default('rule') }}"
+      when: not (item.skipped | default(false))
 
     - name: Apply the Gateway firewall policy when a rule was added or corrected
       ansible.builtin.uri:
@@ -229,6 +238,7 @@
         status_code: 200
       when: >-
         (gateway_public_git_ssh_rules_added.results | selectattr('changed') | list | length > 0)
-        or (gateway_administration_rule_corrected.changed | default(false))
-        or (gateway_administration_rule_added.changed | default(false))
+        or (((gateway_administration_corrected.results | default([]))
+             + (gateway_administration_added.results | default([])))
+            | rejectattr('skipped', 'defined') | list | length > 0)
       no_log: true

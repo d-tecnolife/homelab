@@ -142,14 +142,25 @@ def main() -> None:
     # Without it, an imported minimal config can leave the API endpoint on an
     # unexpected protocol and strand the automated bootstrap controller.
     child(webgui, "protocol", "https")
+    # OPNsense's built-in anti-lockout rule opens the GUI -- and SSH, once it
+    # is enabled -- to the whole primary VLAN, which is broader than this
+    # policy's "Ops is the sole administration exception". Disabling it makes
+    # the declared Ops rules the only administrative path; the Proxmox console
+    # remains the recovery path if one of them is wrong.
+    if catalog["system"].get("disable_antilockout"):
+        child(webgui, "noantilockout", 1)
     # Keep OPNsense's built-in LAN anti-lockout path on VLAN 10. This is the
     # bootstrap control plane for the Gateway API before Tailscale and guest
     # automation exist; disabling it creates an unrecoverable circular
     # dependency if a rendered policy does not load. WAN remains default-deny.
+    # OPNsense keys every one of these on element *presence* (isset), not on
+    # value, and it reads <enabled> -- <enable> is the pfSense spelling, which
+    # loads without complaint and never starts sshd. A <passwordauth>0</...>
+    # likewise reads as "on", so password authentication is disabled by
+    # omitting the element entirely.
     ssh = child(system, "ssh")
-    child(ssh, "enable", 1)
+    child(ssh, "enabled", 1)
     child(ssh, "permitrootlogin", 1)
-    child(ssh, "passwordauth", 0)
     group = child(system, "group")
     for key, value in {"name": "admins", "scope": "system", "gid": 1999, "member": 0, "priv": "page-all"}.items():
         child(group, key, value)
