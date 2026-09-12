@@ -55,19 +55,23 @@ SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" sops ansible/secrets/caddy.s
 Ansible decrypts the file in memory and writes the destination with restricted
 permissions. Tasks handling plaintext use `no_log: true`.
 
-## Gateway Tailscale enrollment
+## Ops Tailscale enrollment
 
-OPNsense Gateway is the sole Tailscale node and advertises the three homelab
-VLANs. Store a Tailscale OAuth client (Auth Keys write scope) alongside the
-OPNsense API credentials in an encrypted Gateway baseline; `gateway-tailscale.yml`
-exchanges it for a short-lived, single-use `tag:gateway` auth key on every run
-instead of relying on a long-lived stored key. Do not install Tailscale on
-Door or workload VMs: that would create paths which bypass the Gateway's
-inter-VLAN enforcement.
+Ops is the sole Tailscale node and advertises the three homelab VLANs; it runs
+Tailscale as an ordinary systemd service rather than through OPNsense's
+`os-tailscale` plugin. Store a Tailscale OAuth client (Auth Keys write scope)
+alongside the OPNsense API credentials in the encrypted Gateway baseline;
+`playbooks/ops-tailscale.yml` exchanges it for a short-lived, single-use
+`tag:ops` auth key on every run instead of relying on a long-lived stored key.
+Do not install Tailscale on Door or workload VMs: that would create additional
+paths which bypass the Gateway's inter-VLAN enforcement.
 
 The separate `terraform/environments/labyrinthian-estate/tailscale` root uses
-a scoped OAuth client from encrypted process environment to own the tailnet
-policy and automatically approve Gateway's advertised routes.
+a second, differently scoped OAuth client (Policy File write, requested
+explicitly as `policy_file`) from encrypted process environment to own the
+tailnet policy and automatically approve Ops' advertised routes. Because Ops
+rather than Gateway advertises those routes, that policy is the enforcement
+point for VPN-originated traffic.
 
 ## Terraform
 
@@ -95,9 +99,9 @@ bash scripts/terraform-with-secrets.sh tailscale plan
 
 It also stores the seeded `homelab-automation` Gateway API credential (the
 same one in `ansible/secrets/gateway.sops.env`), used by
-`playbooks/gateway-tailscale.yml` and `scripts/gateway/mint-automation-api-key.sh`
-to call Gateway's live API directly instead of the one-time bootstrap ISO
-render.
+`playbooks/gateway-firewall-reconcile.yml` and
+`scripts/gateway/mint-automation-api-key.sh` to call Gateway's live API
+directly instead of the one-time bootstrap ISO render.
 
 ## Compose stacks
 
