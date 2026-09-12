@@ -77,10 +77,14 @@ owns the tailnet policy and automatic approval for the three Gateway-advertised
 VLAN routes.
 
 Also apply the separate `terraform/environments/labyrinthian-estate/opnsense`
-root (`scripts/terraform-with-secrets.sh opnsense apply`) — it brings up
-Unbound, which the bootstrap ISO's rendered config deliberately leaves
-disabled. See that root's README for why. Set `gateway_policy_ready = true`
-only after both roots have applied successfully.
+root — it brings up Unbound, which the bootstrap ISO's rendered config
+deliberately leaves disabled. Unlike every other Terraform root in this repo,
+run this one from Ops (`scripts/terraform-with-secrets.sh opnsense apply`),
+since it targets Gateway's private Infra-VLAN address and the Windows
+Terraform runner has no route there. See that root's README for why and for
+the one-time Terraform install this requires on Ops. Set
+`gateway_policy_ready = true` only after both roots have applied
+successfully.
 
 ## 5. Configure Ubuntu guests from Ops
 

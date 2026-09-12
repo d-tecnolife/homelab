@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# `pwd -W` gives a native Windows path (C:/...) instead of git-bash's POSIX
+# path (/c/...); terraform.exe's -chdir does not understand the latter. Real
+# Unix shells don't support -W at all, so fall back to plain pwd there.
+repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && { pwd -W 2>/dev/null || pwd; })"
 secret_file="$repository_root/secrets/infrastructure.sops.env"
 component="proxmox"
 action="${1:-}"

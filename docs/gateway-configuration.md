@@ -50,7 +50,8 @@ partially completed rebuild at any phase.
 8. Create Ops (VMID `1010`) as the only controller exception. From its console,
    run the Gateway reconciliation playbook, which installs and configures the
    OPNsense Tailscale plugin, then apply the separate Tailscale Terraform root.
-9. Apply the separate `terraform/environments/labyrinthian-estate/opnsense`
+9. From Ops (not the Windows Terraform runner -- see that root's README for
+   why), apply the separate `terraform/environments/labyrinthian-estate/opnsense`
    root (`scripts/terraform-with-secrets.sh opnsense apply`) to bring up
    Unbound. This is not optional bootstrap polish: the bootstrap ISO's
    rendered config.xml deliberately does not enable Unbound (see that root's

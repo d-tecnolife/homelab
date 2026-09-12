@@ -7,6 +7,13 @@ VM state stays in the parent directory; Tailscale's tailnet policy stays in
 `../tailscale`. Apply this root only after Gateway has been created and its
 API is reachable — it targets `https://172.16.10.1` directly.
 
+**Run this root from Ops, not the Windows Terraform runner.** Unlike the
+parent Proxmox root (reaches Proxmox's WAN-side management IP) and
+`../tailscale` (reaches Tailscale's public cloud API), `172.16.10.1` is
+Gateway's private Infra-VLAN address — only Ops sits on that VLAN. This
+means Terraform needs to be installed on Ops for this one root; it is not
+required anywhere else in this repo's Terraform workflow.
+
 ## Why a Terraform provider instead of the bootstrap ISO's rendered config
 
 `scripts/gateway/render-opnsense-config.py` hand-builds `config.xml` for the
