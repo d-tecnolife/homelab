@@ -74,7 +74,13 @@ From the Ops console, run `playbooks/gateway-tailscale.yml`. It installs the
 OPNsense Tailscale plugin through Gateway's seeded API account and configures
 the subnet router. Then apply the separate Tailscale Terraform root. The root
 owns the tailnet policy and automatic approval for the three Gateway-advertised
-VLAN routes. Set `gateway_policy_ready = true` only after that succeeds.
+VLAN routes.
+
+Also apply the separate `terraform/environments/labyrinthian-estate/opnsense`
+root (`scripts/terraform-with-secrets.sh opnsense apply`) — it brings up
+Unbound, which the bootstrap ISO's rendered config deliberately leaves
+disabled. See that root's README for why. Set `gateway_policy_ready = true`
+only after both roots have applied successfully.
 
 ## 5. Configure Ubuntu guests from Ops
 

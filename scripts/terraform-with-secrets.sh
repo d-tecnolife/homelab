@@ -7,7 +7,7 @@ component="proxmox"
 action="${1:-}"
 
 case "$action" in
-  proxmox|tailscale)
+  proxmox|tailscale|opnsense)
     component="$action"
     action="${2:-}"
     ;;
@@ -20,6 +20,9 @@ case "$component" in
   tailscale)
     environment_directory="$repository_root/terraform/environments/labyrinthian-estate/tailscale"
     ;;
+  opnsense)
+    environment_directory="$repository_root/terraform/environments/labyrinthian-estate/opnsense"
+    ;;
 esac
 
 case "$action" in
@@ -29,7 +32,7 @@ case "$action" in
     exec terraform -chdir="$environment_directory" fmt -check
     ;;
   *)
-    echo "usage: $0 [proxmox|tailscale] {init|fmt|validate|plan|apply|output}" >&2
+    echo "usage: $0 [proxmox|tailscale|opnsense] {init|fmt|validate|plan|apply|output}" >&2
     exit 2
     ;;
 esac
