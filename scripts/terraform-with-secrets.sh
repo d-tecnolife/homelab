@@ -48,9 +48,20 @@ if [[ ! -f "$secret_file" ]]; then
 fi
 
 export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
+# sops exec-env runs this as one string through sh, so each argument needs
+# portable single-quoting. bash's printf %q is not portable and mangles
+# targets such as resource.name["key"]. The quote characters live in
+# variables to keep the substitution itself readable.
+shell_quote() {
+  local quote="'"
+  local escaped_quote="'\\''"
+  local value=${1//$quote/$escaped_quote}
+  printf '%s%s%s' "$quote" "$value" "$quote"
+}
+
 arguments=""
 for argument in "$@"; do
-  arguments+=" $(printf '%q' "$argument")"
+  arguments+=" $(shell_quote "$argument")"
 done
 
 exec sops exec-env "$secret_file" "terraform -chdir=$environment_directory $action$arguments"
