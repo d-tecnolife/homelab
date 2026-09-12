@@ -168,6 +168,28 @@
       become: false
       register: compose_secret_files
 
+    - name: Check for stack secret examples
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../../compose/{{ item }}/.env.example"
+      loop: "{{ compose_stacks }}"
+      delegate_to: localhost
+      become: false
+      register: compose_secret_examples
+
+    # Without this the stack deploys with no .env and Docker Compose fails much
+    # later on "required variable X is missing a value", which does not name the
+    # missing repository input.
+    - name: Require an encrypted input for every stack that declares one
+      ansible.builtin.assert:
+        that: not (item.0.stat.isreg | default(false)) or (item.1.stat.isreg | default(false))
+        fail_msg: >-
+          {{ item.0.item }} ships compose/{{ item.0.item }}/.env.example but has
+          no secrets/compose/{{ item.0.item }}.sops.env. Create and encrypt it
+          from the example before deploying; see secrets/README.md.
+      loop: "{{ compose_secret_examples.results | zip(compose_secret_files.results) | list }}"
+      loop_control:
+        label: "{{ item.0.item }}"
+
     - name: Decrypt stack secrets in memory
       ansible.builtin.command:
         argv:

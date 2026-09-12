@@ -12,7 +12,12 @@
   vars:
     bootstrap_operator_user: "{{ ansible_user | default('dtec', true) }}"
     bootstrap_known_hosts_file: "/home/{{ bootstrap_operator_user }}/.ssh/known_hosts"
-    bootstrap_ssh_hosts: "{{ groups['managed_vms'] | reject('equalto', 'ops') | list }}"
+    # proxmox_hosts belongs here too: monitoring-agents.yml has a play targeting
+    # it, and without a scanned host key that play fails the whole bootstrap on
+    # "Host key verification failed".
+    bootstrap_ssh_hosts: >-
+      {{ (groups['managed_vms'] | default([]) | reject('equalto', 'ops') | list)
+         + (groups['proxmox_hosts'] | default([]) | list) }}
 
   tasks:
     - name: Ensure the Ops SSH directory exists
