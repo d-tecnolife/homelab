@@ -30,11 +30,3 @@
         owner: root
         group: prometheus-data
         mode: "0644"
-
-    - name: Render Minecraft metrics target
-      ansible.builtin.template:
-        src: ../files/prometheus/minecraft-targets.yml.j2
-        dest: /srv/compose/monitoring/prometheus-targets/minecraft-targets.yml
-        owner: root
-        group: prometheus-data
-        mode: "0644"

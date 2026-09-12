@@ -15,8 +15,7 @@
         - watchtower
       monitoring:
         - monitoring
-      games:
-        - minecraft
+      games: []
     compose_stacks: "{{ compose_stacks_by_host[inventory_hostname] }}"
     compose_data_directories_by_host:
       ops: []
@@ -34,8 +33,7 @@
         - monitoring/alertmanager
         - monitoring/loki
         - monitoring/grafana
-      games:
-        - minecraft/data
+      games: []
     compose_data_directories: >-
       {{ compose_data_directories_by_host[inventory_hostname] }}
     compose_data_owners_by_host:
@@ -54,8 +52,7 @@
         - {path: monitoring/alertmanager, owner: "65534"}
         - {path: monitoring/loki, owner: "10001"}
         - {path: monitoring/grafana, owner: "472"}
-      games:
-        - {path: minecraft/data, owner: "1000"}
+      games: []
     compose_data_owners: "{{ compose_data_owners_by_host[inventory_hostname] }}"
     compose_data_access_by_host:
       ops: []
@@ -73,8 +70,7 @@
         - {path: monitoring/alertmanager, group: alertmanager-data}
         - {path: monitoring/loki, group: loki-data}
         - {path: monitoring/grafana, group: grafana-data}
-      games:
-        - {path: minecraft/data, group: minecraft-data}
+      games: []
     compose_data_access: "{{ compose_data_access_by_host[inventory_hostname] }}"
     service_operator_users: [dtec]
     compose_secret_directory: "{{ playbook_dir }}/../../secrets/compose"

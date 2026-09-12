@@ -47,7 +47,7 @@ it is neither a startup hook nor a scheduled job. Run it as `dtec`; its batched
 Ansible probes use the existing sudo configuration for read-only service checks.
 Use `homelab-health --strict` when a degraded result should exit nonzero.
 It reports VM reachability,
-containers, exporters, Prometheus targets, Caddy, Minecraft, CrowdSec, and nftables.
+containers, exporters, Prometheus targets, Caddy, CrowdSec, and nftables.
 
 The `dtec` account's privileges do not authorize deployment implicitly. Apply
 only named changes explicitly authorized by the user, and obtain separate

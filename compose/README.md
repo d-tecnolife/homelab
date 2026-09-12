@@ -13,5 +13,5 @@ Compose definitions are deployed under `/opt/compose/<stack>`. Persistent
 bind-mounted application data is created under `/srv/compose/<stack>` for
 consistent backup and recovery.
 
-The `monitoring` stack runs only on the Monitoring VM. The `minecraft` stack
-runs only on the Games VM.
+The `monitoring` stack runs only on the Monitoring VM. The Games VM runs Docker
+with no stacks, ready for game servers to be added.

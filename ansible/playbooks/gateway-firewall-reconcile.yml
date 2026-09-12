@@ -139,7 +139,7 @@
             content: "{{ item.members | join(gateway_newline) }}"
             description: "{{ item.description }}"
       loop:
-        - {name: exporter_ports, type: port, members: [9100, 9150], description: "Monitoring exporter ports"}
+        - {name: exporter_ports, type: port, members: [9100], description: "Monitoring exporter ports"}
         - {name: proxmox, type: host, members: [192.168.1.100], description: "Proxmox host"}
       loop_control:
         label: "{{ item.name }}"

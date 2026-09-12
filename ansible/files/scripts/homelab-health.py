@@ -112,9 +112,6 @@ def calculate_status(hosts: dict[str, Any], invocation_rc: int) -> str:
         door = host.get("door")
         if door and (door["service"] != "active" or not door["health_endpoint"]):
             return "degraded"
-        minecraft = host.get("minecraft")
-        if minecraft and (minecraft["container"] != "running" or not minecraft["port_25565"]):
-            return "degraded"
         crowdsec = host.get("crowdsec")
         if crowdsec and (
             crowdsec["service"] != "active" or crowdsec["bouncer"] != "active"

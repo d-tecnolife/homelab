@@ -47,32 +47,3 @@ loki.source.docker "containers" {
   forward_to = [loki.write.central.receiver]
 }
 {% endif %}
-
-{% if inventory_hostname == 'games' %}
-local.file_match "minecraft_server" {
-  path_targets = [
-    {
-      __path__    = "/srv/compose/minecraft/data/logs/latest.log",
-      job         = "minecraft",
-      service     = "minecraft",
-      log_type    = "server",
-      workload    = "minecraft",
-      source_type = "application",
-    },
-    {
-      __path__    = "/srv/compose/minecraft/data/*/logs/latest.log",
-      job         = "minecraft",
-      service     = "minecraft",
-      log_type    = "server",
-      workload    = "minecraft",
-      source_type = "application",
-    },
-  ]
-  sync_period = "10s"
-}
-
-loki.source.file "minecraft_server" {
-  targets    = local.file_match.minecraft_server.targets
-  forward_to = [loki.write.central.receiver]
-}
-{% endif %}

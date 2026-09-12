@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import socket
 import subprocess
 import urllib.error
 import urllib.request
@@ -133,14 +132,6 @@ def prometheus_snapshot(
     }
 
 
-def tcp_open(host: str, port: int, timeout: float) -> bool:
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
-        return False
-
-
 def caddy_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
     state = service_state("caddy.service", timeout)
     if state is None:
@@ -152,23 +143,6 @@ def caddy_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
     except (OSError, urllib.error.URLError):
         pass
     return {"service": state, "health_endpoint": healthy}
-
-
-def minecraft_snapshot(
-    host: str, containers: dict[str, Any], timeout: float
-) -> dict[str, Any] | None:
-    item = next(
-        (item for item in containers["items"] if item["name"] == "minecraft"), None
-    )
-    if item is None:
-        if host == "games":
-            return {"container": "missing", "health": None, "port_25565": False}
-        return None
-    return {
-        "container": item["state"],
-        "health": item["health"],
-        "port_25565": tcp_open("127.0.0.1", 25565, timeout),
-    }
 
 
 def crowdsec_snapshot(host: str, timeout: float) -> dict[str, Any] | None:
@@ -241,7 +215,6 @@ def collect(host: str, timeout: float) -> dict[str, Any]:
         "exporters": sorted(exporters, key=lambda item: item["name"]),
         "prometheus": prometheus_snapshot(host, containers, timeout),
         "door": caddy_snapshot(host, timeout),
-        "minecraft": minecraft_snapshot(host, containers, timeout),
         "crowdsec": crowdsec_snapshot(host, timeout),
         "nftables": nftables_snapshot(host, timeout),
     }

@@ -104,7 +104,7 @@ connection originates.
 
 - WAN: deny by default; forward TCP `80` and `443` only to Door
   (`172.16.30.10`) and only the declared game ports to Games
-  (`172.16.30.20`; currently Minecraft TCP `25565`). Do not expose Gateway,
+  (`172.16.30.20`; no ports are currently forwarded to it). Do not expose Gateway,
   Infra, or Internal hosts.
 - All VLANs: allow DNS and NTP to public destinations, outbound TCP
   `80`/`443` for package updates and image pulls, and outbound TCP `22` to
@@ -114,7 +114,7 @@ connection originates.
   networks remain excluded.
 - Ops: permit administration to guest TCP `22` and Gateway TCP `22`/`443`.
   Explicit rules use OPNsense's `(self)` destination; anti-lockout is disabled.
-- Monitoring: permit ICMP and the `exporter_ports` alias (TCP `9100`/`9150`)
+- Monitoring: permit ICMP and the `exporter_ports` alias (TCP `9100`)
   to `homelab_networks`. This baseline does not include Proxmox's upstream-LAN
   address in that alias. Guests may send logs to Monitoring TCP `3100`.
 - Door: permit TCP `1-65535` to `internal_network`, plus Monitoring TCP `3000`.
