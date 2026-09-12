@@ -19,9 +19,12 @@ services:
       # Python path (uses system python in container)
       - PYTHON_PATH=/usr/bin/python3
 
-      # Gmail
-      - GMAIL_OAUTH_CLIENT_ID=${GMAIL_OAUTH_CLIENT_ID:?set GMAIL_OAUTH_CLIENT_ID in .env}
-      - GMAIL_OAUTH_CLIENT_SECRET=${GMAIL_OAUTH_CLIENT_SECRET:?set GMAIL_OAUTH_CLIENT_SECRET in .env}
+      # Gmail integration, unused in this deployment. Optional rather than
+      # required: with :? the stack could not start at all without credentials
+      # for a feature nobody uses, which is what blocked the first full
+      # bootstrap run. Supply them in the stack's .env to turn the feature on.
+      - GMAIL_OAUTH_CLIENT_ID=${GMAIL_OAUTH_CLIENT_ID:-}
+      - GMAIL_OAUTH_CLIENT_SECRET=${GMAIL_OAUTH_CLIENT_SECRET:-}
 
     env_file:
       - path: ./.env
