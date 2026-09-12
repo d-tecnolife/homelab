@@ -85,6 +85,14 @@ sops encrypt --in-place secrets/infrastructure.sops.env
 bash scripts/terraform-with-secrets.sh plan
 ```
 
+The Terraform runner is Windows, so the same wrapper exists in PowerShell and
+is the one to use there. It discovers the restored age identity under
+`~/.config/sops/age` when `SOPS_AGE_KEY_FILE` is not already set:
+
+```powershell
+.\scripts	erraform-with-secrets.ps1 -Component proxmox -Action plan
+```
+
 The wrapper uses `sops exec-env`, so Terraform receives `TF_VAR_*` values in
 its process environment without a decrypted variables file. It deliberately
 accepts only common Terraform actions.
@@ -95,6 +103,11 @@ separate tailnet control-plane root with:
 ```bash
 bash scripts/terraform-with-secrets.sh tailscale init
 bash scripts/terraform-with-secrets.sh tailscale plan
+```
+
+```powershell
+.\scripts	erraform-with-secrets.ps1 -Component tailscale -Action init
+.\scripts	erraform-with-secrets.ps1 -Component tailscale -Action plan
 ```
 
 It also stores the seeded `homelab-automation` Gateway API credential (the
