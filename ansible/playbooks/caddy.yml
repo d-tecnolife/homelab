@@ -44,6 +44,9 @@
       run_once: true
       register: caddy_decrypted_secret
       changed_when: false
+      # Decrypting to memory changes nothing, so it must still run under
+      # --check; skipping it leaves every downstream task undefined.
+      check_mode: false
       no_log: true
     - name: Record the decrypted Cloudflare secret
       ansible.builtin.set_fact:
@@ -70,6 +73,9 @@
       become: false
       register: cloudflare_zone
       no_log: true
+      # Read-only lookups have to run under --check as well; skipping them
+      # leaves the facts below undefined and fails the whole play.
+      check_mode: false
 
     - name: Require the Cloudflare zone
       ansible.builtin.assert:
@@ -91,6 +97,9 @@
       become: false
       register: cloudflare_vault_record
       no_log: true
+      # Read-only lookups have to run under --check as well; skipping them
+      # leaves the facts below undefined and fails the whole play.
+      check_mode: false
 
     - name: Publish the routed-subnet Vault DNS record
       ansible.builtin.uri:
@@ -305,6 +314,9 @@
         status_code: 200
       register: caddy_health
       failed_when: caddy_health.content | trim != "ok"
+      # Read-only lookups have to run under --check as well; skipping them
+      # leaves the facts below undefined and fails the whole play.
+      check_mode: false
 
   handlers:
     - name: Restart Caddy
