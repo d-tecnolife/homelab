@@ -100,7 +100,23 @@
       loop: "{{ gateway_public_git_ssh_rules.results }}"
       when: (item.json.rows | default([]) | length) == 0
       register: gateway_public_git_ssh_rules_added
+      # OPNsense answers 200 even when it rejects a rule, reporting
+      # {"result": "failed", "validations": {...}} in the body. Without this
+      # the playbook reports success having changed nothing.
+      changed_when: (item.json.result | default('')) == 'saved'
+      failed_when: false
       no_log: true
+
+    - name: Require the Gateway to accept each public Git SSH rule
+      ansible.builtin.assert:
+        that: (item.json.result | default('')) == 'saved'
+        fail_msg: >-
+          Gateway rejected a public Git SSH rule:
+          {{ item.json.validations | default(item.json | default('no response')) }}
+      loop: "{{ gateway_public_git_ssh_rules_added.results }}"
+      loop_control:
+        label: "{{ item.item.item.description | default('rule') }}"
+      when: not (item.skipped | default(false))
 
     # Ops' own administration path to Gateway. An installer built before the
     # renderer learned OPNsense's (self) token left this rule enabled but
@@ -162,7 +178,18 @@
         - gateway_administration_matches | length > 0
         - gateway_administration_matches[0].destination_net != '(self)'
       register: gateway_administration_rule_corrected
+      changed_when: (gateway_administration_rule_corrected.json.result | default('')) == 'saved'
+      failed_when: false
       no_log: true
+
+    - name: Require the Gateway to accept the corrected administration rule
+      ansible.builtin.assert:
+        that: (gateway_administration_rule_corrected.json.result | default('')) == 'saved'
+        fail_msg: >-
+          Gateway rejected the corrected administration rule:
+          {{ gateway_administration_rule_corrected.json.validations
+             | default(gateway_administration_rule_corrected.json | default('no response')) }}
+      when: not (gateway_administration_rule_corrected.skipped | default(false))
 
     - name: Declare an absent Ops Gateway administration rule
       ansible.builtin.uri:
@@ -178,7 +205,18 @@
           rule: "{{ gateway_administration_body }}"
       when: gateway_administration_matches | length == 0
       register: gateway_administration_rule_added
+      changed_when: (gateway_administration_rule_added.json.result | default('')) == 'saved'
+      failed_when: false
       no_log: true
+
+    - name: Require the Gateway to accept the added administration rule
+      ansible.builtin.assert:
+        that: (gateway_administration_rule_added.json.result | default('')) == 'saved'
+        fail_msg: >-
+          Gateway rejected the added administration rule:
+          {{ gateway_administration_rule_added.json.validations
+             | default(gateway_administration_rule_added.json | default('no response')) }}
+      when: not (gateway_administration_rule_added.skipped | default(false))
 
     - name: Apply the Gateway firewall policy when a rule was added or corrected
       ansible.builtin.uri:
