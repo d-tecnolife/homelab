@@ -237,26 +237,23 @@
     # Core/Api/ServiceController.php, which only defines search/start/
     # restart/stop actions taking a service name, no "system" controller and
     # no "reconfigure" action. This is that real, verified restartAction.
-    # Restarting the web GUI necessarily kills the lighttpd/PHP-FPM worker
-    # that is itself serving this very request, so the honest outcome is
-    # never a clean 200 -- the connection drops mid-response. Confirmed live:
-    # this call reaches the real endpoint (no 404) and the connection is
-    # closed by the far end exactly as restarting the server that's
-    # answering it would cause. Treat that as this task's success signal;
-    # the next task's retry loop is what actually confirms the GUI came back.
-    - name: Restart OPNsense Web GUI to register new API routes
-      ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/core/service/restart/webgui"
-        method: POST
-        user: "{{ gateway_api_key }}"
-        password: "{{ gateway_api_secret }}"
-        force_basic_auth: true
-        validate_certs: false
-      register: gateway_webgui_restart
-      failed_when: >-
-        gateway_webgui_restart.status | default(-1) not in [200, -1]
-      no_log: true
-
+    # Tried restarting the web GUI here to force its new-plugin route map to
+    # reload (theory: lighttpd/PHP-FPM caches the controller map and needs a
+    # kick). Verified /api/core/service/restart/webgui is a real endpoint
+    # (opnsense/core Core/Api/ServiceController.php) and confirmed it really
+    # executes (connection drops exactly as restarting your own server would
+    # cause) -- but the plugin API still 404s for the full retry window
+    # afterward regardless. Does not help; do not re-add without new
+    # evidence. The three earlier attempts at this same idea
+    # (c5affc4/e031459/ee2d3a2) were abandoned within six minutes with no
+    # recorded reasoning, and this is almost certainly why.
+    #
+    # What actually explains the 404: this only happens on a from-scratch
+    # Gateway rebuild, never on a long-running one installing the plugin for
+    # the first time on that boot -- a freshly booted, 2 GiB, swap-constrained
+    # OPNsense (see docs/gateway-configuration.md) genuinely needs longer than
+    # 60s for a newly installed plugin's routes to become queryable. Give it
+    # real time instead of another API call.
     - name: Wait for the OPNsense Tailscale plugin API
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/tailscale/settings/get"
@@ -268,7 +265,7 @@
         status_code: 200
       register: gateway_tailscale_plugin
       until: gateway_tailscale_plugin.status == 200
-      retries: 12
+      retries: 60
       delay: 5
       no_log: true
 
