@@ -48,6 +48,7 @@ class GatewayRendererTests(unittest.TestCase):
                         {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - Infra"},
                         {"interface": "internal", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - Internal"},
                         {"interface": "dmz", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - DMZ"},
+                        {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "ops", "destination": "this_firewall", "ports": [22, 443], "description": "Ops Gateway administration"},
                     ],
                     "port_forwards": [
                         {"interface": "wan", "protocol": "tcp", "destination_port": 80, "target": "door", "target_port": 80, "description": "WAN HTTP to Door"},
@@ -110,6 +111,22 @@ class GatewayRendererTests(unittest.TestCase):
             self.assertEqual(
                 {rule.findtext("description") for rule in rules if rule.findtext("description").startswith("Public Git SSH")},
                 {"Public Git SSH - Infra", "Public Git SSH - Internal", "Public Git SSH - DMZ"},
+            )
+            # OPNsense only understands (self) here. Rendering the catalog's
+            # readable "this_firewall" verbatim produces a rule that loads,
+            # enables, and never matches -- which is how SSH to Gateway was
+            # silently unreachable while the GUI stayed up on the built-in
+            # anti-lockout rule.
+            administration = [
+                rule for rule in rules
+                if rule.findtext("description") == "Ops Gateway administration"
+            ]
+            self.assertEqual(len(administration), 1)
+            self.assertEqual(administration[0].findtext("destination_net"), "(self)")
+            self.assertEqual(administration[0].findtext("destination_port"), "22,443")
+            self.assertNotIn(
+                "this_firewall",
+                {rule.findtext("destination_net") for rule in rules},
             )
 
 

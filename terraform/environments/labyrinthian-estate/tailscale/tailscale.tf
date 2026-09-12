@@ -2,7 +2,13 @@
 # from the Proxmox environment. Credentials are supplied only through the
 # TAILSCALE_OAUTH_CLIENT_ID, TAILSCALE_OAUTH_CLIENT_SECRET, and
 # TAILSCALE_TAILNET environment variables.
-provider "tailscale" {}
+# The provider sends no scope parameter at all when this is unset, so the
+# issued token silently carries whatever the OAuth client happens to have and
+# an under-scoped client fails late, as a 403 on the policy write. Naming the
+# scope makes a wrong client fail at token exchange instead.
+provider "tailscale" {
+  scopes = ["policy_file"]
+}
 
 locals {
   subnet_routes = [
