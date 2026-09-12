@@ -8,11 +8,20 @@
 # rebuild (e.g. manual GUI edit). Extracted from the retired
 # gateway-tailscale.yml, which bundled this with Tailscale-specific tasks
 # for no clear reason -- the two are unrelated.
-- name: Reconcile Gateway's public Git SSH firewall rules
+- name: Reconcile Gateway firewall rules and aliases
   hosts: localhost
   gather_facts: false
   vars:
     gateway_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
+    # A double-quoted YAML scalar yields a real newline, which is how the alias
+    # API separates multiple values.
+    gateway_newline: "\n"
+    # Rules from retired designs that a rebuild no longer renders. Matched by
+    # description, so removing them needs no hardcoded UUIDs.
+    gateway_retired_rule_descriptions:
+      # Unbound was dropped; Gateway runs no resolver. These also carried the
+      # unmatchable this_firewall token, so they never passed a packet.
+      - Gateway split DNS
 
   tasks:
     - name: Load the encrypted input
@@ -91,6 +100,76 @@
         label: "{{ item.item.item.description | default('rule') }}"
       when: not (item.skipped | default(false))
 
+    # A rule may only reference an alias that already exists, and OPNsense's rule
+    # model takes one port, a range, or a port alias -- never a comma-joined
+    # list. Gateways installed before that was known carry "9100,9150" on the
+    # exporter rule, so the alias has to exist before the rule can be repaired.
+    - name: Read the current Gateway aliases
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/alias/search_item?rowCount=500"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_aliases
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Declare absent port aliases
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/alias/add_item"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          alias:
+            enabled: "1"
+            name: "{{ item.name }}"
+            type: port
+            content: "{{ item.ports | join(gateway_newline) }}"
+            description: "{{ item.description }}"
+      loop:
+        - {name: exporter_ports, ports: [9100, 9150], description: "Monitoring exporter ports"}
+      loop_control:
+        label: "{{ item.name }}"
+      when: >-
+        gateway_aliases.json.rows | default([])
+        | selectattr('name', 'equalto', item.name) | list | length == 0
+      register: gateway_aliases_added
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Require the Gateway to accept each added alias
+      ansible.builtin.assert:
+        that: (item.json.result | default('')) == 'saved'
+        fail_msg: >-
+          Gateway rejected alias {{ item.item.name | default('?') }}:
+          {{ item.json.validations | default(item.json | default('no response')) }}
+      loop: "{{ gateway_aliases_added.results }}"
+      loop_control:
+        label: "{{ item.item.name | default('alias') }}"
+      when: not (item.skipped | default(false))
+
+    - name: Load added aliases before any rule references them
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/alias/reconfigure"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      when: gateway_aliases_added.results | rejectattr('skipped', 'defined') | list | length > 0
+      no_log: true
+
     # Ops' own administration path to Gateway. An installer built before the
     # renderer learned OPNsense's (self) token and its single-port rule model
     # left these enabled but unmatchable, which is invisible from the GUI: the
@@ -109,11 +188,13 @@
         status_code: 200
       register: gateway_rules
       changed_when: false
+      # Read-only; the correction, addition and retirement tasks all consume it.
+      check_mode: false
       no_log: true
 
-    - name: Declare the Ops-only Gateway administration rules
+    - name: Declare the rules whose destination and port are reconciled
       ansible.builtin.set_fact:
-        gateway_administration_rules:
+        gateway_reconciled_rules:
           - enabled: "1"
             sequence: "140"
             action: pass
@@ -138,8 +219,21 @@
             destination_net: "(self)"
             destination_port: "443"
             description: Ops Gateway HTTPS administration
+          # sequence is omitted on purpose: set_rule leaves unsupplied fields
+          # untouched, so the rule keeps its rendered position.
+          - enabled: "1"
+            action: pass
+            quick: "1"
+            interface: lan
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
+            source_net: monitoring
+            destination_net: homelab_networks
+            destination_port: exporter_ports
+            description: Monitoring exporters
 
-    - name: Correct drifted Gateway administration rules
+    - name: Correct drifted reconciled rules
       ansible.builtin.uri:
         url: >-
           {{ gateway_url }}/api/firewall/filter/set_rule/{{
@@ -153,7 +247,7 @@
         body_format: json
         body:
           rule: "{{ item }}"
-      loop: "{{ gateway_administration_rules }}"
+      loop: "{{ gateway_reconciled_rules }}"
       loop_control:
         label: "{{ item.description }}"
       when:
@@ -167,7 +261,7 @@
       failed_when: false
       no_log: true
 
-    - name: Declare absent Gateway administration rules
+    - name: Declare absent reconciled rules
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/add_rule"
         method: POST
@@ -179,7 +273,7 @@
         body_format: json
         body:
           rule: "{{ item }}"
-      loop: "{{ gateway_administration_rules }}"
+      loop: "{{ gateway_reconciled_rules }}"
       loop_control:
         label: "{{ item.description }}"
       when: (gateway_rules.json.rows | selectattr('description', 'equalto', item.description) | list) | length == 0
@@ -188,17 +282,48 @@
       failed_when: false
       no_log: true
 
-    - name: Require the Gateway to accept every administration rule it was sent
+    - name: Require the Gateway to accept every reconciled rule it was sent
       ansible.builtin.assert:
         that: (item.json.result | default('')) == 'saved'
         fail_msg: >-
-          Gateway rejected {{ item.item.description | default('an administration rule') }}:
+          Gateway rejected {{ item.item.description | default('a reconciled rule') }}:
           {{ item.json.validations | default(item.json | default('no response')) }}
       loop: >-
         {{ (gateway_administration_corrected.results | default([]))
            + (gateway_administration_added.results | default([])) }}
       loop_control:
         label: "{{ item.item.description | default('rule') }}"
+      when: not (item.skipped | default(false))
+
+    - name: Remove rules from retired designs
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/del_rule/{{ item.uuid }}"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      loop: >-
+        {{ gateway_rules.json.rows | default([])
+           | selectattr('description', 'in', gateway_retired_rule_descriptions) | list }}
+      loop_control:
+        label: "{{ item.description }} ({{ item.interface }})"
+      register: gateway_retired_rules_removed
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Require the Gateway to confirm each retired rule was removed
+      ansible.builtin.assert:
+        that: (item.json.result | default('')) == 'deleted'
+        fail_msg: >-
+          Gateway did not delete {{ item.item.description | default('a retired rule') }}:
+          {{ item.json | default('no response') }}
+      loop: "{{ gateway_retired_rules_removed.results }}"
+      loop_control:
+        label: "{{ item.item.description | default('rule') }}"
+      # --check skips the delete, so there is no result to require.
       when: not (item.skipped | default(false))
 
     - name: Apply the Gateway firewall policy when a rule was added or corrected
@@ -215,4 +340,5 @@
         or (((gateway_administration_corrected.results | default([]))
              + (gateway_administration_added.results | default([])))
             | rejectattr('skipped', 'defined') | list | length > 0)
+        or ((gateway_retired_rules_removed.results | default([])) | length > 0)
       no_log: true
