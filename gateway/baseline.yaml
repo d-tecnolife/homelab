@@ -45,6 +45,7 @@ aliases:
   door: { type: host, values: [172.16.30.10] }
   games: { type: host, values: [172.16.30.20] }
   package_ports: { type: port, values: [80, 443] }
+  exporter_ports: { type: port, values: [9100, 9150] }
   dns_ports: { type: port, values: [53] }
 
 # Rules are evaluated on the interface where a connection begins. All omitted
@@ -64,12 +65,16 @@ firewall:
 
     # Ops is the sole administration exception.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }
-    - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [22, 443], description: "Ops Gateway administration" }
+    # One port only: OPNsense's rule model takes a single port, a range, or
+    # a port alias, never a comma-joined list, and rejects anything else the
+    # moment the rule is saved through its API. HTTPS to the firewall is
+    # already covered by the built-in LAN anti-lockout rule retained above.
+    - { interface: infra, action: pass, protocol: tcp, source: ops, destination: this_firewall, ports: [22], description: "Ops Gateway administration" }
 
     # Monitoring sees every current and future homelab VM through standard
     # exporter ports. New VMs need no firewall-specific change.
     - { interface: infra, action: pass, protocol: icmp, source: monitoring, destination: homelab_networks, description: "Monitoring ICMP" }
-    - { interface: infra, action: pass, protocol: tcp, source: monitoring, destination: homelab_networks, ports: [9100, 9150], description: "Monitoring exporters" }
+    - { interface: infra, action: pass, protocol: tcp, source: monitoring, destination: homelab_networks, ports: exporter_ports, description: "Monitoring exporters" }
     - { interface: [infra, internal, dmz], action: pass, protocol: tcp, source: interface_network, destination: monitoring, ports: [3100], description: "Loki log delivery" }
 
     # Door is the sole trusted DMZ proxy. It may reach Internal TCP services so

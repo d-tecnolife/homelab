@@ -48,7 +48,8 @@ class GatewayRendererTests(unittest.TestCase):
                         {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - Infra"},
                         {"interface": "internal", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - Internal"},
                         {"interface": "dmz", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - DMZ"},
-                        {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "ops", "destination": "this_firewall", "ports": [22, 443], "description": "Ops Gateway administration"},
+                        {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "ops", "destination": "this_firewall", "ports": [22], "description": "Ops Gateway administration"},
+                        {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "monitoring", "destination": "homelab_networks", "ports": "exporter_ports", "description": "Monitoring exporters"},
                     ],
                     "port_forwards": [
                         {"interface": "wan", "protocol": "tcp", "destination_port": 80, "target": "door", "target_port": 80, "description": "WAN HTTP to Door"},
@@ -123,7 +124,18 @@ class GatewayRendererTests(unittest.TestCase):
             ]
             self.assertEqual(len(administration), 1)
             self.assertEqual(administration[0].findtext("destination_net"), "(self)")
-            self.assertEqual(administration[0].findtext("destination_port"), "22,443")
+            self.assertEqual(administration[0].findtext("destination_port"), "22")
+            # OPNsense's rule model accepts one port, a range, or a port alias.
+            # A comma-joined list renders fine into config.xml but is rejected
+            # the moment the same rule is saved through the API, so a rule that
+            # looks correct on a fresh install cannot be reconciled later.
+            for rule in rules:
+                port = rule.findtext("destination_port")
+                if port is not None:
+                    self.assertNotIn(
+                        ",", port,
+                        "%s renders a comma-joined port list" % rule.findtext("description"),
+                    )
             self.assertNotIn(
                 "this_firewall",
                 {rule.findtext("destination_net") for rule in rules},

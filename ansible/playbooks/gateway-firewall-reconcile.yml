@@ -158,7 +158,7 @@
           protocol: TCP
           source_net: ops
           destination_net: "(self)"
-          destination_port: "22,443"
+          destination_port: "22"
           description: Ops Gateway administration
       no_log: true
 
