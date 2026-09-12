@@ -103,11 +103,20 @@
         body_format: json
         body:
           user:
+            # name is not redundant: the controller only runs its "auth sync
+            # user" backend call when the payload carries one, and that sync is
+            # what writes /root/.ssh/authorized_keys. Without it the config
+            # saves, reports success, and the running system never changes.
+            name: root
             authorizedkeys: "{{ (gateway_authorized_keys + [ops_management_public_key]) | join('\\n') }}"
-      when: ops_management_public_key not in gateway_authorized_keys
+      # Written unconditionally rather than only when the key is missing: the
+      # write is what triggers the sync to disk, and config and disk can
+      # disagree. Skipping on "already in config" would make that permanent.
       register: gateway_root_user_updated
       # OPNsense answers 200 even when it rejects the write.
-      changed_when: (gateway_root_user_updated.json.result | default('')) == 'saved'
+      changed_when:
+        - (gateway_root_user_updated.json.result | default('')) == 'saved'
+        - ops_management_public_key not in gateway_authorized_keys
       failed_when: false
       no_log: true
 
@@ -118,7 +127,6 @@
           Gateway rejected the authorized key update:
           {{ gateway_root_user_updated.json.validations
              | default(gateway_root_user_updated.json | default('no response')) }}
-      when: not (gateway_root_user_updated.skipped | default(false))
 
     - name: Verify Ops can authenticate to Gateway over SSH
       ansible.builtin.command:
@@ -134,3 +142,9 @@
           - hostname
       register: gateway_ssh_check
       changed_when: false
+      failed_when: gateway_ssh_check.rc != 0
+
+    - name: Confirm Gateway answered as itself
+      ansible.builtin.assert:
+        that: gateway_ssh_check.stdout | trim | length > 0
+        success_msg: "Ops authenticated to Gateway as {{ gateway_ssh_check.stdout | trim }}."
