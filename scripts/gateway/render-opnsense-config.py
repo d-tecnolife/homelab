@@ -95,18 +95,21 @@ def port_forward(parent: ET.Element, spec: dict, sequence: int) -> None:
     child(destination, "port", spec["destination_port"])
 
 
-def add_unbound_config(root: ET.Element, catalog: dict, workloads: dict) -> None:
+# Unbound's own enable/port/dnssec/local_zone_type settings are deliberately
+# NOT rendered here. That's a versioned OPNsense MVC model
+# (OPNsense\Unbound\Unbound, migrations 1.0.0-1.0.15); a hand-rendered
+# section never gets the model-version stamp OPNsense's own save path adds,
+# and without it the "enabled" flag reads back correctly but the daemon
+# never actually starts -- confirmed on a from-scratch rebuild. That part is
+# now owned by terraform/environments/labyrinthian-estate/opnsense (the
+# opnsense_unbound_settings resource), which manages it through the live
+# API instead. This function only seeds split-DNS host overrides, which are
+# harmless static data: the first time the Terraform resource above saves
+# any part of this same model, OPNsense re-serializes the whole object
+# (hosts included), giving these entries the correct versioning as a
+# side effect -- no separate resource needed for them.
+def add_unbound_host_overrides(root: ET.Element, catalog: dict, workloads: dict) -> None:
     unbound = child(child(root, "OPNsense"), "unboundplus")
-    general = child(unbound, "general")
-    for key, value in {
-        "enabled": 1,
-        "port": 53,
-        "active_interface": "lan,opt1,opt2",
-        "dnssec": 1,
-        "local_zone_type": "transparent",
-    }.items():
-        child(general, key, value)
-
     hosts = child(unbound, "hosts")
     for name, spec in workloads.items():
         host = child(hosts, "host")
@@ -237,7 +240,7 @@ def main() -> None:
             sequence += 10
     settings = child(model, "settings")
     child(child(settings, "nat"), "snat_mode", catalog["firewall"]["outbound_nat"])
-    add_unbound_config(root, catalog, workloads)
+    add_unbound_host_overrides(root, catalog, workloads)
     ET.indent(root, space="  ")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(args.output, encoding="utf-8", xml_declaration=True)

@@ -109,7 +109,10 @@ class GatewayRendererTests(unittest.TestCase):
             )
             self.assertTrue(all(rule.findtext("natreflection") == "disable" for rule in forwards))
             self.assertTrue(all(rule.findtext("pass") == "pass" for rule in forwards))
-            self.assertEqual(tree.findtext("./OPNsense/unboundplus/general/enabled"), "1")
+            # general/enabled etc. are deliberately not rendered here anymore --
+            # owned by terraform/environments/labyrinthian-estate/opnsense instead.
+            # See render-opnsense-config.py's add_unbound_host_overrides docstring.
+            self.assertIsNone(tree.find("./OPNsense/unboundplus/general"))
             hosts = tree.findall("./OPNsense/unboundplus/hosts/host")
             self.assertEqual({host.findtext("hostname") for host in hosts}, {"gitea", "monitoring", "k3s", "apps", "nolife", "door", "games"})
             rules = tree.findall("./OPNsense/Firewall/Filter/rules/rule")

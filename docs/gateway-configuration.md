@@ -50,8 +50,15 @@ partially completed rebuild at any phase.
 8. Create Ops (VMID `1010`) as the only controller exception. From its console,
    run the Gateway reconciliation playbook, which installs and configures the
    OPNsense Tailscale plugin, then apply the separate Tailscale Terraform root.
-9. Set `gateway_policy_ready = true` only after those steps complete, review
-   the workload plan, and apply it.
+9. Apply the separate `terraform/environments/labyrinthian-estate/opnsense`
+   root (`scripts/terraform-with-secrets.sh opnsense apply`) to bring up
+   Unbound. This is not optional bootstrap polish: the bootstrap ISO's
+   rendered config.xml deliberately does not enable Unbound (see that root's
+   README) because a hand-rendered section for this specific versioned
+   OPNsense model does not reliably take effect. Skipping this step leaves
+   Gateway's own DNS resolver down.
+10. Set `gateway_policy_ready = true` only after those steps complete, review
+    the workload plan, and apply it.
 
 The bootstrap ISO carries an unencrypted `/conf/config.xml`, so the encrypted
 baseline is decrypted only into a protected temporary build location and

@@ -93,6 +93,17 @@ bash scripts/terraform-with-secrets.sh tailscale init
 bash scripts/terraform-with-secrets.sh tailscale plan
 ```
 
+It also stores the seeded `homelab-automation` Gateway API credential (the
+same one in `ansible/secrets/gateway.sops.env`), used by the separate
+`terraform/environments/labyrinthian-estate/opnsense` root to manage
+versioned OPNsense settings (Unbound today) through the live API instead of
+the one-time bootstrap ISO render. See that root's own README for why:
+
+```bash
+bash scripts/terraform-with-secrets.sh opnsense init
+bash scripts/terraform-with-secrets.sh opnsense plan
+```
+
 ## Compose stacks
 
 Create one encrypted file per stack from its existing example:
