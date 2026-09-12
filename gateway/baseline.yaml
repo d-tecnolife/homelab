@@ -48,6 +48,9 @@ aliases:
   monitoring: { type: host, values: [172.16.10.20] }
   door: { type: host, values: [172.16.30.10] }
   games: { type: host, values: [172.16.30.20] }
+  # The Proxmox host sits on the WAN-side LAN, outside every VLAN, so it is
+  # a private destination the public egress rules correctly refuse.
+  proxmox: { type: host, values: [192.168.1.100] }
   package_ports: { type: port, values: [80, 443] }
   exporter_ports: { type: port, values: [9100, 9150] }
   dns_ports: { type: port, values: [53] }
@@ -69,6 +72,8 @@ firewall:
 
     # Ops is the sole administration exception.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }
+    # monitoring-agents.yml configures Proxmox over SSH from Ops.
+    - { interface: infra, action: pass, protocol: tcp, source: ops, destination: proxmox, ports: [22], description: "Ops Proxmox administration" }
     # One port only: OPNsense's rule model takes a single port, a range, or
     # a port alias, never a comma-joined list, and rejects anything else the
     # moment the rule is saved through its API. Declare HTTPS separately;
@@ -80,6 +85,10 @@ firewall:
     # exporter ports. New VMs need no firewall-specific change.
     - { interface: infra, action: pass, protocol: icmp, source: monitoring, destination: homelab_networks, description: "Monitoring ICMP" }
     - { interface: infra, action: pass, protocol: tcp, source: monitoring, destination: homelab_networks, ports: exporter_ports, description: "Monitoring exporters" }
+    # Proxmox is outside homelab_networks: node exporter for hardware metrics,
+    # and the API that pve-exporter on Monitoring queries.
+    - { interface: infra, action: pass, protocol: tcp, source: monitoring, destination: proxmox, ports: [9100], description: "Monitoring Proxmox node exporter" }
+    - { interface: infra, action: pass, protocol: tcp, source: monitoring, destination: proxmox, ports: [8006], description: "Monitoring Proxmox API exporter" }
     - { interface: [infra, internal, dmz], action: pass, protocol: tcp, source: interface_network, destination: monitoring, ports: [3100], description: "Loki log delivery" }
 
     # Door is the sole trusted DMZ proxy. It may reach Internal TCP services so

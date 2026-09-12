@@ -118,7 +118,7 @@
       check_mode: false
       no_log: true
 
-    - name: Declare absent port aliases
+    - name: Declare absent aliases
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/alias/add_item"
         method: POST
@@ -132,11 +132,12 @@
           alias:
             enabled: "1"
             name: "{{ item.name }}"
-            type: port
-            content: "{{ item.ports | join(gateway_newline) }}"
+            type: "{{ item.type }}"
+            content: "{{ item.values | join(gateway_newline) }}"
             description: "{{ item.description }}"
       loop:
-        - {name: exporter_ports, ports: [9100, 9150], description: "Monitoring exporter ports"}
+        - {name: exporter_ports, type: port, values: [9100, 9150], description: "Monitoring exporter ports"}
+        - {name: proxmox, type: host, values: [192.168.1.100], description: "Proxmox host"}
       loop_control:
         label: "{{ item.name }}"
       when: >-
@@ -232,6 +233,39 @@
             destination_net: homelab_networks
             destination_port: exporter_ports
             description: Monitoring exporters
+          - enabled: "1"
+            action: pass
+            quick: "1"
+            interface: lan
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
+            source_net: ops
+            destination_net: proxmox
+            destination_port: "22"
+            description: Ops Proxmox administration
+          - enabled: "1"
+            action: pass
+            quick: "1"
+            interface: lan
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
+            source_net: monitoring
+            destination_net: proxmox
+            destination_port: "9100"
+            description: Monitoring Proxmox node exporter
+          - enabled: "1"
+            action: pass
+            quick: "1"
+            interface: lan
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
+            source_net: monitoring
+            destination_net: proxmox
+            destination_port: "8006"
+            description: Monitoring Proxmox API exporter
 
     - name: Correct drifted reconciled rules
       ansible.builtin.uri:
