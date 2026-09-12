@@ -95,40 +95,9 @@ def port_forward(parent: ET.Element, spec: dict, sequence: int) -> None:
     child(destination, "port", spec["destination_port"])
 
 
-# Unbound's own enable/port/dnssec/local_zone_type settings are deliberately
-# NOT rendered here. That's a versioned OPNsense MVC model
-# (OPNsense\Unbound\Unbound, migrations 1.0.0-1.0.15); a hand-rendered
-# section never gets the model-version stamp OPNsense's own save path adds,
-# and without it the "enabled" flag reads back correctly but the daemon
-# never actually starts -- confirmed on a from-scratch rebuild. That part is
-# now owned by terraform/environments/labyrinthian-estate/opnsense (the
-# opnsense_unbound_settings resource), which manages it through the live
-# API instead. This function only seeds split-DNS host overrides, which are
-# harmless static data: the first time the Terraform resource above saves
-# any part of this same model, OPNsense re-serializes the whole object
-# (hosts included), giving these entries the correct versioning as a
-# side effect -- no separate resource needed for them.
-def add_unbound_host_overrides(root: ET.Element, catalog: dict, workloads: dict) -> None:
-    unbound = child(child(root, "OPNsense"), "unboundplus")
-    hosts = child(unbound, "hosts")
-    for name, spec in workloads.items():
-        host = child(hosts, "host")
-        for key, value in {
-            "enabled": 1,
-            "hostname": name,
-            "domain": catalog["system"]["domain"],
-            "rr": "A",
-            "server": spec["address"].split("/", 1)[0],
-            "addptr": 1,
-            "description": f"Homelab {name}",
-        }.items():
-            child(host, key, value)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
-    parser.add_argument("--workloads", type=Path, required=True)
     parser.add_argument("--ssh-public-key", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -150,7 +119,6 @@ def main() -> None:
     )
     password_hash = result.stdout.rstrip("\n").split(":", 1)[1]
     catalog = yaml.safe_load(args.catalog.read_text(encoding="utf-8"))
-    workloads = yaml.safe_load(args.workloads.read_text(encoding="utf-8"))["workloads"]
     root = ET.Element("opnsense")
     system = child(root, "system")
     for key in ("hostname", "domain", "timezone"):
@@ -240,7 +208,6 @@ def main() -> None:
             sequence += 10
     settings = child(model, "settings")
     child(child(settings, "nat"), "snat_mode", catalog["firewall"]["outbound_nat"])
-    add_unbound_host_overrides(root, catalog, workloads)
     ET.indent(root, space="  ")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(args.output, encoding="utf-8", xml_declaration=True)

@@ -50,16 +50,19 @@ partially completed rebuild at any phase.
 8. Create Ops (VMID `1010`) as the only controller exception. From its console,
    run the Gateway reconciliation playbook, which installs and configures the
    OPNsense Tailscale plugin, then apply the separate Tailscale Terraform root.
-9. From Ops (not the Windows Terraform runner -- see that root's README for
-   why), apply the separate `terraform/environments/labyrinthian-estate/opnsense`
-   root (`scripts/terraform-with-secrets.sh opnsense apply`) to bring up
-   Unbound. This is not optional bootstrap polish: the bootstrap ISO's
-   rendered config.xml deliberately does not enable Unbound (see that root's
-   README) because a hand-rendered section for this specific versioned
-   OPNsense model does not reliably take effect. Skipping this step leaves
-   Gateway's own DNS resolver down.
-10. Set `gateway_policy_ready = true` only after those steps complete, review
-    the workload plan, and apply it.
+   Gateway runs no DNS resolver of its own -- every service this homelab
+   needs an internal name for already has a public DNS record, so guests
+   and Gateway itself resolve directly through the public resolvers in
+   `dns_servers` / `gateway/baseline.yaml`. Unbound was tried here and
+   dropped after hitting a confirmed, still-open upstream OPNsense bug
+   (<https://github.com/opnsense/core/issues/10723>) where enabled services
+   do not reliably survive a reboot -- the same bug affects Tailscale itself,
+   so after any Gateway reboot or crash `tailscaled` must be started by hand
+   from the console (`service tailscaled onestart`; plain `start` refuses
+   because the bug leaves `tailscaled_enable` at `NO` in rc.conf). No
+   automated recovery exists for this yet.
+9. Set `gateway_policy_ready = true` only after those steps complete, review
+   the workload plan, and apply it.
 
 The bootstrap ISO carries an unencrypted `/conf/config.xml`, so the encrypted
 baseline is decrypted only into a protected temporary build location and
@@ -78,10 +81,9 @@ configuration in Git or Terraform state.
 | OPT1 | OPNsense `vlan1` (VLAN 20 on `vtnet1` / tagged `vmbr1`) | `172.16.20.1/24` | Internal |
 | OPT2 | OPNsense `vlan2` (VLAN 30 on `vtnet1` / tagged `vmbr1`) | `172.16.30.1/24` | DMZ |
 
-Unbound serves catalog-derived `dscim.dev` host overrides to every VLAN guest;
-Terraform therefore configures each guest to use its VLAN Gateway as DNS. Do
-not enable NAT reflection. Outbound NAT translates the three VLAN networks to
-WAN.
+Gateway runs no DNS resolver; Terraform configures every guest (and Gateway
+itself) to use the public resolvers in `dns_servers` directly. Do not enable
+NAT reflection. Outbound NAT translates the three VLAN networks to WAN.
 
 OPNsense's automatic LAN anti-lockout rule remains enabled on VLAN 10 during
 bootstrap. This keeps Gateway SSH and HTTPS reachable from the Infra network

@@ -127,8 +127,7 @@ resource "proxmox_virtual_environment_vm" "ops" {
     user_data_file_id = proxmox_virtual_environment_file.ops_cloud_config.id
 
     dns {
-      # Ops needs the same split-DNS path as every workload.
-      servers = [var.ops_ipv4_gateway]
+      servers = var.dns_servers
     }
 
     ip_config {

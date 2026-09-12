@@ -74,17 +74,23 @@ From the Ops console, run `playbooks/gateway-tailscale.yml`. It installs the
 OPNsense Tailscale plugin through Gateway's seeded API account and configures
 the subnet router. Then apply the separate Tailscale Terraform root. The root
 owns the tailnet policy and automatic approval for the three Gateway-advertised
-VLAN routes.
+VLAN routes. Set `gateway_policy_ready = true` only after that root has
+applied successfully.
 
-Also apply the separate `terraform/environments/labyrinthian-estate/opnsense`
-root — it brings up Unbound, which the bootstrap ISO's rendered config
-deliberately leaves disabled. Unlike every other Terraform root in this repo,
-run this one from Ops (`scripts/terraform-with-secrets.sh opnsense apply`),
-since it targets Gateway's private Infra-VLAN address and the Windows
-Terraform runner has no route there. See that root's README for why and for
-the one-time Terraform install this requires on Ops. Set
-`gateway_policy_ready = true` only after both roots have applied
-successfully.
+Gateway does not run a DNS resolver: every service this homelab needs an
+internal name for already has a public DNS record, so guests and Gateway
+itself both resolve directly through the public resolvers in
+`var.dns_servers` / `gateway/baseline.yaml`'s `dns_resolvers`. An earlier
+design ran Unbound on Gateway for split-DNS; it was dropped after hitting a
+confirmed, still-open upstream OPNsense bug
+(<https://github.com/opnsense/core/issues/10723>) where enabled services,
+Unbound included, do not reliably survive a reboot.
+
+The same bug affects the Tailscale daemon: after any Gateway reboot or crash,
+`tailscaled` comes back disabled and must be started by hand from the
+console (`service tailscaled onestart`; plain `service tailscaled start`
+refuses because the bug leaves `tailscaled_enable` at `NO` in rc.conf). No
+automated recovery exists for this yet.
 
 ## 5. Configure Ubuntu guests from Ops
 

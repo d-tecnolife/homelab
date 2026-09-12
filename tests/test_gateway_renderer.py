@@ -13,10 +13,8 @@ ROOT = pathlib.Path(__file__).parents[1]
 RENDERER = ROOT / "scripts/gateway/render-opnsense-config.py"
 
 
-def load_renderer(catalog, workloads):
-    yaml = types.SimpleNamespace(
-        safe_load=lambda content: workloads if "workloads:" in content else catalog
-    )
+def load_renderer(catalog):
+    yaml = types.SimpleNamespace(safe_load=lambda content: catalog)
     spec = spec_from_file_location("gateway_renderer", RENDERER)
     module = module_from_spec(spec)
     with mock.patch.dict(sys.modules, {"yaml": yaml}):
@@ -25,7 +23,7 @@ def load_renderer(catalog, workloads):
 
 
 class GatewayRendererTests(unittest.TestCase):
-    def test_renders_wan_forwards_and_split_dns(self):
+    def test_renders_wan_forwards_and_firewall_policy(self):
         with tempfile.TemporaryDirectory() as directory:
             output = pathlib.Path(directory) / "config.xml"
             key = pathlib.Path(directory) / "gateway.pub"
@@ -47,7 +45,6 @@ class GatewayRendererTests(unittest.TestCase):
                 "firewall": {
                     "outbound_nat": "automatic",
                     "rules": [
-                        {"interface": ["infra", "internal", "dmz"], "action": "pass", "protocol": "tcp/udp", "source": "interface_network", "destination": "this_firewall", "ports": "dns_ports", "description": "Gateway split DNS"},
                         {"interface": "infra", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - Infra"},
                         {"interface": "internal", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - Internal"},
                         {"interface": "dmz", "action": "pass", "protocol": "tcp", "source": "interface_network", "destination": "!private_networks", "ports": [22], "description": "Public Git SSH - DMZ"},
@@ -59,10 +56,7 @@ class GatewayRendererTests(unittest.TestCase):
                     ],
                 },
             }
-            workloads = {"workloads": {name: {"address": address} for name, address in {
-                "gitea": "172.16.10.30/24", "monitoring": "172.16.10.20/24", "k3s": "172.16.10.40/24", "apps": "172.16.20.10/24", "nolife": "172.16.20.20/24", "door": "172.16.30.10/24", "games": "172.16.30.20/24"
-            }.items()}}
-            renderer = load_renderer(catalog, workloads)
+            renderer = load_renderer(catalog)
             with mock.patch.dict(os.environ, environment, clear=True), mock.patch.object(
                 renderer.subprocess,
                 "run",
@@ -74,8 +68,6 @@ class GatewayRendererTests(unittest.TestCase):
                     str(RENDERER),
                     "--catalog",
                     str(ROOT / "gateway/baseline.yaml"),
-                    "--workloads",
-                    str(ROOT / "topology/workloads.yaml"),
                     "--ssh-public-key",
                     str(key),
                     "--output",
@@ -109,14 +101,12 @@ class GatewayRendererTests(unittest.TestCase):
             )
             self.assertTrue(all(rule.findtext("natreflection") == "disable" for rule in forwards))
             self.assertTrue(all(rule.findtext("pass") == "pass" for rule in forwards))
-            # general/enabled etc. are deliberately not rendered here anymore --
-            # owned by terraform/environments/labyrinthian-estate/opnsense instead.
-            # See render-opnsense-config.py's add_unbound_host_overrides docstring.
-            self.assertIsNone(tree.find("./OPNsense/unboundplus/general"))
-            hosts = tree.findall("./OPNsense/unboundplus/hosts/host")
-            self.assertEqual({host.findtext("hostname") for host in hosts}, {"gitea", "monitoring", "k3s", "apps", "nolife", "door", "games"})
+            # Unbound is not rendered here at all -- every internal service
+            # this homelab needs a name for already has a public DNS record,
+            # so Gateway has no split-DNS role; guests and Gateway itself use
+            # the public resolvers in ./system/dnsserver directly.
+            self.assertIsNone(tree.find("./OPNsense/unboundplus"))
             rules = tree.findall("./OPNsense/Firewall/Filter/rules/rule")
-            self.assertTrue(any(rule.findtext("description") == "Gateway split DNS" for rule in rules))
             self.assertEqual(
                 {rule.findtext("description") for rule in rules if rule.findtext("description").startswith("Public Git SSH")},
                 {"Public Git SSH - Infra", "Public Git SSH - Internal", "Public Git SSH - DMZ"},

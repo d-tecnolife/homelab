@@ -29,7 +29,7 @@ build_dir="$(mktemp -d)"
 trap 'rm -rf "$build_dir"' EXIT
 config_xml="$build_dir/config.xml"
 export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
-sops exec-env "$secret_file" "python3 '$repo_root/scripts/gateway/render-opnsense-config.py' --catalog '$repo_root/gateway/baseline.yaml' --workloads '$repo_root/topology/workloads.yaml' --ssh-public-key '$ssh_public_key' --output '$config_xml'"
+sops exec-env "$secret_file" "python3 '$repo_root/scripts/gateway/render-opnsense-config.py' --catalog '$repo_root/gateway/baseline.yaml' --ssh-public-key '$ssh_public_key' --output '$config_xml'"
 xmllint --noout "$config_xml"
 
 source_name="${source_id#local:iso/}"

@@ -28,31 +28,26 @@ Terraform-issued bootstrap key), then `bootstrap-lab.yml`, which is a pure
    the matching `--tags`.
 5. `secrets.yml` — installs SOPS/age on Ops and generates (or restores) the
    administrator age identity used for deploy-time decryption.
-6. `terraform.yml` — installs the pinned Terraform binary on Ops. Needed
-   only for `terraform/environments/labyrinthian-estate/opnsense`, the one
-   Terraform root that must run from Ops instead of the Windows runner
-   (see that root's README); installed unconditionally here so a fresh Ops
-   always has it.
-7. `ops-codex.yml` — deploys project Codex model-routing config to `dtec`'s
+6. `ops-codex.yml` — deploys project Codex model-routing config to `dtec`'s
    checkout.
-8. `homelab-health.yml` — installs the discretionary JSON health command.
-9. `caddy.yml` — Cloudflare-enabled Caddy build on Door, sites, config
+7. `homelab-health.yml` — installs the discretionary JSON health command.
+8. `caddy.yml` — Cloudflare-enabled Caddy build on Door, sites, config
    validation, health endpoint and JSON logs.
-10. `crowdsec.yml` — CrowdSec and its nftables bouncer on Door, run after
-    Caddy so its JSON access logs already exist.
-11. `deploy-compose.yml` — copies each host's assigned Compose stacks,
+9. `crowdsec.yml` — CrowdSec and its nftables bouncer on Door, run after
+   Caddy so its JSON access logs already exist.
+10. `deploy-compose.yml` — copies each host's assigned Compose stacks,
     decrypts any matching `secrets/compose/<stack>.sops.env` in memory,
     pulls and applies with Docker Compose.
-12. `playwright.yml` — private Ops→Apps SSH tunnel to the Playwright MCP
+11. `playwright.yml` — private Ops→Apps SSH tunnel to the Playwright MCP
     endpoint deployed by `deploy-compose.yml`; must run after it.
-13. `monitoring-agents.yml` — node_exporter everywhere plus Grafana Alloy on
+12. `monitoring-agents.yml` — node_exporter everywhere plus Grafana Alloy on
     guests.
-14. `monitoring-targets.yml` — renders Prometheus file-discovery targets from
+13. `monitoring-targets.yml` — renders Prometheus file-discovery targets from
     inventory; `monitoring-inventory-automation.yml` installs the Ops watcher
     that reruns it automatically whenever inventory changes.
-15. `minecraft-backups.yml` — daily backup service and timer on Games,
+14. `minecraft-backups.yml` — daily backup service and timer on Games,
     five-archive retention, RCON-safe flush.
-16. `lock-bootstrap-console.yml` — removes the temporary bootstrap key and the
+15. `lock-bootstrap-console.yml` — removes the temporary bootstrap key and the
     Proxmox-console auto-login. Bootstrap is complete after this step.
 
 Run standalone, outside `bootstrap-lab.yml`:
