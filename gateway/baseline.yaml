@@ -100,6 +100,9 @@ firewall:
   port_forwards:
     - { interface: wan, protocol: tcp, destination_port: 80, target: door, target_port: 80, description: "WAN HTTP to Door" }
     - { interface: wan, protocol: tcp, destination_port: 443, target: door, target_port: 443, description: "WAN HTTPS to Door" }
+    # Kept while Games has no server: the same Minecraft image will be
+    # redeployed there, and minecraft.dscim.dev still points at this address.
+    - { interface: wan, protocol: tcp, destination_port: 25565, target: games, target_port: 25565, description: "WAN Minecraft to Games" }
 
 # Tailscale runs on Ops now (ansible/playbooks/ops-tailscale.yml), not
 # Gateway -- see terraform/environments/labyrinthian-estate/tailscale/README.md
