@@ -49,6 +49,10 @@ function Invoke-TerraformApply {
     }
 }
 
+# Checked once up front so an unreachable API fails here with its cause named,
+# instead of mid-phase after a confirmation has already been typed.
+& (Join-Path $scriptDirectory "Test-ProxmoxReachable.ps1")
+
 $phases = @("workload-state", "gateway-rebuild", "gateway-install", "gateway-finalize", "ops-bootstrap")
 $startIndex = $phases.IndexOf($StartAt)
 

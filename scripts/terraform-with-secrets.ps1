@@ -30,6 +30,11 @@ if ($Action -eq "fmt") {
     exit $LASTEXITCODE
 }
 
+# Only the Proxmox root talks to Proxmox; the Tailscale root never does.
+if ($Component -eq "proxmox") {
+    & (Join-Path $PSScriptRoot "terraform\Test-ProxmoxReachable.ps1")
+}
+
 if (-not (Test-Path $secretFile)) {
     throw "missing encrypted Terraform secrets: $secretFile"
 }
