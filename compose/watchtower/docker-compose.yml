@@ -7,4 +7,9 @@ services:
     ports:
       - "9002:8080" 
     restart: unless-stopped
+    # containrrr/watchtower defaults to Docker API 1.25; Docker 29 refuses anything
+    # below 1.40, which left this container restarting every minute and every
+    # image it watches unupdated. Its Docker client honours DOCKER_API_VERSION.
+    environment:
+      DOCKER_API_VERSION: "1.44"
     command: --cleanup --interval 3600

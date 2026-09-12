@@ -20,8 +20,10 @@ services:
       MOTD: |-
         §d§lEVENT §f✦ §eDouble Backshots XP
         §7Lasts for all of §aSeptember§7!
-      ICON: /data/server-icon.png
-      OVERRIDE_ICON: "true"
+      # No server icon: ICON pointed at /data/server-icon.png, which is personal
+      # data this repository does not provide. The image aborts startup when the
+      # file is absent, so a rebuild crash-looped Minecraft over a cosmetic option.
+      # Place the file on the host and restore ICON/OVERRIDE_ICON to use one.
       USE_MEOWICE_FLAGS: "true"
       TZ: America/Winnipeg
       DIFFICULTY: normal

@@ -4,7 +4,10 @@ monitor.dscim.dev {
 		resolvers 1.1.1.1
 	}
 
-	@outside_private_networks not remote_ip 100.64.0.0/10 192.168.1.0/24
+	# 172.16.0.0/12 is required: Ops is the Tailscale subnet router and source-NATs
+	# tailnet traffic, so Caddy sees Ops' DMZ address rather than a 100.64 client.
+	# Without it every Tailscale user is refused; auth and jobs already include it.
+	@outside_private_networks not remote_ip 100.64.0.0/10 192.168.1.0/24 172.16.0.0/12
 	respond @outside_private_networks "Private network access required" 403
 
 	reverse_proxy 172.16.10.20:3000
