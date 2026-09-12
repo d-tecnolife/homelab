@@ -15,3 +15,12 @@ consistent backup and recovery.
 
 The `monitoring` stack runs only on the Monitoring VM. The `minecraft` stack
 runs only on the Games VM.
+
+## Stacks needing hand-placed files
+
+`wannbot` pulls a pre-built image and needs four files placed on the host at
+`/opt/compose/wannbot/` before it will start: `credentials.json`, `token.json`,
+`.env`, and `bot_config.py` (see `bot_config.py.example`). They are deliberately
+outside the SOPS workflow. Its Compose file declares `create_host_path: false`
+for each, so a missing one fails the deploy and names the path rather than
+letting Docker create an empty directory in its place.

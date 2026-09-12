@@ -3,10 +3,31 @@ services:
     image: ghcr.io/d-tecnolife/wannbot:latest
     container_name: wannbot
     restart: unless-stopped
+    # These four are supplied by hand on the host, not by this repository. The
+    # short bind syntax makes Docker silently create an empty *directory* for a
+    # missing source, which leaves the container stuck at Created with nothing
+    # explaining why. create_host_path: false makes Compose fail and name the
+    # path instead.
     volumes:
-      - ./credentials.json:/app/credentials.json:ro
-      - ./token.json:/app/token.json:ro
-      - ./.env:/app/.env:ro
-      - ./bot_config.py:/app/bot_config.py:ro
+      - type: bind
+        source: ./credentials.json
+        target: /app/credentials.json
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ./token.json
+        target: /app/token.json
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ./.env
+        target: /app/.env
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ./bot_config.py
+        target: /app/bot_config.py
+        read_only: true
+        bind: {create_host_path: false}
     environment:
       - TZ=America/Winnipeg
