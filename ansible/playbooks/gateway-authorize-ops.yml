@@ -13,6 +13,12 @@
   vars:
     gateway_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
     managed_user_home: "/home/{{ ansible_user | default('dtec', true) }}"
+    # A double-quoted YAML scalar yields a real newline; a single-quoted one
+    # yields backslash-n literally. Carrying both as values keeps every
+    # expression below free of escapes that have to survive YAML, Jinja and
+    # JSON in turn -- getting that wrong wrote both keys onto one line.
+    gateway_newline: "\n"
+    gateway_literal_newline: '\n'
 
   tasks:
     - name: Require encrypted Gateway API input
@@ -88,8 +94,14 @@
         # The API hands this back decoded and re-encodes it on write, so the
         # base64 stored in config.xml never has to be handled here.
         gateway_authorized_keys: >-
-          {{ (gateway_root_user.json.user.authorizedkeys | default('')).split('\n')
-             | map('trim') | reject('equalto', '') | list }}
+          {{ ((gateway_root_user.json.user.authorizedkeys | default(''))
+              | replace(gateway_literal_newline, gateway_newline)).splitlines()
+             | map('trim') | select('match', '^(ssh|ecdsa)-') | list }}
+
+    - name: Build the authorized key list Gateway should hold
+      ansible.builtin.set_fact:
+        gateway_desired_authorized_keys: >-
+          {{ (gateway_authorized_keys + [ops_management_public_key]) | unique | join(gateway_newline) }}
 
     - name: Authorize the Ops management key on Gateway
       ansible.builtin.uri:
@@ -108,15 +120,17 @@
             # what writes /root/.ssh/authorized_keys. Without it the config
             # saves, reports success, and the running system never changes.
             name: root
-            authorizedkeys: "{{ (gateway_authorized_keys + [ops_management_public_key]) | join('\\n') }}"
+            authorizedkeys: "{{ gateway_desired_authorized_keys }}"
       # Written unconditionally rather than only when the key is missing: the
       # write is what triggers the sync to disk, and config and disk can
       # disagree. Skipping on "already in config" would make that permanent.
       register: gateway_root_user_updated
       # OPNsense answers 200 even when it rejects the write.
+      # Compare against the stored value rather than merely checking whether the
+      # key is listed: a run that repairs a malformed store is a real change.
       changed_when:
         - (gateway_root_user_updated.json.result | default('')) == 'saved'
-        - ops_management_public_key not in gateway_authorized_keys
+        - gateway_desired_authorized_keys != (gateway_root_user.json.user.authorizedkeys | default(''))
       failed_when: false
       no_log: true
 
