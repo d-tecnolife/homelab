@@ -42,6 +42,8 @@ def fetch_csrf(opener):
     match = CSRF_RE.search(body)
     if not match:
         print("could not find CSRF token on login page", file=sys.stderr)
+        print(f"response length: {len(body)}", file=sys.stderr)
+        print(f"first 500 chars: {body[:500]!r}", file=sys.stderr)
         sys.exit(1)
     return match.group(1), match.group(2), body
 
