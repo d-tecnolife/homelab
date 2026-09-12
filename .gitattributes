@@ -8,3 +8,6 @@
 # The repo-root .sops.yaml is SOPS's own plaintext config (recipient rules),
 # not an encrypted file -- keep it as normal, diffable text.
 /.sops.yaml text
+# Public keys are copied verbatim into authorized_keys and base64-encoded into
+# Gateway's config.xml. A CRLF introduced on a Windows checkout rides along.
+*.pub -text
