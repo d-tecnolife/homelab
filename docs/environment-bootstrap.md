@@ -117,6 +117,14 @@ bootstrap script then switches to the permanent Ops management key and removes
 the temporary private key. Terraform state and saved Terraform plans therefore
 contain sensitive bootstrap material; keep them local and out of Git.
 
+Authorize Ops on Proxmox first. `bootstrap-proxmox.sh` authorizes the keys
+committed under `keys/`, but Ops generates its management key afterwards, so
+Proxmox cannot already know it and Ops cannot SSH in to install it. Until this
+is done, `monitoring-agents.yml`'s `proxmox_hosts` play fails on "Permission
+denied". From the Proxmox console, append Ops' `~/.ssh/id_ed25519.pub` to
+`/root/.ssh/authorized_keys`. This is irreducibly manual, like restoring the
+age identity.
+
 After the workload Terraform phase is complete, run the ordered configuration
 from Ops:
 
