@@ -120,6 +120,14 @@ class GatewayRendererTests(unittest.TestCase):
             # so Gateway has no split-DNS role; guests and Gateway itself use
             # the public resolvers in ./system/dnsserver directly.
             self.assertIsNone(tree.find("./OPNsense/unboundplus"))
+            # OPNsense templates read config.xml as a dictionary, where a second
+            # top-level <OPNsense> silently replaces the first. A Gateway built
+            # by an older renderer carried exactly that -- a trailing node
+            # holding only Unbound settings -- which hid every alias from the
+            # filter_tables template. pf loaded empty tables, so each
+            # "!private_networks" rule matched every address and the DMZ could
+            # SSH to Proxmox, while the API still listed all aliases correctly.
+            self.assertEqual(len(tree.getroot().findall("./OPNsense")), 1)
             rules = tree.findall("./OPNsense/Firewall/Filter/rules/rule")
             self.assertEqual(
                 {rule.findtext("description") for rule in rules if rule.findtext("description").startswith("Public Git SSH")},
