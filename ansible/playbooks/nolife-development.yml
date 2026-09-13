@@ -125,6 +125,20 @@
         argv: ["{{ dev_brew_prefix }}/opt/rustup/bin/rustup", default, stable]
       when: dev_rust_toolchain.rc != 0 or not dev_rust_toolchain.stdout.startswith('stable')
 
+    - name: Show the attached zmx session in the terminal tab title
+      ansible.builtin.blockinfile:
+        path: "{{ dev_user_home }}/.bashrc"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK: zmx tab title"
+        block: |
+          # Re-set the xterm/rxvt tab title after the distro default, prefixed
+          # with [session] when attached via `zmx attach` (ZMX_SESSION is
+          # unset for a plain login shell).
+          case "$TERM" in
+          xterm*|rxvt*)
+              PS1="$PS1\[\e]0;${ZMX_SESSION:+[$ZMX_SESSION] }\u@\h: \w\a\]"
+              ;;
+          esac
+
     - name: Check for an initialized ChezMoi source
       ansible.builtin.stat:
         path: "{{ dev_chezmoi_source }}"
