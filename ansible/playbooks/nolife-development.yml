@@ -6,8 +6,10 @@
     dev_user_home: "/home/{{ ansible_user | default('dtec', true) }}"
     dev_brew_prefix: /home/linuxbrew/.linuxbrew
     dev_brew_bin: "{{ dev_brew_prefix }}/bin/brew"
-    # Supply with -e dev_dotfiles_repository=<git-url> to apply ChezMoi-managed dotfiles.
-    dev_dotfiles_repository: ""
+    # ChezMoi-managed dotfiles, including the shared LazyVim configuration. Set
+    # to "" to seed the plain LazyVim starter instead.
+    dev_dotfiles_repository: https://github.com/d-tecnolife/dots.git
+    dev_chezmoi_source: "{{ dev_user_home }}/.local/share/chezmoi"
     dev_apt_packages:
       - build-essential
       - ca-certificates
@@ -121,9 +123,36 @@
         argv: ["{{ dev_brew_prefix }}/opt/rustup/bin/rustup", default, stable]
       when: dev_rust_toolchain.rc != 0 or not dev_rust_toolchain.stdout.startswith('stable')
 
-    - name: Apply the configured ChezMoi source
+    - name: Check for an initialized ChezMoi source
+      ansible.builtin.stat:
+        path: "{{ dev_chezmoi_source }}"
+      register: dev_chezmoi_source_dir
+
+    # The first ChezMoi apply would otherwise refuse to replace the Neovim
+    # starter a previous run seeded. Later runs leave ChezMoi's state alone.
+    - name: Set aside the unmanaged Neovim configuration
       ansible.builtin.command:
-        argv: ["{{ dev_brew_prefix }}/bin/chezmoi", init, --apply, "{{ dev_dotfiles_repository }}"]
+        argv: [mv, "{{ dev_user_home }}/.config/nvim", "{{ dev_user_home }}/.config/nvim.pre-chezmoi"]
+        removes: "{{ dev_user_home }}/.config/nvim"
+        creates: "{{ dev_user_home }}/.config/nvim.pre-chezmoi"
+      when:
+        - dev_dotfiles_repository | length > 0
+        - not dev_chezmoi_source_dir.stat.exists
+
+    # Nolife is headless, so it skips the Linux desktop configuration.
+    - name: Initialize and apply the ChezMoi source
+      ansible.builtin.command:
+        argv:
+          - "{{ dev_brew_prefix }}/bin/chezmoi"
+          # Without a terminal, chezmoi otherwise blocks on /dev/tty prompts.
+          - --no-tty
+          - init
+          - --apply
+          - --promptBool
+          - desktop=false
+          - "{{ dev_dotfiles_repository }}"
+        creates: "{{ dev_chezmoi_source }}"
+      register: dev_chezmoi_init
       when: dev_dotfiles_repository | length > 0
 
     - name: Check for an existing Neovim configuration
@@ -145,14 +174,26 @@
         state: absent
       when: not dev_nvim_config.stat.exists
 
+    - name: Check for installed Neovim plugins
+      ansible.builtin.stat:
+        path: "{{ dev_user_home }}/.local/share/nvim/lazy/lazy.nvim"
+      register: dev_nvim_plugins
+
     # Without this the first interactive launch spends minutes cloning plugins.
-    # Brew's tools are on PATH only for login shells, so pass them explicitly.
+    # restore installs exactly the commits in lazy-lock.json, and reruns when
+    # ChezMoi has just replaced the configuration. Brew's tools are on PATH only
+    # for login shells, so pass them explicitly.
     - name: Install the Neovim configuration's plugins
       ansible.builtin.command:
-        argv: ["{{ dev_brew_prefix }}/bin/nvim", --headless, "+Lazy! sync", +qa]
-        creates: "{{ dev_user_home }}/.local/share/nvim/lazy/lazy.nvim"
+        argv: ["{{ dev_brew_prefix }}/bin/nvim", --headless, "+Lazy! restore", +qa]
+      when: not dev_nvim_plugins.stat.exists or (dev_chezmoi_init is changed)
       environment:
         PATH: "{{ dev_brew_prefix }}/bin:{{ dev_brew_prefix }}/sbin:{{ dev_brew_prefix }}/opt/rustup/bin:{{ ansible_env.PATH }}"
+
+    - name: Check for installed Treesitter parsers
+      ansible.builtin.stat:
+        path: "{{ dev_user_home }}/.local/share/nvim/site/parser/lua.so"
+      register: dev_nvim_parsers
 
     # LazyVim otherwise compiles these on the first file opened after launch.
     - name: Install the configuration's Treesitter parsers
@@ -166,6 +207,6 @@
             local opts = require('lazy.core.plugin').values(plugin, 'opts', false);
             require('nvim-treesitter').install(opts.ensure_installed or {}):wait(600000)
           - +qa
-        creates: "{{ dev_user_home }}/.local/share/nvim/site/parser/lua.so"
+      when: not dev_nvim_parsers.stat.exists or (dev_chezmoi_init is changed)
       environment:
         PATH: "{{ dev_brew_prefix }}/bin:{{ dev_brew_prefix }}/sbin:{{ dev_brew_prefix }}/opt/rustup/bin:{{ ansible_env.PATH }}"
