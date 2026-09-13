@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the offsite Apps data backup nightly
+
+[Timer]
+# Before the 03:00 maintenance window, so updates start from a fresh backup.
+OnCalendar=*-*-* 02:00:00 America/Winnipeg
+Persistent=true
+RandomizedDelaySec=10m
+Unit=homelab-app-backup.service
+
+[Install]
+WantedBy=timers.target

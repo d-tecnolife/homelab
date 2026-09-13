@@ -213,3 +213,9 @@ variable "ops_ipv4_dmz_address" {
 # Per-workload sizing, addressing, and VMIDs live in topology/workloads.yaml,
 # consumed directly by workloads.tf's for_each. Do not add per-workload
 # Terraform variables here; add or edit the catalog entry instead.
+
+variable "backup_datastore_id" {
+  description = "Proxmox storage that holds the weekly Apps rollback image."
+  type        = string
+  default     = "local-backup"
+}

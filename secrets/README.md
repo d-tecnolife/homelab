@@ -148,6 +148,35 @@ weekly renewal timer that calls `vault-ssh-host-ca.yml --tags renew`, and
 extends the token's TTL each run via `auth/token/renew-self` — do not let it
 lapse past its period. Do not store Vault root or unseal tokens here.
 
+## Offsite backup credentials
+
+`app-data-backups.yml` configures nothing until `ansible/secrets/backup.sops.env`
+exists. In Cloudflare, create an R2 bucket and an R2 API token with Object Read
+& Write limited to that bucket, then create the file from its example on Ops:
+
+```bash
+cp ansible/secrets/backup.sops.env.example ansible/secrets/backup.sops.env
+SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" sops encrypt --in-place ansible/secrets/backup.sops.env
+SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" sops ansible/secrets/backup.sops.env
+```
+
+Set the repository endpoint, both R2 keys and a newly generated
+`RESTIC_PASSWORD`, then run the playbook from `~/homelab/ansible`. Keep a copy
+of `RESTIC_PASSWORD` beside the age identity: the repository cannot be read
+without it.
+
+Once Vault is initialized, add `VAULT_SNAPSHOT_TOKEN` so the backup includes a
+raft snapshot. As a Vault admin, create its policy and periodic token; the
+nightly backup renews the token itself:
+
+```bash
+vault policy write homelab-raft-snapshot - <<'POLICY'
+path "sys/storage/raft/snapshot" { capabilities = ["read"] }
+path "auth/token/renew-self" { capabilities = ["update"] }
+POLICY
+vault token create -policy=homelab-raft-snapshot -period=768h -no-default-policy
+```
+
 ## Secret classes
 
 - Commit with SOPS encryption: service environment values, API tokens, webhook

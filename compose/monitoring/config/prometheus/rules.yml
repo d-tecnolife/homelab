@@ -36,3 +36,22 @@ groups:
         labels: {severity: warning}
         annotations:
           summary: "Hardware temperature is above 85 C on {{ $labels.instance }}"
+  - name: homelab-backups
+    rules:
+      # homelab-app-backup on Apps publishes these through the node exporter
+      # textfile collector. Absence means offsite backups were never set up.
+      - alert: AppDataBackupMissing
+        expr: absent(homelab_backup_last_success_timestamp_seconds)
+        for: 6h
+        labels: {severity: warning}
+        annotations: {summary: Apps has no successful offsite backup on record}
+      - alert: AppDataBackupFailed
+        expr: homelab_backup_last_run_success == 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: The last offsite Apps data backup failed}
+      - alert: AppDataBackupStale
+        expr: time() - homelab_backup_last_success_timestamp_seconds > 36 * 3600
+        for: 15m
+        labels: {severity: critical}
+        annotations: {summary: No successful offsite Apps data backup in 36 hours}

@@ -1,0 +1,128 @@
+---
+# Nightly offsite backup of the Apps data a rebuild cannot recreate. Offsite
+# storage needs credentials only the operator can create, so this play changes
+# nothing until ansible/secrets/backup.sops.env exists; AppDataBackupMissing
+# alerts until the first backup succeeds.
+- name: Configure offsite Apps data backups
+  hosts: apps
+  become: true
+  gather_facts: false
+  vars:
+    backup_encrypted_secret_path: "{{ playbook_dir }}/../secrets/backup.sops.env"
+    backup_required_keys:
+      - RESTIC_REPOSITORY
+      - RESTIC_PASSWORD
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+    sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
+
+  pre_tasks:
+    - name: Check for the encrypted backup secret
+      ansible.builtin.stat:
+        path: "{{ backup_encrypted_secret_path }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      register: backup_encrypted_secret
+
+    - name: Skip until the backup secret exists
+      when: not (backup_encrypted_secret.stat.isreg | default(false))
+      block:
+        - name: Report that offsite backups are not configured
+          ansible.builtin.debug:
+            msg: >-
+              ansible/secrets/backup.sops.env does not exist, so offsite backups
+              stay unconfigured. See secrets/README.md.
+
+        - name: Stop without changing Apps
+          ansible.builtin.meta: end_play
+
+    - name: Decrypt the backup secret in memory
+      ansible.builtin.command:
+        argv:
+          - sops
+          - decrypt
+          - "{{ backup_encrypted_secret_path }}"
+      environment:
+        SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      register: backup_decrypted_secret
+      changed_when: false
+      # Decrypting to memory changes nothing, so it must still run under
+      # --check; skipping it leaves every downstream task undefined.
+      check_mode: false
+      no_log: true
+
+    - name: List required keys the backup secret leaves unset
+      ansible.builtin.set_fact:
+        backup_missing_keys: >-
+          {{ backup_required_keys
+             | difference(backup_decrypted_secret.stdout | regex_findall('(?m)^([A-Z_]+)=\S')) }}
+      run_once: true
+
+    - name: Require every backup credential
+      ansible.builtin.assert:
+        that: backup_missing_keys | length == 0
+        fail_msg: "backup.sops.env does not set {{ backup_missing_keys | join(', ') }}."
+
+  tasks:
+    - name: Install backup tools
+      ansible.builtin.apt:
+        name:
+          - restic
+          - sqlite3
+        state: present
+        update_cache: true
+
+    - name: Create the backup configuration directory
+      ansible.builtin.file:
+        path: /etc/homelab-backup
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Install the backup credentials
+      ansible.builtin.copy:
+        content: "{{ backup_decrypted_secret.stdout | trim }}\n"
+        dest: /etc/homelab-backup/restic.env
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Install the backup script
+      ansible.builtin.copy:
+        src: ../files/scripts/app-data-backup.sh
+        dest: /usr/local/sbin/homelab-app-backup
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Install the backup service and timer
+      ansible.builtin.copy:
+        src: "../files/systemd/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - homelab-app-backup.service
+        - homelab-app-backup.timer
+      notify: Reload systemd
+
+    - name: Apply unit changes before enabling the timer
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable the nightly backup timer
+      ansible.builtin.systemd_service:
+        name: homelab-app-backup.timer
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
