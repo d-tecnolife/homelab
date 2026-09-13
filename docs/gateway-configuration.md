@@ -12,10 +12,10 @@ return it to this runtime baseline after installation.
 
 ## Rebuild order
 
-Step 3 migrates local state; steps 4, 7, and 8 each apply a plan, gated by a typed
+Steps 3, 6, and 7 each apply a plan, gated by a typed
 confirmation; `scripts/terraform/rebuild.ps1` runs them in order instead of
 requiring you to invoke each phase script by hand. It pauses for step 1-2
-(prerequisites, done once) and for the attended install in step 7. Read the
+(prerequisites, done once) and for the attended install in step 6. Read the
 full order below at least once before using it; `-StartAt` resumes a
 partially completed rebuild at any phase.
 
@@ -28,26 +28,23 @@ partially completed rebuild at any phase.
    that encrypted input. If it must change before installation, run
    `scripts/gateway/rotate-gateway-root-password.sh`, then rebuild the ISO;
    neither helper prints decrypted credentials.
-3. Run `scripts/terraform/migrate-workload-state.ps1 -Apply`. This changes only
-   local Terraform addresses, preserving each remote VM and allowing Gateway to
-   be planned independently.
-4. Run `scripts/terraform/plan-gateway-rebuild.ps1` to create the reviewed
+3. Run `scripts/terraform/plan-gateway-rebuild.ps1` to create the reviewed
    phase-one plan. It explicitly replaces the appliance, destroying VMID `100`
    and its disk; it never modifies workloads. The wrapper refuses to make a
    plan unless the generated ISO exists in Proxmox storage.
-5. The rendered `config.xml` assigns `vtnet0` as WAN and `vtnet1` VLANs `10`,
+4. The rendered `config.xml` assigns `vtnet0` as WAN and `vtnet1` VLANs `10`,
    `20`, and `30` as LAN, OPT1, and OPT2. It disables WAN private-network
    blocking because the WAN is `192.168.1.2/24` behind `192.168.1.1`.
-6. The same rendering process seeds a dedicated API-only `homelab-automation`
+5. The same rendering process seeds a dedicated API-only `homelab-automation`
    account. Its credential is generated into the encrypted input; no Gateway
    web-GUI access or manual API-key creation is required.
-7. Complete the one console-attended OPNsense install using the bootstrap ISO.
+6. Complete the one console-attended OPNsense install using the bootstrap ISO.
    Then run `scripts/terraform/plan-gateway-install-finalize.ps1`, review its
    Gateway-only plan, and apply it after confirmation. It writes the ignored,
    non-secret `gateway-install.auto.tfvars` override so future Terraform plans
    preserve installed disk-boot mode, ejects the installer media, and makes the
    installed disk first in boot order; do not do any of these in the Proxmox UI.
-8. Create Ops (VMID `1010`) as the only controller exception. Ops is the
+7. Create Ops (VMID `1010`) as the only controller exception. Ops is the
    homelab's Tailscale subnet router (`playbooks/ops-tailscale.yml`), not
    Gateway. Tailscale ran as Gateway's `os-tailscale` plugin originally;
    that was dropped after hitting two separate, confirmed, unfixable bugs:
@@ -68,7 +65,7 @@ partially completed rebuild at any phase.
    reboot-survival bug as Tailscale and was dropped entirely rather than
    moved, since split-DNS added no value once every name had a public
    record.
-9. Set `gateway_policy_ready = true` only after those steps complete, review
+8. Set `gateway_policy_ready = true` only after those steps complete, review
    the workload plan, and apply it.
 
 The bootstrap ISO carries an unencrypted `/conf/config.xml`, so the encrypted

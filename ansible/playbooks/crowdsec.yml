@@ -8,29 +8,6 @@
     crowdsec_operator_group: crowdsec-data
 
   tasks:
-    # NetBird was retired in favour of Tailscale on Ops, but an agent installed by
-    # hand on Door survived the rebuild. It manages nftables itself and removed the
-    # crowdsec table below, so the firewall bouncer failed on every start, and it
-    # kept Door enrolled in the old NetBird network: a path into the DMZ that
-    # bypasses Gateway entirely.
-    - name: Remove the retired NetBird agent
-      ansible.builtin.apt:
-        name: netbird
-        state: absent
-        purge: true
-
-    # Purging the package alone leaves its apt source behind, so a later
-    # upgrade could quietly reinstall it.
-    - name: Remove NetBird's apt source, signing key and state
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /etc/apt/sources.list.d/netbird.list
-        - /etc/apt/keyrings/netbird-archive-keyring.gpg
-        - /usr/share/keyrings/netbird-archive-keyring.gpg
-        - /var/lib/netbird
-
     - name: Install nftables for CrowdSec decisions
       ansible.builtin.apt:
         name: nftables

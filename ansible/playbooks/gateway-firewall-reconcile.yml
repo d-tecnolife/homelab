@@ -5,9 +5,7 @@
 # Unbound's versioned MVC model, take effect correctly when hand-rendered
 # (confirmed: Gateway's rule enforcement has worked correctly all along),
 # so this only matters if a rule was later removed independently of a
-# rebuild (e.g. manual GUI edit). Extracted from the retired
-# gateway-tailscale.yml, which bundled this with Tailscale-specific tasks
-# for no clear reason -- the two are unrelated.
+# rebuild (e.g. manual GUI edit).
 - name: Reconcile Gateway firewall rules and aliases
   hosts: localhost
   gather_facts: false
@@ -16,12 +14,6 @@
     # A double-quoted YAML scalar yields a real newline, which is how the alias
     # API separates multiple values.
     gateway_newline: "\n"
-    # Rules from retired designs that a rebuild no longer renders. Matched by
-    # description, so removing them needs no hardcoded UUIDs.
-    gateway_retired_rule_descriptions:
-      # Unbound was dropped; Gateway runs no resolver. These also carried the
-      # unmatchable this_firewall token, so they never passed a packet.
-      - Gateway split DNS
 
   tasks:
     - name: Load the encrypted input
@@ -332,37 +324,6 @@
         label: "{{ item.item.description | default('rule') }}"
       when: not (item.skipped | default(false))
 
-    - name: Remove rules from retired designs
-      ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/firewall/filter/del_rule/{{ item.uuid }}"
-        method: POST
-        user: "{{ gateway_api_key }}"
-        password: "{{ gateway_api_secret }}"
-        force_basic_auth: true
-        validate_certs: false
-        status_code: 200
-      loop: >-
-        {{ gateway_rules.json.rows | default([])
-           | selectattr('description', 'in', gateway_retired_rule_descriptions) | list }}
-      loop_control:
-        label: "{{ item.description }} ({{ item.interface }})"
-      register: gateway_retired_rules_removed
-      changed_when: false
-      failed_when: false
-      no_log: true
-
-    - name: Require the Gateway to confirm each retired rule was removed
-      ansible.builtin.assert:
-        that: (item.json.result | default('')) == 'deleted'
-        fail_msg: >-
-          Gateway did not delete {{ item.item.description | default('a retired rule') }}:
-          {{ item.json | default('no response') }}
-      loop: "{{ gateway_retired_rules_removed.results }}"
-      loop_control:
-        label: "{{ item.item.description | default('rule') }}"
-      # --check skips the delete, so there is no result to require.
-      when: not (item.skipped | default(false))
-
     - name: Apply the Gateway firewall policy when a rule was added or corrected
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/apply"
@@ -377,5 +338,4 @@
         or (((gateway_administration_corrected.results | default([]))
              + (gateway_administration_added.results | default([])))
             | rejectattr('skipped', 'defined') | list | length > 0)
-        or ((gateway_retired_rules_removed.results | default([])) | length > 0)
       no_log: true

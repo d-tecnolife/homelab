@@ -1,15 +1,15 @@
 [CmdletBinding()]
 param(
     # Resume at a later phase instead of starting from the beginning.
-    [ValidateSet("workload-state", "gateway-rebuild", "gateway-install", "gateway-finalize", "ops-bootstrap")]
-    [string]$StartAt = "workload-state"
+    [ValidateSet("gateway-rebuild", "gateway-install", "gateway-finalize", "ops-bootstrap")]
+    [string]$StartAt = "gateway-rebuild"
 )
 
 # Single guided path through a fresh-hardware or Gateway-replacement rebuild.
 # It composes the existing per-phase scripts in this directory; it adds no new
 # Terraform logic and no new safety behavior. Every apply below still requires
 # a typed "yes" — this script only removes the need to remember which of the
-# four scripts runs next, in which order, with which flags. The one step it
+# three scripts runs next, in which order, with which flags. The one step it
 # cannot do for you is the console-attended OPNsense install itself: this
 # script pauses immediately before it and immediately after it.
 #
@@ -53,16 +53,11 @@ function Invoke-TerraformApply {
 # instead of mid-phase after a confirmation has already been typed.
 & (Join-Path $scriptDirectory "Test-ProxmoxReachable.ps1")
 
-$phases = @("workload-state", "gateway-rebuild", "gateway-install", "gateway-finalize", "ops-bootstrap")
+$phases = @("gateway-rebuild", "gateway-install", "gateway-finalize", "ops-bootstrap")
 $startIndex = $phases.IndexOf($StartAt)
 
-if ($startIndex -le $phases.IndexOf("workload-state")) {
-    Confirm-Phase "Phase 1/5: move existing workload state addresses (no resources change)"
-    & (Join-Path $scriptDirectory "migrate-workload-state.ps1") -Apply
-}
-
 if ($startIndex -le $phases.IndexOf("gateway-rebuild")) {
-    Confirm-Phase "Phase 2/5: plan Gateway replacement (destroys VMID 100 and its disk)"
+    Confirm-Phase "Phase 1/4: plan Gateway replacement (destroys VMID 100 and its disk)"
     & (Join-Path $scriptDirectory "plan-gateway-rebuild.ps1")
     Write-Host "Review gateway-rebuild.tfplan above." -ForegroundColor Yellow
     Confirm-Phase "Apply the Gateway replacement plan"
@@ -79,7 +74,7 @@ if ($startIndex -le $phases.IndexOf("gateway-install")) {
 }
 
 if ($startIndex -le $phases.IndexOf("gateway-finalize")) {
-    Confirm-Phase "Phase 4/5: plan the post-install finalize (eject installer media, fix boot order)"
+    Confirm-Phase "Phase 3/4: plan the post-install finalize (eject installer media, fix boot order)"
     & (Join-Path $scriptDirectory "plan-gateway-install-finalize.ps1")
     Write-Host "Review gateway-install-finalize.tfplan above." -ForegroundColor Yellow
     Confirm-Phase "Apply the Gateway finalize plan"
@@ -87,7 +82,7 @@ if ($startIndex -le $phases.IndexOf("gateway-finalize")) {
 }
 
 if ($startIndex -le $phases.IndexOf("ops-bootstrap")) {
-    Confirm-Phase "Phase 5/5: plan Ops (VMID 1010), the sole controller exception"
+    Confirm-Phase "Phase 4/4: plan Ops (VMID 1010), the sole controller exception"
     & (Join-Path $scriptDirectory "plan-ops-bootstrap.ps1")
     Write-Host "Review ops-bootstrap.tfplan above." -ForegroundColor Yellow
     Confirm-Phase "Apply the Ops bootstrap plan"
@@ -97,5 +92,5 @@ if ($startIndex -le $phases.IndexOf("ops-bootstrap")) {
 Write-Host ""
 Write-Host "Terraform phases complete." -ForegroundColor Green
 Write-Host "Next: open VMID 1010's Proxmox xterm.js console and follow" -ForegroundColor Green
-Write-Host "docs/environment-bootstrap.md sections 4-5 (Gateway Tailscale reconciliation," -ForegroundColor Green
+Write-Host "docs/environment-bootstrap.md sections 4-5 (Ops identity and Tailscale," -ForegroundColor Green
 Write-Host "then bootstrap-lab.sh). Workloads stay gated until gateway_policy_ready = true." -ForegroundColor Green

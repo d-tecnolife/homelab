@@ -80,32 +80,3 @@ resource "proxmox_virtual_environment_vm" "workload" {
     }
   }
 }
-
-moved {
-  from = proxmox_virtual_environment_vm.apps
-  to   = proxmox_virtual_environment_vm.workload["apps"]
-}
-moved {
-  from = proxmox_virtual_environment_vm.door
-  to   = proxmox_virtual_environment_vm.workload["door"]
-}
-moved {
-  from = proxmox_virtual_environment_vm.games
-  to   = proxmox_virtual_environment_vm.workload["games"]
-}
-moved {
-  from = proxmox_virtual_environment_vm.gitea
-  to   = proxmox_virtual_environment_vm.workload["gitea"]
-}
-moved {
-  from = proxmox_virtual_environment_vm.k3s
-  to   = proxmox_virtual_environment_vm.workload["k3s"]
-}
-moved {
-  from = proxmox_virtual_environment_vm.monitoring
-  to   = proxmox_virtual_environment_vm.workload["monitoring"]
-}
-moved {
-  from = proxmox_virtual_environment_vm.nolife
-  to   = proxmox_virtual_environment_vm.workload["nolife"]
-}

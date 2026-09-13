@@ -7,7 +7,7 @@ services:
     # borrowed prometheus-data's numeric GID, but deploy-compose creates those
     # groups without fixed numbers, so the GID follows creation order: on this
     # build 1002 was alertmanager-data, Prometheus could not read its targets,
-    # and node and Minecraft scraping silently never started.
+    # and node scraping silently never started.
     user: "65534:65534"
     restart: unless-stopped
     command:

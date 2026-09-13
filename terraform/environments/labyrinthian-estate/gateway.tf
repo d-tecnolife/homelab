@@ -1,8 +1,3 @@
-moved {
-  from = proxmox_virtual_environment_vm.pfsense
-  to   = proxmox_virtual_environment_vm.gateway
-}
-
 resource "proxmox_virtual_environment_vm" "gateway" {
   name        = "gateway"
   description = "OPNsense firewall and VLAN router managed by Terraform"
