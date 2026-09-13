@@ -33,9 +33,9 @@
       ansible.builtin.import_tasks: tasks/gateway-credentials.yml
       tags: [always]
 
-    # Git-over-SSH is a permanent VLAN-wide capability for current and future
-    # guests. It still excludes every private destination.
-    - name: Find declarative public Git SSH firewall rules
+    # Git-over-SSH and NTS key exchange are permanent VLAN-wide capabilities for
+    # current and future guests. They still exclude every private destination.
+    - name: Find declarative public egress firewall rules
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=100&searchPhrase={{ item.description | urlencode }}"
         method: GET
@@ -45,14 +45,17 @@
         validate_certs: false
         status_code: 200
       loop:
-        - { interface: lan, description: "Public Git SSH - Infra" }
-        - { interface: opt1, description: "Public Git SSH - Internal" }
-        - { interface: opt2, description: "Public Git SSH - DMZ" }
-      register: gateway_public_git_ssh_rules
+        - { interface: lan, port: "22", description: "Public Git SSH - Infra" }
+        - { interface: opt1, port: "22", description: "Public Git SSH - Internal" }
+        - { interface: opt2, port: "22", description: "Public Git SSH - DMZ" }
+        - { interface: lan, port: "4460", description: "Public NTS key exchange - Infra" }
+        - { interface: opt1, port: "4460", description: "Public NTS key exchange - Internal" }
+        - { interface: opt2, port: "4460", description: "Public NTS key exchange - DMZ" }
+      register: gateway_public_egress_rules
       changed_when: false
       no_log: true
 
-    - name: Declare absent public Git SSH firewall rules
+    - name: Declare absent public egress firewall rules
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/add_rule"
         method: POST
@@ -74,11 +77,11 @@
             protocol: TCP
             source_net: "{{ item.item.interface }}"
             destination_net: "!private_networks"
-            destination_port: "22"
+            destination_port: "{{ item.item.port }}"
             description: "{{ item.item.description }}"
-      loop: "{{ gateway_public_git_ssh_rules.results }}"
+      loop: "{{ gateway_public_egress_rules.results }}"
       when: (item.json.rows | default([]) | length) == 0
-      register: gateway_public_git_ssh_rules_added
+      register: gateway_public_egress_rules_added
       # OPNsense answers 200 even when it rejects a rule, reporting
       # {"result": "failed", "validations": {...}} in the body. Without this
       # the playbook reports success having changed nothing.
@@ -86,13 +89,13 @@
       failed_when: false
       no_log: true
 
-    - name: Require the Gateway to accept each public Git SSH rule
+    - name: Require the Gateway to accept each public egress rule
       ansible.builtin.assert:
         that: (item.json.result | default('')) == 'saved'
         fail_msg: >-
-          Gateway rejected a public Git SSH rule:
+          Gateway rejected a public egress rule:
           {{ item.json.validations | default(item.json | default('no response')) }}
-      loop: "{{ gateway_public_git_ssh_rules_added.results }}"
+      loop: "{{ gateway_public_egress_rules_added.results }}"
       loop_control:
         label: "{{ item.item.item.description | default('rule') }}"
       when: not (item.skipped | default(false))
@@ -377,7 +380,7 @@
         validate_certs: false
         status_code: 200
       when: >-
-        (gateway_public_git_ssh_rules_added.results | selectattr('changed') | list | length > 0)
+        (gateway_public_egress_rules_added.results | selectattr('changed') | list | length > 0)
         or (((gateway_administration_corrected.results | default([]))
              + (gateway_administration_added.results | default([])))
             | rejectattr('skipped', 'defined') | list | length > 0)

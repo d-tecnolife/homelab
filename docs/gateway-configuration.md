@@ -103,10 +103,12 @@ connection originates.
   (`172.16.30.10`) and only the declared game ports to Games
   (`172.16.30.20`; TCP `25565`, kept for a future Minecraft server). Do not expose Gateway,
   Infra, or Internal hosts.
-- All VLANs: allow DNS and NTP to public destinations, outbound TCP
-  `80`/`443` for package updates and image pulls, and outbound TCP `22` to
-  public destinations for Git over SSH. Gateway reconciliation declares the
-  same three VLAN-wide rules through the OPNsense API on an installed appliance.
+- All VLANs: allow DNS and NTP to public destinations, outbound TCP `4460`
+  for the NTS key exchange that Ubuntu's default chrony pools require,
+  outbound TCP `80`/`443` for package updates and image pulls, and outbound
+  TCP `22` to public destinations for Git over SSH. Gateway reconciliation
+  declares the per-VLAN Git SSH and NTS rules through the OPNsense API on an
+  installed appliance.
   These are permanent shared capabilities, not per-VM exceptions; private
   networks remain excluded.
 - Ops: permit administration to guest TCP `22` and Gateway TCP `22`/`443`.

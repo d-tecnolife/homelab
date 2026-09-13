@@ -69,6 +69,12 @@ firewall:
     - { interface: dmz, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [22], description: "Public Git SSH - DMZ" }
     - { interface: [infra, internal, dmz], action: pass, protocol: "tcp/udp", source: interface_network, destination: "!private_networks", ports: dns_ports, description: "Public DNS resolvers" }
     - { interface: [infra, internal, dmz], action: pass, protocol: udp, source: interface_network, destination: "!private_networks", ports: [123], description: "Public NTP" }
+    # Ubuntu's default chrony pools require NTS, which authenticates time over
+    # a TCP 4460 key exchange before any UDP 123 sample is trusted. Without it
+    # every guest reports its clock as unsynchronized.
+    - { interface: infra, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [4460], description: "Public NTS key exchange - Infra" }
+    - { interface: internal, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [4460], description: "Public NTS key exchange - Internal" }
+    - { interface: dmz, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [4460], description: "Public NTS key exchange - DMZ" }
 
     # Ops is the sole administration exception.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }
