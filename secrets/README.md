@@ -133,7 +133,8 @@ it as `/opt/compose/<stack>/.env` with mode `0640`.
 After initializing HashiCorp Vault, run `vault-ssh-host-ca-bootstrap.yml` once
 with a temporary Vault administrator token (`VAULT_TOKEN` env var) to create
 the `ssh-host-signer` mount, the `homelab-hosts` signing role, and the
-`homelab-ssh-host-signer` policy. That playbook creates the policy only — it
+`homelab-ssh-host-signer` policy, which allows signing, reading the CA public
+key, and renewing its own token. That playbook creates the policy only — it
 does not mint a token bound to it. As a Vault admin, create the periodic
 signing-only token the policy authorizes:
 

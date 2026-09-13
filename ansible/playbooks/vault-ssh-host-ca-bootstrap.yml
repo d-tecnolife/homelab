@@ -114,6 +114,12 @@
             path "{{ vault_ssh_ca_mount }}/public_key" {
               capabilities = ["read"]
             }
+            # The signing token is minted with -no-default-policy, which also
+            # drops renew-self; without this the weekly renewal would fail and
+            # the periodic token would expire.
+            path "auth/token/renew-self" {
+              capabilities = ["update"]
+            }
         status_code: 204
         validate_certs: true
       no_log: true

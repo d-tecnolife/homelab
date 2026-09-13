@@ -139,8 +139,9 @@ than creating replacement credentials that cannot decrypt existing data.
 ## 6. Certificate-based SSH trust (after Vault is initialized)
 
 This step is separate from `bootstrap-lab.sh` because it depends on things
-`bootstrap-lab.sh` itself creates: the `vault` Compose stack on Apps and the
-`ssh-ca.dscim.dev` DNS record Caddy publishes. It cannot run any earlier.
+`bootstrap-lab.sh` itself creates: the `vault` Compose stack on Apps and
+Caddy's `ssh-ca.dscim.dev` site on Door. The site's public DNS record, pointing
+at Door, is maintained by hand in Cloudflare and must exist first.
 
 1. Manually initialize and unseal Vault (`docker compose exec vault vault
    operator init`, then `vault operator unseal`) — this stays a manual,

@@ -33,7 +33,10 @@ See [Gateway configuration](../../../docs/gateway-configuration.md).
 
 The initial apply authorizes the Terraform runner's public key. Terraform also
 adds every non-empty repository-root `keys/*.pub` file to each new VM. Public keys may be
-committed; private keys must never enter the repository or Terraform state.
+committed; private keys must never enter the repository. Terraform state is
+the exception it cannot avoid: `ops-bootstrap-key.tf` generates Ops' temporary
+bootstrap key pair, so the state and any saved plan contain that private key.
+Keep both off shared storage, and treat them like the age identity.
 Rerun `ansible/playbooks/bootstrap-ops-ssh.yml` after adding a key so existing
 VMs receive it as well.
 
