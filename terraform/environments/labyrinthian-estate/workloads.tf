@@ -68,6 +68,12 @@ resource "proxmox_virtual_environment_vm" "workload" {
   started = true
 
   lifecycle {
+    # Cloud-init keys apply on first boot only; Ansible owns authorized_keys
+    # afterwards. Proxmox derives the cloud-init instance ID from this config,
+    # so changing the keys would make every guest re-run first boot and
+    # regenerate its SSH host keys. New keys reach existing guests via Ansible.
+    ignore_changes = [initialization[0].user_account]
+
     precondition {
       condition     = var.gateway_policy_ready
       error_message = "Gateway policy is not verified; refusing workload creation."
