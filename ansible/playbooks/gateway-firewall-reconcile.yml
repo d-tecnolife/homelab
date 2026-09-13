@@ -14,6 +14,11 @@
     # A double-quoted YAML scalar yields a real newline, which is how the alias
     # API separates multiple values.
     gateway_newline: "\n"
+    # Aliases a rule below depends on. Each is created when absent and its
+    # members corrected when they differ from this declaration.
+    gateway_declared_aliases:
+      - {name: exporter_ports, type: port, members: [9100], description: "Monitoring exporter ports"}
+      - {name: proxmox, type: host, members: [192.168.1.100], description: "Proxmox host"}
 
   tasks:
     - name: Load the encrypted input
@@ -96,6 +101,8 @@
     # model takes one port, a range, or a port alias -- never a comma-joined
     # list. Gateways installed before that was known carry "9100,9150" on the
     # exporter rule, so the alias has to exist before the rule can be repaired.
+    # An existing alias whose members differ is corrected too: this used to
+    # create absent aliases only, so exporter_ports kept a retired 9150 member.
     - name: Read the current Gateway aliases
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/alias/search_item?rowCount=500"
@@ -130,9 +137,7 @@
             # templating error that failed_when cannot suppress.
             content: "{{ item.members | join(gateway_newline) }}"
             description: "{{ item.description }}"
-      loop:
-        - {name: exporter_ports, type: port, members: [9100], description: "Monitoring exporter ports"}
-        - {name: proxmox, type: host, members: [192.168.1.100], description: "Proxmox host"}
+      loop: "{{ gateway_declared_aliases }}"
       loop_control:
         label: "{{ item.name }}"
       when: >-
@@ -143,18 +148,52 @@
       failed_when: false
       no_log: true
 
-    - name: Require the Gateway to accept each added alias
+    # The alias API returns members as newline-separated text.
+    - name: Correct aliases whose members drifted
+      ansible.builtin.uri:
+        url: >-
+          {{ gateway_url }}/api/firewall/alias/set_item/{{
+            (gateway_aliases.json.rows | selectattr('name', 'equalto', item.name) | list)[0].uuid }}
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          alias:
+            enabled: "1"
+            name: "{{ item.name }}"
+            type: "{{ item.type }}"
+            content: "{{ item.members | join(gateway_newline) }}"
+            description: "{{ item.description }}"
+      loop: "{{ gateway_declared_aliases }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - (gateway_aliases.json.rows | default([]) | selectattr('name', 'equalto', item.name) | list) | length > 0
+        - >-
+          ((gateway_aliases.json.rows | selectattr('name', 'equalto', item.name) | list)[0].content | string).split(gateway_newline)
+          | map('trim') | reject('equalto', '') | sort | list
+          != (item.members | map('string') | sort | list)
+      register: gateway_aliases_corrected
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Require the Gateway to accept each added or corrected alias
       ansible.builtin.assert:
         that: (item.json.result | default('')) == 'saved'
         fail_msg: >-
           Gateway rejected alias {{ item.item.name | default('?') }}:
           {{ item.json.validations | default(item.json | default('no response')) }}
-      loop: "{{ gateway_aliases_added.results }}"
+      loop: "{{ gateway_aliases_added.results + gateway_aliases_corrected.results }}"
       loop_control:
         label: "{{ item.item.name | default('alias') }}"
       when: not (item.skipped | default(false))
 
-    - name: Load added aliases before any rule references them
+    - name: Load added or corrected aliases before any rule references them
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/alias/reconfigure"
         method: POST
@@ -163,7 +202,9 @@
         force_basic_auth: true
         validate_certs: false
         status_code: 200
-      when: gateway_aliases_added.results | rejectattr('skipped', 'defined') | list | length > 0
+      when: >-
+        (gateway_aliases_added.results + gateway_aliases_corrected.results)
+        | rejectattr('skipped', 'defined') | list | length > 0
       no_log: true
 
     # Ops' own administration path to Gateway. An installer built before the
@@ -324,7 +365,9 @@
         label: "{{ item.item.description | default('rule') }}"
       when: not (item.skipped | default(false))
 
-    - name: Apply the Gateway firewall policy when a rule was added or corrected
+    # Port aliases are expanded into the generated rules, so a corrected alias
+    # needs the filter reloaded as well as the alias tables.
+    - name: Apply the Gateway firewall policy when a rule or alias was added or corrected
       ansible.builtin.uri:
         url: "{{ gateway_url }}/api/firewall/filter/apply"
         method: POST
@@ -337,5 +380,7 @@
         (gateway_public_git_ssh_rules_added.results | selectattr('changed') | list | length > 0)
         or (((gateway_administration_corrected.results | default([]))
              + (gateway_administration_added.results | default([])))
+            | rejectattr('skipped', 'defined') | list | length > 0)
+        or ((gateway_aliases_corrected.results | default([]))
             | rejectattr('skipped', 'defined') | list | length > 0)
       no_log: true

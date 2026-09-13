@@ -42,13 +42,15 @@ Run standalone, outside `bootstrap-lab.yml`:
   not the guest bootstrap chain.
 - `playbooks/gateway-firewall-reconcile.yml` defensively reconciles the
   public Git SSH and Ops Gateway administration rules through Gateway's seeded
-  API account. It adds missing rules and repairs the administration destination
-  and port fields; it is not a full baseline reconciliation.
+  API account. It adds missing rules, repairs the administration destination
+  and port fields, and creates or corrects the `exporter_ports` and `proxmox`
+  aliases those rules use; it is not a full baseline reconciliation.
 - `playbooks/vault-ssh-host-ca-bootstrap.yml` and `playbooks/vault-ssh-host-ca.yml`
   establish certificate-based SSH host trust, replacing the ssh-keyscan pinning
   from `bootstrap-ssh-host-keys.yml` host by host as each one is signed. These
   can only run after Vault (the `vault` Compose stack on Apps) has been
-  manually initialized/unsealed and Caddy has published `ssh-ca.dscim.dev` —
+  manually initialized/unsealed and `ssh-ca.dscim.dev` resolves to Door (a
+  hand-maintained Cloudflare record for the site Caddy serves) —
   both postdate the guest bootstrap chain, so they cannot be folded into it.
   See [Secrets management](../secrets/README.md#vault-ssh-host-ca-token) for
   the exact one-time setup, then the weekly `homelab-vault-ssh-renew.timer`
@@ -126,7 +128,7 @@ elevated PowerShell session:
 Rerun it whenever an address changes in the catalog or Gateway baseline.
 
 Before deploying Caddy, follow [Secrets management](../secrets/README.md) and
-create `secrets/caddy.sops.env`.
+create `ansible/secrets/caddy.sops.env`, the path `caddy.yml` reads.
 
 Deploy CrowdSec after Caddy so Caddy access logs are available:
 
