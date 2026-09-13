@@ -76,7 +76,10 @@
             ipprotocol: inet
             protocol: TCP
             source_net: "{{ item.item.interface }}"
-            destination_net: "!private_networks"
+            # The API rejects a "!"-prefixed alias; negation is its own field,
+            # exactly as render-opnsense-config.py writes it for a fresh install.
+            destination_net: private_networks
+            destination_not: "1"
             destination_port: "{{ item.item.port }}"
             description: "{{ item.item.description }}"
       loop: "{{ gateway_public_egress_rules.results }}"
