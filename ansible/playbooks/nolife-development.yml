@@ -22,6 +22,8 @@
       - libffi-dev
       - libssl-dev
       - make
+      # Roaming terminal sessions from the phone over the tailnet (UDP 60000-61000).
+      - mosh
       - pkg-config
       - procps
       - python3

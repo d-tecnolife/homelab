@@ -91,7 +91,8 @@ systemctl list-timers 'homelab-maintenance-*'
 Bootstrap the development VM. `bootstrap-lab.yml` also runs this, so a
 rebuild restores the toolchain: Homebrew with Go, rustup (stable), Zig, Node,
 uv, Neovim and LazyVim's external tools (ripgrep, fd, fzf, lazygit,
-tree-sitter, a C compiler), plus gh, jq, yq and shell linters.
+tree-sitter, a C compiler), plus gh, jq, yq, shell linters, zmx for persistent
+sessions and mosh for roaming terminals over the tailnet.
 
 ```bash
 ansible-playbook playbooks/nolife-development.yml
