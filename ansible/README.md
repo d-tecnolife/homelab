@@ -26,13 +26,15 @@ SOPS and the restored age identity must be available before this chain starts:
 Gateway key authorization decrypts its input before the later `secrets.yml`
 verification. Follow the controller preparation in the environment bootstrap.
 
+`bootstrap-lab.yml` also runs `playbooks/nolife-development.yml`, which
+bootstraps Nolife as an Ubuntu development VM with build tools, Homebrew,
+Python/pip, Node/npm, Go, Zig, Rustup/Cargo, ChezMoi, and a LazyVim
+configuration with its plugins preinstalled. It leaves Docker to
+`playbooks/docker.yml` and only applies ChezMoi when given a dotfiles
+repository URL.
+
 Run standalone, outside `bootstrap-lab.yml`:
 
-- `playbooks/nolife-development.yml` bootstraps Nolife as an Ubuntu development
-  VM with build tools, Homebrew, Python/pip, Node/npm, Go, Zig, Rustup/Cargo,
-  ChezMoi, and a LazyVim starter configuration. It intentionally leaves Docker
-  to `playbooks/docker.yml` and only applies ChezMoi when given a dotfiles
-  repository URL.
 - `playbooks/ops-tailscale.yml` configures Ops as the homelab's Tailscale
   subnet router (installed as an ordinary systemd service, not an OPNsense
   plugin — see `terraform/environments/labyrinthian-estate/tailscale/README.md`
@@ -86,7 +88,10 @@ ansible-playbook playbooks/maintenance-schedule.yml
 systemctl list-timers 'homelab-maintenance-*'
 ```
 
-Bootstrap the development VM:
+Bootstrap the development VM. `bootstrap-lab.yml` also runs this, so a
+rebuild restores the toolchain: Homebrew with Go, rustup (stable), Zig, Node,
+uv, Neovim and LazyVim's external tools (ripgrep, fd, fzf, lazygit,
+tree-sitter, a C compiler), plus gh, jq, yq and shell linters.
 
 ```bash
 ansible-playbook playbooks/nolife-development.yml
@@ -94,8 +99,8 @@ ansible-playbook playbooks/nolife-development.yml
 
 To initialize and apply a ChezMoi repository during the same run, supply its
 Git URL explicitly. The LazyVim starter is seeded only if `~/.config/nvim` is
-absent; add that configuration to the ChezMoi source when you are ready to
-manage it as a dotfile.
+absent, and its plugins are installed headlessly on first provisioning, so the
+first interactive launch starts ready.
 
 ```bash
 ansible-playbook playbooks/nolife-development.yml \

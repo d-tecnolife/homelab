@@ -17,6 +17,8 @@
 - import_playbook: monitoring-agents.yml
 # After monitoring-agents.yml: the backup reports through its textfile collector.
 - import_playbook: app-data-backups.yml
+# Nolife is the development VM; its toolchain must survive a rebuild like any other role.
+- import_playbook: nolife-development.yml
 - import_playbook: monitoring-targets.yml
 - import_playbook: monitoring-inventory-automation.yml
 - import_playbook: lock-bootstrap-console.yml
