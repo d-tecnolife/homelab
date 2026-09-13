@@ -106,14 +106,18 @@ The monthly playbook checks `/var/run/reboot-required`; it does nothing on a
 VM that does not require a reboot. Ops schedules its own reboot one minute
 after the Ansible run exits. Timers run in the `America/Winnipeg` timezone.
 
-Update a Windows workstation from an elevated PowerShell session:
+Map every homelab host, plus `gateway`, as `<name>` and `<name>.dscim.dev` in
+a Windows workstation's hosts file. The script renders the inventory from the
+catalog itself and reads Gateway's address from `gateway/baseline.yaml`, so it
+needs Python with PyYAML. Preview without elevation, then apply from an
+elevated PowerShell session:
 
 ```powershell
+.\scripts\Update-HomelabHosts.ps1 -WhatIf -Verbose
 .\scripts\Update-HomelabHosts.ps1
 ```
 
-Both commands read `ansible/inventory/hosts.yml`. Update the catalog and
-regenerate inventory whenever an address changes.
+Rerun it whenever an address changes in the catalog or Gateway baseline.
 
 Before deploying Caddy, follow [Secrets management](../secrets/README.md) and
 create `secrets/caddy.sops.env`.
