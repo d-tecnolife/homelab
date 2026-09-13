@@ -37,7 +37,7 @@
     # current and future guests. They still exclude every private destination.
     - name: Find declarative public egress firewall rules
       ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=100&searchPhrase={{ item.description | urlencode }}"
+        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=500&searchPhrase={{ item.description | urlencode }}"
         method: GET
         user: "{{ gateway_api_key }}"
         password: "{{ gateway_api_secret }}"
@@ -80,7 +80,13 @@
             destination_port: "{{ item.item.port }}"
             description: "{{ item.item.description }}"
       loop: "{{ gateway_public_egress_rules.results }}"
-      when: (item.json.rows | default([]) | length) == 0
+      # searchPhrase is not an exact-description filter: the API returns other
+      # rows too, so "any row came back" skipped every absent rule. Match the
+      # description exactly, as the reconciled-rule tasks below do.
+      when: >-
+        item.json.rows | default([])
+        | selectattr('description', 'equalto', item.item.description)
+        | list | length == 0
       register: gateway_public_egress_rules_added
       # OPNsense answers 200 even when it rejects a rule, reporting
       # {"result": "failed", "validations": {...}} in the body. Without this
