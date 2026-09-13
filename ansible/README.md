@@ -29,9 +29,9 @@ verification. Follow the controller preparation in the environment bootstrap.
 `bootstrap-lab.yml` also runs `playbooks/nolife-development.yml`, which
 bootstraps Nolife as an Ubuntu development VM with build tools, Homebrew,
 Python/pip, Node/npm, Go, Zig, Rustup/Cargo, ChezMoi, and a LazyVim
-configuration with its plugins preinstalled. It leaves Docker to
-`playbooks/docker.yml` and only applies ChezMoi when given a dotfiles
-repository URL.
+configuration with its plugins preinstalled. It applies the
+[d-tecnolife/dotfiles](https://github.com/d-tecnolife/dotfiles) ChezMoi repository
+and leaves Docker to `playbooks/docker.yml`.
 
 Run standalone, outside `bootstrap-lab.yml`:
 
@@ -97,14 +97,14 @@ tree-sitter, a C compiler), plus gh, jq, yq and shell linters.
 ansible-playbook playbooks/nolife-development.yml
 ```
 
-To initialize and apply a ChezMoi repository during the same run, supply its
-Git URL explicitly. The LazyVim starter is seeded only if `~/.config/nvim` is
-absent, and its plugins are installed headlessly on first provisioning, so the
-first interactive launch starts ready.
+The playbook applies `d-tecnolife/dotfiles` with ChezMoi on first run, then
+restores that configuration's Neovim plugins to `lazy-lock.json` and installs
+its Treesitter parsers, so the first interactive launch starts ready. Later
+runs leave ChezMoi alone; update the dotfiles on Nolife with `chezmoi update`.
+To seed the plain LazyVim starter instead of the dotfiles:
 
 ```bash
-ansible-playbook playbooks/nolife-development.yml \
-  -e dev_dotfiles_repository=https://github.com/you/dotfiles.git
+ansible-playbook playbooks/nolife-development.yml -e dev_dotfiles_repository=
 ```
 
 The monthly playbook checks `/var/run/reboot-required`; it does nothing on a
