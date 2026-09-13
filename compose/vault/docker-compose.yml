@@ -3,6 +3,10 @@ services:
     image: hashicorp/vault:2.1
     container_name: vault
     restart: unless-stopped
+    # A restarted Vault comes back sealed and needs a manual unseal, so image
+    # updates are deliberate, never Watchtower's.
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
     cap_add:
       - IPC_LOCK
     ulimits:
@@ -12,6 +16,10 @@ services:
     ports:
       - "172.16.20.10:8200:8200"
     command: server
+    # The CLI inside the container otherwise defaults to HTTPS, which this
+    # TLS-disabled listener refuses, so `vault operator init` would fail.
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
     volumes:
       - ./config.hcl:/vault/config/config.hcl:ro
       - /srv/compose/vault/data:/vault/data
