@@ -92,9 +92,12 @@
         | list | length == 0
       register: gateway_public_egress_rules_added
       # OPNsense answers 200 even when it rejects a rule, reporting
-      # {"result": "failed", "validations": {...}} in the body. Without this
-      # the playbook reports success having changed nothing.
-      changed_when: (item.json.result | default('')) == 'saved'
+      # {"result": "failed", "validations": {...}} in the body; the assert below
+      # checks each response. A per-item changed_when cannot see its own
+      # response (item is the search result), so it never reported a saved rule
+      # and the apply gate stayed shut: rules were saved but not loaded. The
+      # apply gate counts attempted additions instead.
+      changed_when: false
       failed_when: false
       no_log: true
 
@@ -389,7 +392,7 @@
         validate_certs: false
         status_code: 200
       when: >-
-        (gateway_public_egress_rules_added.results | selectattr('changed') | list | length > 0)
+        (gateway_public_egress_rules_added.results | rejectattr('skipped', 'defined') | list | length > 0)
         or (((gateway_administration_corrected.results | default([]))
              + (gateway_administration_added.results | default([])))
             | rejectattr('skipped', 'defined') | list | length > 0)
