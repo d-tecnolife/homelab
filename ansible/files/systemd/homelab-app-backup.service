@@ -5,6 +5,9 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+# A oneshot has no start timeout by default. restic once stalled indefinitely
+# reading from R2, so a stuck run is killed and reported as a failed backup.
+TimeoutStartSec=1h
 ExecStart=/usr/local/sbin/homelab-app-backup
 Nice=10
 IOSchedulingClass=best-effort
