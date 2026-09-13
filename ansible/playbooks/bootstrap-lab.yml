@@ -21,4 +21,7 @@
 - import_playbook: nolife-development.yml
 - import_playbook: monitoring-targets.yml
 - import_playbook: monitoring-inventory-automation.yml
+# Runs with Ops' permanent key, so it can drop Terraform's bootstrap key and any
+# superseded management key from every VM before the console is locked.
+- import_playbook: ssh-authorized-keys.yml
 - import_playbook: lock-bootstrap-console.yml

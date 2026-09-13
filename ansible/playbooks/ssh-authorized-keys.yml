@@ -1,0 +1,60 @@
+---
+# Makes dtec's authorized_keys on every managed VM exactly the keys in keys/
+# plus Ops' current management key. The other key playbooks only ever add
+# keys, so Terraform's one-time bootstrap key and the management key from
+# before an Ops rebuild stayed authorized everywhere. Deleting a file from
+# keys/ and running this playbook revokes that key on every VM.
+#
+# It must connect with Ops' permanent key, never the Terraform bootstrap key
+# it removes. That is why bootstrap-lab.yml imports it and
+# bootstrap-ops-ssh.yml, which runs with the bootstrap key, does not.
+- name: Limit SSH access to the current keys
+  hosts: managed_vms
+  gather_facts: false
+  vars:
+    managed_user: "{{ ansible_user | default('dtec', true) }}"
+    ops_management_public_key_path: /home/dtec/.ssh/id_ed25519.pub
+
+  tasks:
+    - name: Read the Ops management public key
+      ansible.builtin.slurp:
+        src: "{{ ops_management_public_key_path }}"
+      delegate_to: ops
+      run_once: true
+      register: ops_management_public_key_file
+
+    - name: Collect the repository public keys
+      ansible.builtin.set_fact:
+        repository_public_keys: >-
+          {{ repository_public_keys | default([])
+             + [lookup('ansible.builtin.file', item) | trim] }}
+      loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/../../keys/*.pub') | sort }}"
+      loop_control:
+        label: "{{ item | basename }}"
+
+    # Ops runs Ansible locally and never needs its own key authorized.
+    - name: Determine the keys this host allows
+      ansible.builtin.set_fact:
+        ops_management_public_key: "{{ ops_management_public_key_file.content | b64decode | trim }}"
+        allowed_public_keys: >-
+          {{ repository_public_keys
+             + ([] if inventory_hostname == 'ops'
+                else [ops_management_public_key_file.content | b64decode | trim]) }}
+
+    # An exclusive write with a missing or malformed key would lock Ansible
+    # or the operator out of the VM.
+    - name: Require every allowed key to be a well-formed public key
+      ansible.builtin.assert:
+        that:
+          - repository_public_keys | length > 0
+          - ops_management_public_key is match('^ssh-ed25519 ')
+          - allowed_public_keys | reject('match', '^(ssh-(ed25519|rsa)|ecdsa-sha2-nistp[0-9]+|sk-[a-z0-9-]+@openssh\.com) [A-Za-z0-9+/=]+( .*)?$') | list | length == 0
+          - inventory_hostname == 'ops' or ops_management_public_key in allowed_public_keys
+        fail_msg: Refusing to rewrite authorized_keys without a complete, valid key list.
+        quiet: true
+
+    - name: Make authorized_keys exactly the allowed keys
+      ansible.posix.authorized_key:
+        user: "{{ managed_user }}"
+        key: "{{ allowed_public_keys | join('\n') }}"
+        exclusive: true

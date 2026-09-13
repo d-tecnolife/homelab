@@ -2,7 +2,10 @@
 
 Place one OpenSSH public key per `*.pub` file in this directory. Terraform
 adds them to newly created VMs, and the Ops SSH bootstrap playbook adds them
-to existing VMs. Never store private keys here.
+to existing VMs. `ansible/playbooks/ssh-authorized-keys.yml`, which
+`bootstrap-lab.yml` runs, then makes every VM's `authorized_keys` exactly these
+keys plus Ops' current management key. To revoke a key, delete its file and run
+that playbook from `~/homelab/ansible` on Ops. Never store private keys here.
 
 These are human workstation keys only. Machine keys do not belong here: Ops
 generates its own management key during `bootstrap-ops-ssh.yml` and installs
