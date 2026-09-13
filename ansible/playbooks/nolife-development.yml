@@ -8,7 +8,7 @@
     dev_brew_bin: "{{ dev_brew_prefix }}/bin/brew"
     # ChezMoi-managed dotfiles, including the shared LazyVim configuration. Set
     # to "" to seed the plain LazyVim starter instead.
-    dev_dotfiles_repository: https://github.com/d-tecnolife/dots.git
+    dev_dotfiles_repository: https://github.com/d-tecnolife/dotfiles.git
     dev_chezmoi_source: "{{ dev_user_home }}/.local/share/chezmoi"
     dev_apt_packages:
       - build-essential
@@ -139,7 +139,6 @@
         - dev_dotfiles_repository | length > 0
         - not dev_chezmoi_source_dir.stat.exists
 
-    # Nolife is headless, so it skips the Linux desktop configuration.
     - name: Initialize and apply the ChezMoi source
       ansible.builtin.command:
         argv:
@@ -148,8 +147,6 @@
           - --no-tty
           - init
           - --apply
-          - --promptBool
-          - desktop=false
           - "{{ dev_dotfiles_repository }}"
         creates: "{{ dev_chezmoi_source }}"
       register: dev_chezmoi_init
