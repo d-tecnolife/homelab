@@ -125,6 +125,17 @@
         argv: ["{{ dev_brew_prefix }}/opt/rustup/bin/rustup", default, stable]
       when: dev_rust_toolchain.rc != 0 or not dev_rust_toolchain.stdout.startswith('stable')
 
+    # Without lingering, /run/user/<uid> (where zmx's socket lives) is only
+    # guaranteed to exist while a login session for this user is active;
+    # systemd may tear it down if every session closes at once, even without
+    # a reboot. Linger keeps the user instance and runtime dir alive so zmx
+    # sessions survive full logout, not just individual disconnects.
+    - name: Enable systemd lingering so zmx sessions survive full logout
+      become: true
+      ansible.builtin.command:
+        argv: [loginctl, enable-linger, "{{ ansible_user | default('dtec', true) }}"]
+        creates: "/var/lib/systemd/linger/{{ ansible_user | default('dtec', true) }}"
+
     - name: Show the attached zmx session in the terminal tab title
       ansible.builtin.blockinfile:
         path: "{{ dev_user_home }}/.bashrc"
