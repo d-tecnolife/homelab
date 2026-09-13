@@ -38,13 +38,18 @@
       - go
       - jq
       - lazygit
+      # lazy.nvim's luarocks support; LuaJIT stands in for the Lua 5.1 it expects.
+      - luajit
+      - luarocks
       - neovim
       - node
       - ripgrep
       - rustup
       - shellcheck
       - shfmt
-      - tree-sitter
+      # The CLI nvim-treesitter's main branch compiles parsers with; the
+      # tree-sitter formula is only the library and installs no executable.
+      - tree-sitter-cli
       - uv
       - yq
       - zig
@@ -146,5 +151,21 @@
       ansible.builtin.command:
         argv: ["{{ dev_brew_prefix }}/bin/nvim", --headless, "+Lazy! sync", +qa]
         creates: "{{ dev_user_home }}/.local/share/nvim/lazy/lazy.nvim"
+      environment:
+        PATH: "{{ dev_brew_prefix }}/bin:{{ dev_brew_prefix }}/sbin:{{ dev_brew_prefix }}/opt/rustup/bin:{{ ansible_env.PATH }}"
+
+    # LazyVim otherwise compiles these on the first file opened after launch.
+    - name: Install the configuration's Treesitter parsers
+      ansible.builtin.command:
+        argv:
+          - "{{ dev_brew_prefix }}/bin/nvim"
+          - --headless
+          - "+Lazy! load nvim-treesitter"
+          - >-
+            +lua local plugin = require('lazy.core.config').plugins['nvim-treesitter'];
+            local opts = require('lazy.core.plugin').values(plugin, 'opts', false);
+            require('nvim-treesitter').install(opts.ensure_installed or {}):wait(600000)
+          - +qa
+        creates: "{{ dev_user_home }}/.local/share/nvim/site/parser/lua.so"
       environment:
         PATH: "{{ dev_brew_prefix }}/bin:{{ dev_brew_prefix }}/sbin:{{ dev_brew_prefix }}/opt/rustup/bin:{{ ansible_env.PATH }}"
