@@ -32,7 +32,7 @@
           ansible.builtin.debug:
             msg: >-
               ansible/secrets/backup.sops.env does not exist, so offsite backups
-              stay unconfigured. See secrets/README.md.
+              stay unconfigured.
 
         - name: Stop without changing Apps
           ansible.builtin.meta: end_play

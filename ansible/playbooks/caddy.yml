@@ -22,8 +22,7 @@
       ansible.builtin.assert:
         that: caddy_encrypted_secret.stat.isreg | default(false)
         fail_msg: >-
-          Create ansible/secrets/caddy.sops.env with SOPS. See
-          secrets/README.md.
+          Create ansible/secrets/caddy.sops.env with SOPS.
       delegate_to: localhost
       become: false
       run_once: true

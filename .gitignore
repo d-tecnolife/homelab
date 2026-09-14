@@ -17,4 +17,3 @@ ansible/inventory/hosts.yml
 terraform.exe
 keys/*
 !keys/*.pub
-!keys/README.md

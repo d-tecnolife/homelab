@@ -13,7 +13,7 @@ param(
 # cannot do for you is the console-attended OPNsense install itself: this
 # script pauses immediately before it and immediately after it.
 #
-# Read docs/gateway-configuration.md and docs/environment-bootstrap.md before
+# Read docs/environment-bootstrap.md before
 # running this for the first time. This script assumes:
 #   - terraform.tfvars is already filled in (see terraform.tfvars.example)
 #   - the OPNsense DVD ISO is already uploaded to Proxmox ISO storage

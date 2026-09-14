@@ -2,8 +2,22 @@
 
 Terraform creates the OPNsense Gateway and VLAN-attached VMs; Ansible configures
 Ubuntu guests only after the Gateway baseline and policy have been applied.
-For recovery, read [Rebuild and disaster recovery](disaster-recovery.md) first
-and restore the original age identity rather than generating a new one.
+Every SOPS-encrypted secret is already committed to this repository, so a
+rebuild only needs the original age identity to decrypt them. Never generate a
+new identity; it cannot decrypt the existing secrets or backups.
+
+## Keep these outside the lab
+
+- Access to this public repository.
+- The Ops age identity from `~/.config/sops/age/keys.txt`.
+- The offsite restic repository in Cloudflare R2 and its `RESTIC_PASSWORD`.
+- GitHub, Cloudflare, and password-manager access, with their recovery codes.
+- At least one administrator SSH private key whose public key is under `keys/`.
+- Terraform state, when recovering an existing deployment rather than building
+  a new one.
+
+The age identity and application data are the only items that cannot be
+recreated.
 
 ## 1. Prepare Proxmox and the Terraform runner
 
@@ -40,31 +54,29 @@ terraform plan
 The first phase replaces Gateway VMID 100 only. After its baseline permits
 normal VLAN egress, create Ops VMID 1010 as the sole controller exception.
 The remaining workloads are gated until Gateway policy and Tailscale routing
-have been reconciled. Apply only in a console-attended maintenance window after
-an explicit network/rebuild confirmation.
+have been reconciled. Apply only while you are at the Proxmox console.
 
 ## 3. Build and apply Gateway
 
 On the Proxmox node (or an existing Ops VM), after restoring the age identity,
-create the single encrypted Gateway input once with
-`scripts/gateway/create-gateway-secret.sh`. Enter one memorable, unique
-Gateway console password when asked; it is encrypted with the rest of the
-input and is the password used for the one attended OPNsense installation. The
-script generates the OPNsense API key and secret without printing them. Build
+use the committed Gateway input, `ansible/secrets/gateway.sops.env`. Its
+console password is the one used for the attended OPNsense installation. Only
+run `scripts/gateway/create-gateway-secret.sh` if that input must be replaced.
+Build
 the bootstrap ISO with
 `scripts/gateway/build-opnsense-bootstrap-iso.sh`; when running on Proxmox,
 pass `localhost` as its host argument. It renders the WAN, VLAN, firewall, SSH,
 and API-account configuration into the installer media.
 
-Run the Gateway-only Terraform plan on the Windows runner and apply it only
-after the separate network/rebuild confirmation. The OPNsense install and
+Run the Gateway-only Terraform plan on the Windows runner, review it, and
+apply it. The OPNsense install and
 configuration import are console-attended; no upstream-LAN management rule is part of the process. Gateway remains
 WAN-default-deny.
 
 Steps 3-4 are `scripts/terraform/rebuild.ps1`, which runs the same phase
-scripts referenced below in order with a confirmation gate before each apply;
-see [Gateway configuration](gateway-configuration.md#rebuild-order) for the
-full phase list including the attended OPNsense install between them.
+scripts referenced below in order, asks for confirmation before each apply,
+and pauses around the attended OPNsense install. Use `-StartAt` to resume a
+partially completed rebuild.
 
 ## 4. Create Ops, then configure Gateway
 
@@ -89,16 +101,15 @@ ansible-playbook playbooks/ops-tailscale.yml
 
 Restore the backed-up age identity to `/secure/path/keys.txt` (or supply its
 actual protected path) before the `secrets.yml` command. Use the original
-identity; the playbook installs SOPS/age and verifies encrypted inputs. These
-commands are deployment steps, executed only during an authorized rebuild.
+identity; the playbook installs SOPS/age and verifies encrypted inputs. Run
+these commands only during a rebuild.
 `ops-tailscale.yml` installs Tailscale as an ordinary systemd service on Ops
 and brings it up as the subnet router. Then apply the separate Tailscale Terraform root. The
 root owns the tailnet policy and automatic approval for the three
 Ops-advertised VLAN routes. Set `gateway_policy_ready = true` only after
 that root has applied successfully.
 
-See [Gateway configuration](gateway-configuration.md#rebuild-order) for the
-retired OPNsense Tailscale/Unbound approach and its failure modes. Ops advertises
+Ops advertises
 the VLAN routes directly, so the Tailscale ACL enforces VPN-originated access.
 Gateway and guests use public DNS resolvers.
 
@@ -132,9 +143,9 @@ from Ops:
 bash ~/homelab/scripts/ops/bootstrap-lab.sh
 ```
 
-Before running the command, restore the existing age identity and the required
-SOPS-encrypted Compose and Caddy inputs. The playbook deliberately stops rather
-than creating replacement credentials that cannot decrypt existing data.
+Before running it, restore the original age identity; the encrypted Compose and
+Caddy secrets are already in the repository. The playbook stops rather than
+creating replacement credentials that cannot decrypt existing data.
 
 ## 6. Certificate-based SSH trust (after Vault is initialized)
 
@@ -150,16 +161,13 @@ at Door, is maintained by hand in Cloudflare and must exist first.
    `ansible-playbook playbooks/vault-ssh-host-ca-bootstrap.yml` once. It
    creates the SSH secrets engine, the CA, the `homelab-hosts` signing role,
    and a signing-only policy.
-3. Create and encrypt the periodic signing token per
-   [Secrets management](../secrets/README.md#vault-ssh-host-ca-token).
+3. The periodic signing token is already committed as
+   `secrets/vault-ssh-ca.sops.env`. Only if Vault is re-initialized, create a
+   new one with `vault token create -policy=homelab-ssh-host-signer
+   -period=768h -no-default-policy` and re-encrypt that file with SOPS.
 4. Run `ansible-playbook playbooks/vault-ssh-host-ca.yml`. It signs every
    managed VM's host key, installs the certificate, and — once each host's
    certificate is confirmed working — retires that host's individually pinned
    `known_hosts` entry on Ops in favor of trusting the CA. A weekly timer
    keeps certificates renewed after this; you should not need to touch this
    again.
-
-## Related details
-
-- [Terraform environment](../terraform/environments/labyrinthian-estate/README.md)
-- [Ansible playbooks](../ansible/README.md)

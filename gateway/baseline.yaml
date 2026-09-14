@@ -120,8 +120,8 @@ firewall:
     - { interface: wan, protocol: tcp, destination_port: 25565, target: games, target_port: 25565, description: "WAN Minecraft to Games" }
 
 # Tailscale runs on Ops now (ansible/playbooks/ops-tailscale.yml), not
-# Gateway -- see terraform/environments/labyrinthian-estate/tailscale/README.md
-# for why. This section was never actually read by render-opnsense-config.py
+# Gateway, because OPNsense's Tailscale plugin did not reliably survive
+# reboots. This section was never actually read by render-opnsense-config.py
 # even when Tailscale did run on Gateway; Tailscale was always configured
 # live through its own API (playbooks/gateway-tailscale.yml, now retired),
 # never rendered here.

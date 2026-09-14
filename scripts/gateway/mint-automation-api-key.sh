@@ -13,7 +13,7 @@
 # script whenever the key itself must change, because it changes it on the box.
 #
 # Must run from a host with a network route to Gateway's Infra-VLAN address
-# (Ops) -- see docs/gateway-configuration.md.
+# (Ops).
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
