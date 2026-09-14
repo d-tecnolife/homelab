@@ -19,8 +19,8 @@
     gateway_declared_aliases:
       - {name: exporter_ports, type: port, members: [9100], description: "Monitoring exporter ports"}
       - {name: proxmox, type: host, members: [192.168.1.100], description: "Proxmox host"}
-      - {name: internal_app_tcp_ports, type: port, members: [465, 587, 993, 2083, 3478, 5349, 8443], description: "Internal public app TCP egress"}
-      - {name: internal_app_udp_ports, type: port, members: [443, 3478, "50000:65535"], description: "Internal public app UDP egress"}
+      - {name: internal_app_tcp_ports, type: port, members: [465, 587, 993, 2053, 2083, 3478, 5349, 8443], description: "Internal public app TCP egress"}
+      - {name: internal_app_udp_ports, type: port, members: [443, 3478, "19294:19344", "50000:65535"], description: "Internal public app UDP egress"}
 
   tasks:
     - name: Load the encrypted input
