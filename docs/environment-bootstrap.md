@@ -3,21 +3,7 @@
 Terraform creates the OPNsense Gateway and VLAN-attached VMs; Ansible configures
 Ubuntu guests only after the Gateway baseline and policy have been applied.
 Every SOPS-encrypted secret is already committed to this repository, so a
-rebuild only needs the original age identity to decrypt them. Never generate a
-new identity; it cannot decrypt the existing secrets or backups.
-
-## Keep these outside the lab
-
-- Access to this public repository.
-- The Ops age identity from `~/.config/sops/age/keys.txt`.
-- The offsite restic repository in Cloudflare R2 and its `RESTIC_PASSWORD`.
-- GitHub, Cloudflare, and password-manager access, with their recovery codes.
-- At least one administrator SSH private key whose public key is under `keys/`.
-- Terraform state, when recovering an existing deployment rather than building
-  a new one.
-
-The age identity and application data are the only items that cannot be
-recreated.
+rebuild only needs the original age identity to decrypt them.
 
 ## 1. Prepare Proxmox and the Terraform runner
 
