@@ -8,18 +8,18 @@
 # systemd service instead, which has none of those problems. VPN-originated
 # traffic to the three VLANs is no longer filtered by Gateway's firewall as
 # a result -- Tailscale's own ACL policy is the replacement enforcement
-# point for that traffic; see terraform/environments/labyrinthian-estate/tailscale.
+# point for that traffic; see terraform/tailscale.
 - name: Configure Ops as the homelab Tailscale subnet router
   hosts: localhost
   gather_facts: true
   vars:
-    ops_tailscale_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
+    ops_tailscale_secret_path: "{{ playbook_dir }}/../../secrets/gateway.sops.env"
     # Advertise exactly the VLAN networks the Gateway baseline declares, so the
     # routes this host offers cannot drift from the ones the Tailscale ACL
-    # approves (terraform/environments/labyrinthian-estate/tailscale reads the
+    # approves (terraform/tailscale reads the
     # same list). Hand-copying it in both places let them disagree silently.
     ops_tailscale_subnets: >-
-      {{ (lookup('file', playbook_dir + '/../../gateway/baseline.yaml')
+      {{ (lookup('file', playbook_dir + '/../../config/gateway.yaml')
           | from_yaml).aliases.homelab_networks['values'] }}
 
   tasks:
@@ -28,7 +28,7 @@
       vars:
         sops_input_path: "{{ ops_tailscale_secret_path }}"
         sops_input_missing_message: >-
-          Create and encrypt ansible/secrets/gateway.sops.env first.
+          Create and encrypt secrets/gateway.sops.env first.
       tags: [always]
 
     - name: Extract Tailscale enrollment values

@@ -1,7 +1,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$CatalogPath = (Join-Path $PSScriptRoot '..\topology\workloads.yaml'),
-    [string]$GatewayBaselinePath = (Join-Path $PSScriptRoot '..\gateway\baseline.yaml'),
+    [string]$CatalogPath = (Join-Path $PSScriptRoot '..\..\config\workloads.yaml'),
+    [string]$GatewayBaselinePath = (Join-Path $PSScriptRoot '..\..\config\gateway.yaml'),
     [string]$HostsPath = (Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'),
     [string]$Python = 'python'
 )
@@ -23,7 +23,7 @@ foreach ($path in $CatalogPath, $GatewayBaselinePath) {
 
 $inventoryPath = [System.IO.Path]::GetTempFileName()
 try {
-    & $Python (Join-Path $PSScriptRoot 'ops\render-inventory.py') --catalog $CatalogPath --output $inventoryPath
+    & $Python (Join-Path $PSScriptRoot '..\ops\render-inventory.py') --catalog $CatalogPath --output $inventoryPath
     if ($LASTEXITCODE -ne 0) {
         throw "render-inventory.py failed; it needs Python with PyYAML."
     }

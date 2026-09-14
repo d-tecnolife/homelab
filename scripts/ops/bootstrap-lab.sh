@@ -20,10 +20,10 @@ if ! command -v ansible-playbook >/dev/null 2>&1; then
 fi
 
 python3 "$repository_root/scripts/ops/render-inventory.py" \
-    --catalog "$repository_root/topology/workloads.yaml" \
+    --catalog "$repository_root/config/workloads.yaml" \
     --ops-host "${OPS_HOST:-}" --proxmox-host "${PROXMOX_HOST:-}" \
     --output "$ansible_directory/inventory/hosts.yml"
-echo "Rendered Ansible inventory from topology/workloads.yaml."
+echo "Rendered Ansible inventory from config/workloads.yaml."
 
 cd "$ansible_directory"
 bootstrap_key_file="$HOME/.ssh/id_ed25519_bootstrap"

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$TfvarsPath = (Join-Path $PSScriptRoot "..\..\terraform\environments\labyrinthian-estate\terraform.tfvars")
+    [string]$TfvarsPath = (Join-Path $PSScriptRoot "..\..\terraform\terraform.tfvars")
 )
 
 # Fail fast when the Terraform runner cannot reach the Proxmox API. Terraform

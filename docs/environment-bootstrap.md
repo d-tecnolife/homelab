@@ -42,7 +42,7 @@ for subsequent boots.
 
 ## 2. Review the rebuild
 
-From `terraform/environments/labyrinthian-estate`:
+From the `terraform/` folder:
 
 ```powershell
 terraform init
@@ -59,7 +59,7 @@ have been reconciled. Apply only while you are at the Proxmox console.
 ## 3. Build and apply Gateway
 
 On the Proxmox node (or an existing Ops VM), after restoring the age identity,
-use the committed Gateway input, `ansible/secrets/gateway.sops.env`. Its
+use the committed Gateway input, `secrets/gateway.sops.env`. Its
 console password is the one used for the attended OPNsense installation. Only
 run `scripts/gateway/create-gateway-secret.sh` if that input must be replaced.
 Build
@@ -92,7 +92,7 @@ git clone https://github.com/d-tecnolife/homelab.git ~/homelab
 sudo apt-get update
 sudo apt-get install --yes ansible
 cd ~/homelab
-python3 scripts/ops/render-inventory.py --catalog topology/workloads.yaml --output ansible/inventory/hosts.yml
+python3 scripts/ops/render-inventory.py --catalog config/workloads.yaml --output ansible/inventory/hosts.yml
 cd ansible
 ansible-playbook playbooks/bootstrap-ops-ssh.yml --limit ops -c local
 ansible-playbook playbooks/secrets.yml -e sops_age_recovery_source=/secure/path/keys.txt

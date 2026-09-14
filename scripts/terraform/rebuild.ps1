@@ -23,7 +23,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $scriptDirectory = $PSScriptRoot
-$environmentDirectory = Join-Path $scriptDirectory "..\..\terraform\environments\labyrinthian-estate"
+$environmentDirectory = Join-Path $scriptDirectory "..\..\terraform"
 
 function Confirm-Phase {
     param([Parameter(Mandatory)][string]$Message)

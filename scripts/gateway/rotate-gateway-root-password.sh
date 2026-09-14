@@ -3,7 +3,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-secret_file="$repo_root/ansible/secrets/gateway.sops.env"
+secret_file="$repo_root/secrets/gateway.sops.env"
 
 command -v sops >/dev/null || { echo "sops is required" >&2; exit 1; }
 [[ -f "$secret_file" ]] || { echo "missing encrypted Gateway input: $secret_file" >&2; exit 1; }
@@ -27,7 +27,7 @@ awk -v password="$root_password" '
   /^GATEWAY_ROOT_PASSWORD=/ { print "GATEWAY_ROOT_PASSWORD=" password; next }
   { print }
 ' "$plaintext_tmp" \
-    | sops --config "$repo_root/.sops.yaml" --filename-override "ansible/secrets/gateway.sops.env" \
+    | sops --config "$repo_root/.sops.yaml" --filename-override "secrets/gateway.sops.env" \
         --encrypt --input-type dotenv --output-type dotenv /dev/stdin > "$encrypted_tmp"
 
 mv "$encrypted_tmp" "$secret_file"

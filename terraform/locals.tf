@@ -1,5 +1,5 @@
 locals {
-  repository_ssh_public_key_directory = "${path.module}/../../../keys"
+  repository_ssh_public_key_directory = "${path.module}/../keys"
   repository_ssh_public_key_files     = sort(fileset(local.repository_ssh_public_key_directory, "*.pub"))
   repository_ssh_public_keys = [
     for key_file in local.repository_ssh_public_key_files :

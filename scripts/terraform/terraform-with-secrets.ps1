@@ -16,12 +16,12 @@ param(
 # PowerShell counterpart of terraform-with-secrets.sh. The documented Terraform
 # runner is Windows, so the secrets path has to exist here and not only in bash.
 $ErrorActionPreference = "Stop"
-$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $secretFile = Join-Path $repositoryRoot "secrets\infrastructure.sops.env"
 
 $environmentDirectory = switch ($Component) {
-    "proxmox" { Join-Path $repositoryRoot "terraform\environments\labyrinthian-estate" }
-    "tailscale" { Join-Path $repositoryRoot "terraform\environments\labyrinthian-estate\tailscale" }
+    "proxmox" { Join-Path $repositoryRoot "terraform" }
+    "tailscale" { Join-Path $repositoryRoot "terraform\tailscale" }
 }
 
 # fmt reads no secrets, so it never needs the age identity.
@@ -32,7 +32,7 @@ if ($Action -eq "fmt") {
 
 # Only the Proxmox root talks to Proxmox; the Tailscale root never does.
 if ($Component -eq "proxmox") {
-    & (Join-Path $PSScriptRoot "terraform\Test-ProxmoxReachable.ps1")
+    & (Join-Path $PSScriptRoot "Test-ProxmoxReachable.ps1")
 }
 
 if (-not (Test-Path $secretFile)) {

@@ -6,7 +6,7 @@
   vars:
     service_operator_users: [dtec]
     caddy_operator_group: caddy-data
-    caddy_encrypted_secret_path: "{{ playbook_dir }}/../secrets/caddy.sops.env"
+    caddy_encrypted_secret_path: "{{ playbook_dir }}/../../secrets/caddy.sops.env"
     sops_age_key_file: "{{ lookup('env', 'SOPS_AGE_KEY_FILE') | default(lookup('env', 'HOME') ~ '/.config/sops/age/keys.txt', true) }}"
 
   pre_tasks:
@@ -22,7 +22,7 @@
       ansible.builtin.assert:
         that: caddy_encrypted_secret.stat.isreg | default(false)
         fail_msg: >-
-          Create ansible/secrets/caddy.sops.env with SOPS.
+          Create secrets/caddy.sops.env with SOPS.
       delegate_to: localhost
       become: false
       run_once: true

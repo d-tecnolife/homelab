@@ -7,7 +7,7 @@
 #
 # This is for ROTATION, not repair. The bootstrap ISO's hand-rendered apikeys
 # entry does authenticate -- the credential from the first version of
-# ansible/secrets/gateway.sops.env still works today. An earlier comment here
+# secrets/gateway.sops.env still works today. An earlier comment here
 # claimed the opposite; the 401 that prompted it came from rewriting the secret
 # file alone, which cannot change the key Gateway stores in config.xml. Use this
 # script whenever the key itself must change, because it changes it on the box.
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-gateway_secret_file="$repo_root/ansible/secrets/gateway.sops.env"
+gateway_secret_file="$repo_root/secrets/gateway.sops.env"
 infra_secret_file="$repo_root/secrets/infrastructure.sops.env"
 
 command -v sops >/dev/null || { echo "sops is required" >&2; exit 1; }

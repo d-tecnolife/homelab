@@ -70,7 +70,7 @@ class GatewayRendererTests(unittest.TestCase):
                 [
                     str(RENDERER),
                     "--catalog",
-                    str(ROOT / "gateway/baseline.yaml"),
+                    str(ROOT / "config/gateway.yaml"),
                     "--ssh-public-key",
                     str(key),
                     "--output",

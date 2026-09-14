@@ -1,6 +1,6 @@
 ---
 # Defensive reconciliation for firewall rules that are also hand-rendered
-# into the bootstrap ISO's config.xml (see gateway/baseline.yaml and
+# into the bootstrap ISO's config.xml (see config/gateway.yaml and
 # scripts/gateway/render-opnsense-config.py). Firewall rules, unlike
 # Unbound's versioned MVC model, take effect correctly when hand-rendered
 # (confirmed: Gateway's rule enforcement has worked correctly all along),
@@ -10,7 +10,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    gateway_secret_path: "{{ playbook_dir }}/../secrets/gateway.sops.env"
+    gateway_secret_path: "{{ playbook_dir }}/../../secrets/gateway.sops.env"
     # A double-quoted YAML scalar yields a real newline, which is how the alias
     # API separates multiple values.
     gateway_newline: "\n"
@@ -28,7 +28,7 @@
       vars:
         sops_input_path: "{{ gateway_secret_path }}"
         sops_input_missing_message: >-
-          Create and encrypt ansible/secrets/gateway.sops.env first.
+          Create and encrypt secrets/gateway.sops.env first.
       tags: [always]
 
     - name: Extract and validate Gateway credentials

@@ -7,7 +7,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$environmentDirectory = Join-Path $PSScriptRoot "..\..\terraform\environments\labyrinthian-estate"
+$environmentDirectory = Join-Path $PSScriptRoot "..\..\terraform"
 $terraformVars = Join-Path $environmentDirectory "terraform.tfvars"
 
 if ($GatewayBootstrapIso -notmatch '^local:iso/[A-Za-z0-9._-]+\.iso$') {

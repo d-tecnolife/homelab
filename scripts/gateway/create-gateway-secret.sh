@@ -3,7 +3,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-secret_file="$repo_root/ansible/secrets/gateway.sops.env"
+secret_file="$repo_root/secrets/gateway.sops.env"
 
 command -v sops >/dev/null || { echo "sops is required" >&2; exit 1; }
 command -v openssl >/dev/null || { echo "openssl is required" >&2; exit 1; }
@@ -28,7 +28,7 @@ trap 'rm -f "$encrypted_tmp"' EXIT
 umask 077
 printf 'GATEWAY_ROOT_PASSWORD=%s\nOPNSENSE_URL=https://172.16.10.1\nOPNSENSE_API_KEY=%s\nOPNSENSE_API_SECRET=%s\nTAILSCALE_OAUTH_CLIENT_ID=%s\nTAILSCALE_OAUTH_CLIENT_SECRET=%s\n' \
     "$root_password" "$api_key" "$api_secret" "$tailscale_oauth_client_id" "$tailscale_oauth_client_secret" \
-    | sops --config "$repo_root/.sops.yaml" --filename-override "ansible/secrets/gateway.sops.env" --encrypt --input-type dotenv --output-type dotenv /dev/stdin > "$encrypted_tmp"
+    | sops --config "$repo_root/.sops.yaml" --filename-override "secrets/gateway.sops.env" --encrypt --input-type dotenv --output-type dotenv /dev/stdin > "$encrypted_tmp"
 mv "$encrypted_tmp" "$secret_file"
 chmod 600 "$secret_file"
 echo "Created encrypted Gateway input at $secret_file. API credentials were generated and never printed."

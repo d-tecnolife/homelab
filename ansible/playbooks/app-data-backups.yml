@@ -1,14 +1,14 @@
 ---
 # Nightly offsite backup of the Apps data a rebuild cannot recreate. Offsite
 # storage needs credentials only the operator can create, so this play changes
-# nothing until ansible/secrets/backup.sops.env exists; AppDataBackupMissing
+# nothing until secrets/backup.sops.env exists; AppDataBackupMissing
 # alerts until the first backup succeeds.
 - name: Configure offsite Apps data backups
   hosts: apps
   become: true
   gather_facts: false
   vars:
-    backup_encrypted_secret_path: "{{ playbook_dir }}/../secrets/backup.sops.env"
+    backup_encrypted_secret_path: "{{ playbook_dir }}/../../secrets/backup.sops.env"
     backup_required_keys:
       - RESTIC_REPOSITORY
       - RESTIC_PASSWORD
@@ -31,7 +31,7 @@
         - name: Report that offsite backups are not configured
           ansible.builtin.debug:
             msg: >-
-              ansible/secrets/backup.sops.env does not exist, so offsite backups
+              secrets/backup.sops.env does not exist, so offsite backups
               stay unconfigured.
 
         - name: Stop without changing Apps

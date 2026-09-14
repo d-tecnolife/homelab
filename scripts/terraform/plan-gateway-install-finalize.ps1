@@ -6,7 +6,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$environmentDirectory = Join-Path $PSScriptRoot "..\..\terraform\environments\labyrinthian-estate"
+$environmentDirectory = Join-Path $PSScriptRoot "..\..\terraform"
 $bootstrapOverride = Join-Path $environmentDirectory "gateway-install.auto.tfvars"
 
 # Persist the post-install state outside Git. Without this override a later

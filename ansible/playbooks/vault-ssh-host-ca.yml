@@ -120,7 +120,7 @@
         marker: "# {mark} ANSIBLE MANAGED VAULT SSH HOST CA"
         block: |
           # Two hostname patterns are required: Ansible connects to managed_vms
-          # by their inventory IP (see topology/workloads.yaml), not by DNS name,
+          # by their inventory IP (see config/workloads.yaml), not by DNS name,
           # so OpenSSH's cert-authority pattern match needs the VLAN address
           # ranges in addition to the *.dscim.dev names people use interactively.
           @cert-authority *.dscim.dev {{ vault_ssh_ca_public_key.content | trim }}

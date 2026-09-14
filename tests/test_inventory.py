@@ -19,13 +19,13 @@ spec.loader.exec_module(renderer)
 
 class InventoryTests(unittest.TestCase):
     def setUp(self):
-        self.catalog = yaml.safe_load((ROOT / "topology/workloads.yaml").read_text())
+        self.catalog = yaml.safe_load((ROOT / "config/workloads.yaml").read_text())
 
     def test_cli_contains_all_catalog_hosts_and_only_ops_is_local(self):
         with tempfile.TemporaryDirectory() as directory:
             output = pathlib.Path(directory) / "inventory.yml"
             subprocess.run([sys.executable, str(SCRIPT), "--catalog",
-                            str(ROOT / "topology/workloads.yaml"), "--output", str(output)], check=True)
+                            str(ROOT / "config/workloads.yaml"), "--output", str(output)], check=True)
             inventory = yaml.safe_load(output.read_text())["all"]["children"]
         hosts = inventory["managed_vms"]["hosts"]
         self.assertEqual(set(hosts), {"ops", *self.catalog["workloads"]})
@@ -51,14 +51,14 @@ class InventoryTests(unittest.TestCase):
     def test_default_endpoints_match_terraform_and_gateway_aliases(self):
         # Terraform preserves public variable overrides; detect drift in their
         # defaults without loading any local tfvars, state, or secret input.
-        tfroot = ROOT / "terraform/environments/labyrinthian-estate"
+        tfroot = ROOT / "terraform"
         variables = (tfroot / "variables.tf").read_text()
         default = re.search(r'variable "ops_ipv4_address" \{.*?default\s*=\s*"([^"]+)"', variables, re.S)
         self.assertEqual(default.group(1), self.catalog["controllers"]["ops"]["address"])
         example = (tfroot / "terraform.tfvars.example").read_text()
         endpoint = re.search(r'proxmox_endpoint\s*=\s*"https://([^:/]+)', example)
         self.assertEqual(endpoint.group(1), self.catalog["controllers"]["proxmox"]["address"])
-        baseline = yaml.safe_load((ROOT / "gateway/baseline.yaml").read_text())
+        baseline = yaml.safe_load((ROOT / "config/gateway.yaml").read_text())
         hosts = renderer.render_inventory(self.catalog)["all"]["children"]["managed_vms"]["hosts"]
         for name, alias in baseline["aliases"].items():
             if name in hosts:

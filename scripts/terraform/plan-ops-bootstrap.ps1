@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$environmentDirectory = Join-Path $PSScriptRoot "..\..\terraform\environments\labyrinthian-estate"
+$environmentDirectory = Join-Path $PSScriptRoot "..\..\terraform"
 
 Push-Location $environmentDirectory
 try {

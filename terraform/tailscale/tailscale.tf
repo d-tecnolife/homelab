@@ -14,7 +14,7 @@ locals {
   # The homelab VLAN networks are declared once, in the Gateway baseline that
   # actually configures them, and reused here. Hand-copying the list let the
   # subnet router advertise routes this policy had never approved.
-  gateway_baseline = yamldecode(file("${path.module}/../../../../gateway/baseline.yaml"))
+  gateway_baseline = yamldecode(file("${path.module}/../../config/gateway.yaml"))
   subnet_routes    = local.gateway_baseline.aliases.homelab_networks.values
 
   # Ops is the subnet router (ansible/playbooks/ops-tailscale.yml), not

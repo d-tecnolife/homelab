@@ -210,7 +210,7 @@ variable "ops_ipv4_dmz_address" {
   }
 }
 
-# Per-workload sizing, addressing, and VMIDs live in topology/workloads.yaml,
+# Per-workload sizing, addressing, and VMIDs live in config/workloads.yaml,
 # consumed directly by workloads.tf's for_each. Do not add per-workload
 # Terraform variables here; add or edit the catalog entry instead.
 

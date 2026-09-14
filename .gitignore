@@ -11,8 +11,8 @@ __pycache__/
 token.json
 credentials.json
 .env
-ansible/secrets/*.env
-!ansible/secrets/*.sops.env
+secrets/**/*.env
+!secrets/**/*.sops.env
 ansible/inventory/hosts.yml
 terraform.exe
 keys/*

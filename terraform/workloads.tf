@@ -1,5 +1,5 @@
 locals {
-  workload_catalog = yamldecode(file("${path.module}/../../../topology/workloads.yaml")).workloads
+  workload_catalog = yamldecode(file("${path.module}/../config/workloads.yaml")).workloads
 }
 
 resource "proxmox_virtual_environment_vm" "workload" {

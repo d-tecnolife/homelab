@@ -1,5 +1,5 @@
 # Ops has a separate resource for bootstrap keys and its three router NICs.
-# Add ordinary VMs to topology/workloads.yaml, consumed by workloads.tf.
+# Add ordinary VMs to config/workloads.yaml, consumed by workloads.tf.
 
 resource "proxmox_virtual_environment_file" "ops_cloud_config" {
   content_type = "snippets"
