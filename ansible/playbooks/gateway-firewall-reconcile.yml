@@ -19,6 +19,8 @@
     gateway_declared_aliases:
       - {name: exporter_ports, type: port, members: [9100], description: "Monitoring exporter ports"}
       - {name: proxmox, type: host, members: [192.168.1.100], description: "Proxmox host"}
+      - {name: internal_app_tcp_ports, type: port, members: [465, 587, 993, 2083, 3478, 5349, 8443], description: "Internal public app TCP egress"}
+      - {name: internal_app_udp_ports, type: port, members: [443, 3478, "50000:65535"], description: "Internal public app UDP egress"}
 
   tasks:
     - name: Load the encrypted input
@@ -32,85 +34,6 @@
     - name: Extract and validate Gateway credentials
       ansible.builtin.import_tasks: tasks/gateway-credentials.yml
       tags: [always]
-
-    # Git-over-SSH and NTS key exchange are permanent VLAN-wide capabilities for
-    # current and future guests. They still exclude every private destination.
-    - name: Find declarative public egress firewall rules
-      ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=500&searchPhrase={{ item.description | urlencode }}"
-        method: GET
-        user: "{{ gateway_api_key }}"
-        password: "{{ gateway_api_secret }}"
-        force_basic_auth: true
-        validate_certs: false
-        status_code: 200
-      loop:
-        - { interface: lan, port: "22", description: "Public Git SSH - Infra" }
-        - { interface: opt1, port: "22", description: "Public Git SSH - Internal" }
-        - { interface: opt2, port: "22", description: "Public Git SSH - DMZ" }
-        - { interface: lan, port: "4460", description: "Public NTS key exchange - Infra" }
-        - { interface: opt1, port: "4460", description: "Public NTS key exchange - Internal" }
-        - { interface: opt2, port: "4460", description: "Public NTS key exchange - DMZ" }
-      register: gateway_public_egress_rules
-      changed_when: false
-      no_log: true
-
-    - name: Declare absent public egress firewall rules
-      ansible.builtin.uri:
-        url: "{{ gateway_url }}/api/firewall/filter/add_rule"
-        method: POST
-        user: "{{ gateway_api_key }}"
-        password: "{{ gateway_api_secret }}"
-        force_basic_auth: true
-        validate_certs: false
-        status_code: 200
-        body_format: json
-        body:
-          rule:
-            enabled: "1"
-            sequence: "90"
-            action: pass
-            quick: "1"
-            interface: "{{ item.item.interface }}"
-            direction: in
-            ipprotocol: inet
-            protocol: TCP
-            source_net: "{{ item.item.interface }}"
-            # The API rejects a "!"-prefixed alias; negation is its own field,
-            # exactly as render-opnsense-config.py writes it for a fresh install.
-            destination_net: private_networks
-            destination_not: "1"
-            destination_port: "{{ item.item.port }}"
-            description: "{{ item.item.description }}"
-      loop: "{{ gateway_public_egress_rules.results }}"
-      # searchPhrase is not an exact-description filter: the API returns other
-      # rows too, so "any row came back" skipped every absent rule. Match the
-      # description exactly, as the reconciled-rule tasks below do.
-      when: >-
-        item.json.rows | default([])
-        | selectattr('description', 'equalto', item.item.description)
-        | list | length == 0
-      register: gateway_public_egress_rules_added
-      # OPNsense answers 200 even when it rejects a rule, reporting
-      # {"result": "failed", "validations": {...}} in the body; the assert below
-      # checks each response. A per-item changed_when cannot see its own
-      # response (item is the search result), so it never reported a saved rule
-      # and the apply gate stayed shut: rules were saved but not loaded. The
-      # apply gate counts attempted additions instead.
-      changed_when: false
-      failed_when: false
-      no_log: true
-
-    - name: Require the Gateway to accept each public egress rule
-      ansible.builtin.assert:
-        that: (item.json.result | default('')) == 'saved'
-        fail_msg: >-
-          Gateway rejected a public egress rule:
-          {{ item.json.validations | default(item.json | default('no response')) }}
-      loop: "{{ gateway_public_egress_rules_added.results }}"
-      loop_control:
-        label: "{{ item.item.item.description | default('rule') }}"
-      when: not (item.skipped | default(false))
 
     # A rule may only reference an alias that already exists, and OPNsense's rule
     # model takes one port, a range, or a port alias -- never a comma-joined
@@ -221,6 +144,89 @@
         (gateway_aliases_added.results + gateway_aliases_corrected.results)
         | rejectattr('skipped', 'defined') | list | length > 0
       no_log: true
+
+    # Git-over-SSH and NTS key exchange are permanent VLAN-wide capabilities for
+    # current and future guests; Internal also has common app egress. They all
+    # exclude every private destination. This runs after alias reconciliation
+    # because the app egress rules reference port aliases.
+    - name: Find declarative public egress firewall rules
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/search_rule?current=1&rowCount=500&searchPhrase={{ item.description | urlencode }}"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      loop:
+        - { interface: lan, port: "22", description: "Public Git SSH - Infra" }
+        - { interface: opt1, port: "22", description: "Public Git SSH - Internal" }
+        - { interface: opt2, port: "22", description: "Public Git SSH - DMZ" }
+        - { interface: lan, port: "4460", description: "Public NTS key exchange - Infra" }
+        - { interface: opt1, port: "4460", description: "Public NTS key exchange - Internal" }
+        - { interface: opt2, port: "4460", description: "Public NTS key exchange - DMZ" }
+        - { interface: opt1, protocol: TCP, port: internal_app_tcp_ports, description: "Public app egress TCP - Internal" }
+        - { interface: opt1, protocol: UDP, port: internal_app_udp_ports, description: "Public app egress UDP - Internal" }
+      register: gateway_public_egress_rules
+      changed_when: false
+      no_log: true
+
+    - name: Declare absent public egress firewall rules
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/filter/add_rule"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          rule:
+            enabled: "1"
+            sequence: "90"
+            action: pass
+            quick: "1"
+            interface: "{{ item.item.interface }}"
+            direction: in
+            ipprotocol: inet
+            protocol: "{{ item.item.protocol | default('TCP') }}"
+            source_net: "{{ item.item.interface }}"
+            # The API rejects a "!"-prefixed alias; negation is its own field,
+            # exactly as render-opnsense-config.py writes it for a fresh install.
+            destination_net: private_networks
+            destination_not: "1"
+            destination_port: "{{ item.item.port }}"
+            description: "{{ item.item.description }}"
+      loop: "{{ gateway_public_egress_rules.results }}"
+      # searchPhrase is not an exact-description filter: the API returns other
+      # rows too, so "any row came back" skipped every absent rule. Match the
+      # description exactly, as the reconciled-rule tasks below do.
+      when: >-
+        item.json.rows | default([])
+        | selectattr('description', 'equalto', item.item.description)
+        | list | length == 0
+      register: gateway_public_egress_rules_added
+      # OPNsense answers 200 even when it rejects a rule, reporting
+      # {"result": "failed", "validations": {...}} in the body; the assert below
+      # checks each response. A per-item changed_when cannot see its own
+      # response (item is the search result), so it never reported a saved rule
+      # and the apply gate stayed shut: rules were saved but not loaded. The
+      # apply gate counts attempted additions instead.
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Require the Gateway to accept each public egress rule
+      ansible.builtin.assert:
+        that: (item.json.result | default('')) == 'saved'
+        fail_msg: >-
+          Gateway rejected a public egress rule:
+          {{ item.json.validations | default(item.json | default('no response')) }}
+      loop: "{{ gateway_public_egress_rules_added.results }}"
+      loop_control:
+        label: "{{ item.item.item.description | default('rule') }}"
+      when: not (item.skipped | default(false))
 
     # Ops' own administration path to Gateway. An installer built before the
     # renderer learned OPNsense's (self) token and its single-port rule model

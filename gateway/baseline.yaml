@@ -54,6 +54,11 @@ aliases:
   package_ports: { type: port, values: [80, 443] }
   exporter_ports: { type: port, values: [9100] }
   dns_ports: { type: port, values: [53] }
+  # Common public app egress for Internal workloads. Discord voice signals on
+  # TCP 2083 and streams media over UDP 50000-65535, which WebRTC apps share;
+  # the rest cover mail submission/IMAPS, STUN/TURN, QUIC and alternate HTTPS.
+  internal_app_tcp_ports: { type: port, values: [465, 587, 993, 2083, 3478, 5349, 8443] }
+  internal_app_udp_ports: { type: port, values: [443, 3478, "50000:65535"] }
 
 # Rules are evaluated on the interface where a connection begins. All omitted
 # traffic is denied statefully.
@@ -75,6 +80,9 @@ firewall:
     - { interface: infra, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [4460], description: "Public NTS key exchange - Infra" }
     - { interface: internal, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [4460], description: "Public NTS key exchange - Internal" }
     - { interface: dmz, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: [4460], description: "Public NTS key exchange - DMZ" }
+    # Internal hosts self-hosted apps and bots; public destinations only.
+    - { interface: internal, action: pass, protocol: tcp, source: interface_network, destination: "!private_networks", ports: internal_app_tcp_ports, description: "Public app egress TCP - Internal" }
+    - { interface: internal, action: pass, protocol: udp, source: interface_network, destination: "!private_networks", ports: internal_app_udp_ports, description: "Public app egress UDP - Internal" }
 
     # Ops is the sole administration exception.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }

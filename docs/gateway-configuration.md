@@ -111,6 +111,12 @@ connection originates.
   installed appliance.
   These are permanent shared capabilities, not per-VM exceptions; private
   networks remain excluded.
+- Internal: additionally allow common public app egress through port aliases.
+  `internal_app_tcp_ports` covers TCP `465`/`587`/`993` mail, `2083` Discord
+  voice signalling, `3478`/`5349` STUN/TURN, and `8443` alternate HTTPS.
+  `internal_app_udp_ports` covers UDP `443` QUIC, `3478` STUN, and
+  `50000-65535` Discord voice and WebRTC media. Reconciliation creates the
+  aliases before the rules that reference them.
 - Ops: permit administration to guest TCP `22` and Gateway TCP `22`/`443`.
   Explicit rules use OPNsense's `(self)` destination; anti-lockout is disabled.
 - Monitoring: permit ICMP and the `exporter_ports` alias (TCP `9100`)
