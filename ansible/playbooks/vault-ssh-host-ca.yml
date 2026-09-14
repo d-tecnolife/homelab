@@ -15,7 +15,7 @@
       vars:
         sops_input_path: "{{ vault_ssh_ca_secret_path }}"
         sops_input_missing_message: >-
-          Create secrets/vault-ssh-ca.sops.env from its example with a
+          Create secrets/vault-ssh-ca.sops.env with a
           signing-only Vault token, then encrypt it with SOPS.
         sops_input_environment:
           SOPS_AGE_KEY_FILE: "{{ sops_age_key_file }}"
