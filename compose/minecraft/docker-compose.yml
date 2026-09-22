@@ -8,6 +8,9 @@ services:
     stdin_open: true
     ports:
       - "25565:25565"
+      # Simple Voice Chat's own UDP channel -- separate from the game's TCP
+      # port, and needs its own Gateway forward (config/gateway.yaml).
+      - "24454:24454/udp"
     environment:
       EULA: "TRUE"
       TYPE: FABRIC
@@ -37,12 +40,18 @@ services:
         corpse
         elevator-mod
         building-wands
+        upgrade-items
+        simple-voice-chat
+        chat-heads
+        ambientsounds
+        presence-footsteps
+        not-enough-animations
+        sound-physics-remastered
         lithium
         ferritecore
         clumps
         krypton
         chunky-pregenerator
-        c2me-fabric
         servercore
       TZ: America/Winnipeg
       DIFFICULTY: normal

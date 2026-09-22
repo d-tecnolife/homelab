@@ -117,6 +117,7 @@ firewall:
     - { interface: wan, protocol: tcp, destination_port: 80, target: door, target_port: 80, description: "WAN HTTP to Door" }
     - { interface: wan, protocol: tcp, destination_port: 443, target: door, target_port: 443, description: "WAN HTTPS to Door" }
     - { interface: wan, protocol: tcp, destination_port: 25565, target: games, target_port: 25565, description: "WAN Minecraft to Games" }
+    - { interface: wan, protocol: udp, destination_port: 24454, target: games, target_port: 24454, description: "WAN Minecraft voice chat to Games" }
 
 # Tailscale runs on Ops now (ansible/playbooks/ops-tailscale.yml), not
 # Gateway, because OPNsense's Tailscale plugin did not reliably survive
