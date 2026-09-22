@@ -28,6 +28,8 @@ services:
         xaeros-minimap
         inventory-profiles-next
         fallingtree
+        fast-leaf-decay
+        attributefix
         rei
         waystones
         carry-on
@@ -39,6 +41,7 @@ services:
         lithium
         ferritecore
         clumps
+        krypton
         chunky-pregenerator
       TZ: America/Winnipeg
       DIFFICULTY: normal
