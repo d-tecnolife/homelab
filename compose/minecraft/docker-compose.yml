@@ -23,6 +23,7 @@ services:
         appleskin
         xaeros-minimap
         inventory-profiles-next
+        fallingtree
         lithium
         ferritecore
       TZ: America/Winnipeg
