@@ -39,6 +39,8 @@ services:
         lithium
         ferritecore
         clumps
+        chunky-pregenerator
+        spark
       TZ: America/Winnipeg
       DIFFICULTY: normal
       LEVEL: world
