@@ -35,6 +35,7 @@ services:
         travelersbackpack
         corpse
         elevator-mod
+        building-wands
         lithium
         ferritecore
         clumps
