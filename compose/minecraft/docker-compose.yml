@@ -47,6 +47,9 @@ services:
         presence-footsteps
         not-enough-animations
         sound-physics-remastered
+        better-mount-hud
+        detail-armor-bar-reconstructed
+        tool-stats
         lithium
         ferritecore
         clumps
