@@ -36,13 +36,12 @@ services:
         xaeros-world-map
         inventory-profiles-next
         fallingtree
-        fast-leaf-decay
         attributefix
         rei
         waystones
         carry-on
         travelersbackpack
-        corpse
+        universal-graves
         elevator-mod
         building-wands
         upgrade-items
@@ -61,10 +60,10 @@ services:
         tool-stats
         ping-display
         lithium
-        ferritecore
+        ferrite-core
         clumps
         krypton
-        chunky-pregenerator
+        chunky
         servercore
       TZ: America/Winnipeg
       DIFFICULTY: normal
