@@ -70,8 +70,10 @@ services:
       LEVEL: world
       ENABLE_WHITELIST: "true"
       ENFORCE_WHITELIST: "true"
-      # Comma-separated usernames or UUIDs, set in the deployed .env.
-      WHITELIST: "${WHITELIST:?set WHITELIST to a comma-separated player list}"
+      # WHITELIST intentionally not set: the image only touches whitelist.json
+      # when this variable has a value, so leaving it unset means in-game
+      # /whitelist add|remove (or RCON) is what manages the list, and it
+      # persists across restarts undisturbed.
       LOG_TIMESTAMP: "true"
       ENABLE_RCON: "true"
       RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
