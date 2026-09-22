@@ -54,7 +54,7 @@ services:
         ambientsounds
         presence-footsteps
         not-enough-animations
-        sound-physics-remastered
+        sound-physics-remastered:beta
         better-mount-hud
         detail-armor-bar-reconstructed
         tool-stats
