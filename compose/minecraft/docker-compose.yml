@@ -94,10 +94,13 @@ services:
     environment:
       MC_RCON_ADDRESS: minecraft:25575
       MC_RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
-      MC_WORLD: /minecraft/world
+      MC_WORLD: /minecraft/data/world
     ports:
       - "172.16.30.20:9150:9150"
     volumes:
-      - /srv/compose/minecraft/data/world:/minecraft/world:ro
+      # The data directory, not world/ itself: a bind source that is missing
+      # (e.g. after deleting the world for a new seed) is created by Docker as
+      # root:root 0755, and Minecraft then crash-loops on world/session.lock.
+      - /srv/compose/minecraft/data:/minecraft/data:ro
     depends_on:
       - minecraft
