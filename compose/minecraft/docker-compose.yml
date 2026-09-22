@@ -23,6 +23,10 @@ services:
       # config screens) get pulled in automatically instead of failing to
       # load at startup.
       MODRINTH_DOWNLOAD_DEPENDENCIES: required
+      # Terralith changes world generation, so it only affects chunks
+      # generated after it's installed. It's in the list from this server's
+      # first boot, so the whole map generates with it -- do not remove it
+      # later and expect old and new terrain to blend at the seam.
       MODRINTH_PROJECTS: |-
         fabric-api
         modmenu
@@ -43,6 +47,9 @@ services:
         building-wands
         upgrade-items
         bl4cks-sit
+        terralith
+        farmers-delight-refabricated
+        macaws-furniture
         simple-voice-chat
         chat-heads
         ambientsounds
