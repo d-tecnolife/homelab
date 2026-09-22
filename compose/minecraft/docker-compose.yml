@@ -32,6 +32,9 @@ services:
         waystones
         carry-on
         comforts
+        travelersbackpack
+        corpse
+        elevator-mod
         lithium
         ferritecore
         clumps
