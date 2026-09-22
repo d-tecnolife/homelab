@@ -16,9 +16,9 @@ services:
       # has 10 GB, so this stays well clear of the memory-stall failure mode
       # the previous Forge modpack hit at 8G (see minecraft-backup.sh history).
       MEMORY: 4G
-      # Required so dependencies like Cardinal Components API (needed by
-      # Comforts) and Cloth Config (needed by several mods' config screens)
-      # get pulled in automatically instead of failing to load at startup.
+      # Required so dependencies like Cloth Config (needed by several mods'
+      # config screens) get pulled in automatically instead of failing to
+      # load at startup.
       MODRINTH_DOWNLOAD_DEPENDENCIES: required
       MODRINTH_PROJECTS: |-
         fabric-api
@@ -33,7 +33,6 @@ services:
         rei
         waystones
         carry-on
-        comforts
         travelersbackpack
         corpse
         elevator-mod
@@ -43,6 +42,8 @@ services:
         clumps
         krypton
         chunky-pregenerator
+        c2me-fabric
+        servercore
       TZ: America/Winnipeg
       DIFFICULTY: normal
       LEVEL: world
