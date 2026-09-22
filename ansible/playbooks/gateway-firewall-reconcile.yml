@@ -6,7 +6,7 @@
 # (confirmed: Gateway's rule enforcement has worked correctly all along),
 # so this only matters if a rule was later removed independently of a
 # rebuild (e.g. manual GUI edit).
-- name: Reconcile Gateway firewall rules and aliases
+- name: Reconcile Gateway firewall rules, aliases and port forwards
   hosts: localhost
   gather_facts: false
   vars:
@@ -14,6 +14,12 @@
     # A double-quoted YAML scalar yields a real newline, which is how the alias
     # API separates multiple values.
     gateway_newline: "\n"
+    # Port forwards come straight from the catalog the ISO is rendered from.
+    # Before this, a forward added to config/gateway.yaml after install (voice
+    # chat's UDP 24454) reached only future rebuilds, never the live Gateway.
+    gateway_catalog: "{{ lookup('file', playbook_dir ~ '/../../config/gateway.yaml') | from_yaml }}"
+    # Same mapping as INTERFACES in render-opnsense-config.py.
+    gateway_interface_devices: {infra: lan, internal: opt1, dmz: opt2, wan: wan}
     # Aliases a rule below depends on. Each is created when absent and its
     # members corrected when they differ from this declaration.
     gateway_declared_aliases:
@@ -404,4 +410,127 @@
             | rejectattr('skipped', 'defined') | list | length > 0)
         or ((gateway_aliases_corrected.results | default([]))
             | rejectattr('skipped', 'defined') | list | length > 0)
+      no_log: true
+
+    # Forwards are matched by description, like the reconciled filter rules
+    # above. Each declared field is compared, so a forward edited in the GUI
+    # (wrong target, reflection turned on, disabled) is written back too.
+    # Undeclared forwards are left alone rather than deleted.
+    - name: Declare the port forwards from the Gateway catalog
+      ansible.builtin.set_fact:
+        gateway_declared_forwards: >-
+          {{ gateway_declared_forwards | default([]) + [{
+               'sequence': (gateway_forward_index + 1) | string,
+               'disabled': '0',
+               'interface': gateway_interface_devices[item.interface],
+               'ipprotocol': 'inet',
+               'protocol': item.protocol | lower,
+               'destination': {'network': 'wanip', 'port': item.destination_port | string, 'not': '0'},
+               'target': item.target,
+               'local-port': item.target_port | string,
+               'descr': item.description,
+               'natreflection': 'disable',
+               'pass': 'pass'}] }}
+      loop: "{{ gateway_catalog.firewall.port_forwards }}"
+      loop_control:
+        index_var: gateway_forward_index
+        label: "{{ item.description }}"
+
+    - name: Read the current Gateway port forwards
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/d_nat/search_rule?rowCount=500"
+        method: GET
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      register: gateway_forwards
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    # search_rule flattens the model into dotted keys ("destination.port").
+    - name: Correct drifted port forwards
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/d_nat/set_rule/{{ gateway_forward_live.uuid }}"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          rule: "{{ item }}"
+      vars:
+        gateway_forward_live: >-
+          {{ (gateway_forwards.json.rows | selectattr('descr', 'equalto', item.descr) | list + [{}])[0] }}
+      loop: "{{ gateway_declared_forwards }}"
+      loop_control:
+        label: "{{ item.descr }}"
+      when:
+        - gateway_forward_live.uuid is defined
+        - >-
+          [gateway_forward_live.disabled, gateway_forward_live.interface,
+           gateway_forward_live.protocol | lower, gateway_forward_live['destination.network'],
+           gateway_forward_live['destination.port'], gateway_forward_live.target,
+           gateway_forward_live['local-port'], gateway_forward_live.natreflection,
+           gateway_forward_live.pass]
+          != [item.disabled, item.interface, item.protocol, item.destination.network,
+              item.destination.port, item.target, item['local-port'], item.natreflection,
+              item.pass]
+      register: gateway_forwards_corrected
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Declare absent port forwards
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/d_nat/add_rule"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+        body_format: json
+        body:
+          rule: "{{ item }}"
+      loop: "{{ gateway_declared_forwards }}"
+      loop_control:
+        label: "{{ item.descr }}"
+      when: >-
+        gateway_forwards.json.rows | default([])
+        | selectattr('descr', 'equalto', item.descr) | list | length == 0
+      register: gateway_forwards_added
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Require the Gateway to accept each added or corrected port forward
+      ansible.builtin.assert:
+        that: (item.json.result | default('')) == 'saved'
+        fail_msg: >-
+          Gateway rejected port forward {{ item.item.descr | default('?') }}:
+          {{ item.json.validations | default(item.json | default('no response')) }}
+      loop: "{{ gateway_forwards_corrected.results + gateway_forwards_added.results }}"
+      loop_control:
+        label: "{{ item.item.descr | default('forward') }}"
+      when: not (item.skipped | default(false))
+
+    # Port forwards have their own apply endpoint; filter/apply does not load them.
+    - name: Apply port forwards when one was added or corrected
+      ansible.builtin.uri:
+        url: "{{ gateway_url }}/api/firewall/d_nat/apply"
+        method: POST
+        user: "{{ gateway_api_key }}"
+        password: "{{ gateway_api_secret }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: 200
+      when: >-
+        (gateway_forwards_corrected.results + gateway_forwards_added.results)
+        | rejectattr('skipped', 'defined') | list | length > 0
+      changed_when: true
       no_log: true
