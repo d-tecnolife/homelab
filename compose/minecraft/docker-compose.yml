@@ -1,0 +1,54 @@
+services:
+  minecraft:
+    image: itzg/minecraft-server:latest
+    container_name: minecraft
+    restart: unless-stopped
+    stop_grace_period: 2m
+    tty: true
+    stdin_open: true
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "26.2"
+      # A small vanilla-friendly QoL selection, not a heavy pack: the Games VM
+      # has 10 GB, so this stays well clear of the memory-stall failure mode
+      # the previous Forge modpack hit at 8G (see minecraft-backup.sh history).
+      MEMORY: 4G
+      MODRINTH_PROJECTS: |-
+        fabric-api
+        modmenu
+        jade
+        appleskin
+        xaeros-minimap
+        inventory-profiles-next
+        lithium
+        ferritecore
+      TZ: America/Winnipeg
+      DIFFICULTY: normal
+      LEVEL: world
+      ENABLE_WHITELIST: "true"
+      ENFORCE_WHITELIST: "true"
+      # Comma-separated usernames or UUIDs, set in the deployed .env.
+      WHITELIST: "${WHITELIST:?set WHITELIST to a comma-separated player list}"
+      LOG_TIMESTAMP: "true"
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
+    volumes:
+      - /srv/compose/minecraft/data:/data
+
+  minecraft-exporter:
+    image: ghcr.io/dirien/minecraft-exporter:0.16.0
+    container_name: minecraft-exporter
+    restart: unless-stopped
+    environment:
+      MC_RCON_ADDRESS: minecraft:25575
+      MC_RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
+      MC_WORLD: /minecraft/world
+    ports:
+      - "172.16.30.20:9150:9150"
+    volumes:
+      - /srv/compose/minecraft/data/world:/minecraft/world:ro
+    depends_on:
+      - minecraft

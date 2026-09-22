@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Minecraft backup daily
+
+[Timer]
+OnCalendar=*-*-* 04:30:00 America/Winnipeg
+Persistent=true
+RandomizedDelaySec=10m
+Unit=homelab-minecraft-backup.service
+
+[Install]
+WantedBy=timers.target
