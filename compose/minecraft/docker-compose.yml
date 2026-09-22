@@ -65,6 +65,13 @@ services:
         krypton
         chunky
         servercore
+      # Single-quoted so the \n reaches server.properties as a literal escape
+      # (the second MOTD line); a real newline would break the properties file.
+      MOTD: '§d§lEVENT §f✦ §eDouble Backshots XP\n§7Duration - §aFOREVER!!!!!!!'
+      MAX_PLAYERS: "20"
+      # Drop the image at /srv/compose/minecraft/data/server-icon.png on Games.
+      ICON: /data/server-icon.png
+      OVERRIDE_ICON: "TRUE"
       TZ: America/Winnipeg
       DIFFICULTY: normal
       LEVEL: world
