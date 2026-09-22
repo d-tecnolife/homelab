@@ -29,6 +29,7 @@ services:
         jade
         appleskin
         xaeros-minimap
+        xaeros-world-map
         inventory-profiles-next
         fallingtree
         fast-leaf-decay
@@ -41,6 +42,7 @@ services:
         elevator-mod
         building-wands
         upgrade-items
+        bl4cks-sit
         simple-voice-chat
         chat-heads
         ambientsounds
@@ -50,6 +52,7 @@ services:
         better-mount-hud
         detail-armor-bar-reconstructed
         tool-stats
+        ping-display
         lithium
         ferritecore
         clumps
