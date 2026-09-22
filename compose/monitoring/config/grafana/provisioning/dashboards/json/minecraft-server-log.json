@@ -1,0 +1,146 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Chat, deaths, joins and leaves, advancements, admin commands and server restarts from the Minecraft server log.",
+  "editable": true,
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "homelab",
+    "minecraft"
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "textbox",
+        "name": "search",
+        "label": "Search",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "query": "",
+        "hide": 0,
+        "description": "Filter by player name or any text, case-insensitive"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Minecraft Server Log",
+  "uid": "minecraft-server-log",
+  "version": 1,
+  "panels": [
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "💬 chat · 📢 /say · ⌨️ admin and RCON commands · 💀 deaths · 🟢 joins · 🔴 leaves · 🏆 advancements · ⚙️ server start/stop. Commands typed by non-op players are not written to the server log, so they cannot appear here.",
+      "gridPos": {
+        "h": 30,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": false,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: (\\[Not Secure\\] )?<[A-Za-z0-9_]{1,16}> ` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `💬 CHAT  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "A",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: \\[Not Secure\\] \\[[A-Za-z0-9_]{1,16}\\] ` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `📢 SAY  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "B",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: \\[[A-Za-z0-9_]{1,16}: ` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `⌨️ CMD  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "C",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: [A-Za-z0-9_]{3,16} (was |were |died|drowned|fell |blew up|burned to death|went up in flames|went off with a bang|walked into|hit the ground too hard|tried to swim in lava|froze to death|starved to death|suffocated|withered away|experienced kinetic energy|discovered the floor was lava|didn't want to live|left the confines|was squished|was stung|was pricked)` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `💀 DEATH  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "D",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: [A-Za-z0-9_]{3,16} joined the game$` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `🟢 JOIN  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "E",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: [A-Za-z0-9_]{3,16} left the game$` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `🔴 LEAVE  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "F",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: [A-Za-z0-9_]{3,16} has (made the advancement|completed the challenge|reached the goal) ` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `🏆 ADV  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "G",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: (Done \\([0-9.]+s\\)!|Stopping server$)` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `⚙️ SERVER  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "H",
+          "queryType": "range"
+        }
+      ],
+      "title": "Server log",
+      "type": "logs"
+    }
+  ]
+}
