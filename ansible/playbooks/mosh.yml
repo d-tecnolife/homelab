@@ -1,0 +1,16 @@
+---
+# Roaming terminal sessions to every VM. mosh-server listens on UDP
+# 60000-61000; the tailnet grant already allows all protocols to the homelab
+# subnets through Ops, so no Gateway rule is needed.
+- name: Install mosh on every VM
+  hosts: managed_vms
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install mosh
+      ansible.builtin.apt:
+        name: mosh
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+        lock_timeout: 300
