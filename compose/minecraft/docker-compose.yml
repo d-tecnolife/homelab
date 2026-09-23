@@ -84,8 +84,18 @@ services:
       LOG_TIMESTAMP: "true"
       ENABLE_RCON: "true"
       RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
+      # Mod configs kept in the repo (./config) are copied over /data/config on
+      # every start. The image skips a file when the copy in /data is newer by
+      # default, which would silently ignore repo edits after a mod rewrites
+      # its own config, so the repo always wins here.
+      SYNC_SKIP_NEWER_IN_DESTINATION: "false"
     volumes:
       - /srv/compose/minecraft/data:/data
+      # upgrader.json: Upgrade Items blacklist and value overrides that close
+      # item-duplication exploits (ores, buckets, concrete, oxidized copper...).
+      # xaero/lib/common.cfg: everyone_tracks_everyone, so all players show on
+      # the world map. Edit these here, not in /data/config: it is overwritten.
+      - ./config:/config:ro
 
   minecraft-exporter:
     image: ghcr.io/dirien/minecraft-exporter:0.16.0
