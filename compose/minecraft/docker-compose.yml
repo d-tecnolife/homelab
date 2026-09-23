@@ -92,11 +92,11 @@ services:
       # Gamerules live in the world save, so a one-off /gamerule is lost when
       # the world is recreated (spawn_phantoms silently reverted after the
       # 2026-09-22 reset). Re-applying them on every start keeps them declared
-      # here. 51% of players sleeping skips the night: always a strict
-      # majority, since the game rounds the required sleepers up.
+      # here. 33% of players sleeping skips the night; the required count
+      # rounds up, so it is 1 of up to 3 players, 2 of 4-6, 3 of 7-9.
       RCON_CMDS_STARTUP: |-
         gamerule spawn_phantoms false
-        gamerule players_sleeping_percentage 51
+        gamerule players_sleeping_percentage 33
     volumes:
       - /srv/compose/minecraft/data:/data
       # upgrader.json: Upgrade Items blacklist and value overrides that close
