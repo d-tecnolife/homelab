@@ -89,6 +89,14 @@ services:
       # default, which would silently ignore repo edits after a mod rewrites
       # its own config, so the repo always wins here.
       SYNC_SKIP_NEWER_IN_DESTINATION: "false"
+      # Gamerules live in the world save, so a one-off /gamerule is lost when
+      # the world is recreated (spawn_phantoms silently reverted after the
+      # 2026-09-22 reset). Re-applying them on every start keeps them declared
+      # here. 51% of players sleeping skips the night: always a strict
+      # majority, since the game rounds the required sleepers up.
+      RCON_CMDS_STARTUP: |-
+        gamerule spawn_phantoms false
+        gamerule players_sleeping_percentage 51
     volumes:
       - /srv/compose/minecraft/data:/data
       # upgrader.json: Upgrade Items blacklist and value overrides that close
