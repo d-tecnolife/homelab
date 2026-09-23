@@ -34,6 +34,7 @@ services:
         appleskin
         xaeros-minimap
         xaeros-world-map
+        inventory-sorting
         fallingtree
         attributefix
         rei
