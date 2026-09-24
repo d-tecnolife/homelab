@@ -81,6 +81,11 @@ services:
       # when this variable has a value, so leaving it unset means in-game
       # /whitelist add|remove (or RCON) is what manages the list, and it
       # persists across restarts undisturbed.
+      # Ops are declared in ./ops.json and synchronized into /data on every
+      # start, so an in-game /op or /deop is reverted by the next restart:
+      # edit the file instead. Each entry sets its own level; 2 allows /tp,
+      # /gamemode and /give but not /op, /ban or /stop.
+      OPS_FILE: /ops.json
       LOG_TIMESTAMP: "true"
       ENABLE_RCON: "true"
       RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
@@ -106,6 +111,7 @@ services:
       # the world map. Edit these here, not in /data/config: it is overwritten.
       # upgrader-tracker.json: chance below which Upgrader wins are announced.
       - ./config:/config:ro
+      - ./ops.json:/ops.json:ro
       # Mods built in this repo (not on Modrinth), copied into /data/mods on
       # every start: upgrader-tracker (minecraft-mods/upgrader-tracker)
       # announces long-shot Upgrader wins and tracks each player's net
