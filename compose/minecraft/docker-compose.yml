@@ -104,7 +104,14 @@ services:
       # item-duplication exploits (ores, buckets, concrete, oxidized copper...).
       # xaero/lib/common.cfg: everyone_tracks_everyone, so all players show on
       # the world map. Edit these here, not in /data/config: it is overwritten.
+      # upgrader-tracker.json: chance below which Upgrader wins are announced.
       - ./config:/config:ro
+      # Mods built in this repo (not on Modrinth), copied into /data/mods on
+      # every start: upgrader-tracker (minecraft-mods/upgrader-tracker)
+      # announces long-shot Upgrader wins and tracks each player's net
+      # (/upgrader stats|top, scoreboard upgrader_net). Stats live in
+      # /data/world/upgrader_tracker.json.
+      - ./mods:/mods:ro
 
   minecraft-exporter:
     image: ghcr.io/dirien/minecraft-exporter:0.16.0
