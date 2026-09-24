@@ -1,6 +1,6 @@
 {
   "houseEdge": 0.9,
-  "minChance": 0.001,
+  "minChance": 0.0,
   "maxChance": 0.9,
   "spinDurationTicks": 70,
   "valueOverrides": [
@@ -576,6 +576,7 @@
     "minecraft:diamond_pickaxe",
     "minecraft:diamond_shovel",
     "minecraft:diamond_sword",
+    "minecraft:dragon_egg",
     "minecraft:emerald_ore",
     "minecraft:gold_ore",
     "minecraft:iron_axe",
