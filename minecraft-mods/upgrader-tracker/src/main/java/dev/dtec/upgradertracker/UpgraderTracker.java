@@ -31,7 +31,7 @@ public final class UpgraderTracker implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			config = TrackerConfig.load();
 			stats = StatsStore.load(server.getWorldPath(LevelResource.ROOT).resolve("upgrader_tracker.json"));
-			LOGGER.info("Tracking Upgrader rolls for {} players; announcing wins under {}", stats.all().size(), percent(config.announceBelowChance));
+			LOGGER.info("Tracking Upgrader rolls for {} players; announcing wins under {}; floor jackpot cap {}", stats.all().size(), percent(config.announceBelowChance), whole(config.floorJackpotCap));
 		});
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			if (stats != null) {
@@ -112,7 +112,7 @@ public final class UpgraderTracker implements ModInitializer {
 	}
 
 	static String percent(double chance) {
-		return String.format(Locale.ROOT, chance < 0.1 ? "%.2f%%" : "%.1f%%", chance * 100);
+		return String.format(Locale.ROOT, chance < 0.01 ? "%.3f%%" : chance < 0.1 ? "%.2f%%" : "%.1f%%", chance * 100);
 	}
 
 	static String whole(double value) {
@@ -122,6 +122,10 @@ public final class UpgraderTracker implements ModInitializer {
 	static String signed(double value) {
 		long rounded = Math.round(value);
 		return (rounded > 0 ? "+" : "") + String.format(Locale.ROOT, "%,d", rounded);
+	}
+
+	public static double floorJackpotCap() {
+		return config.floorJackpotCap;
 	}
 
 	@Nullable

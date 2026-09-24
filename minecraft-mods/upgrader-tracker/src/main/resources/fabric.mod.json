@@ -3,7 +3,7 @@
   "id": "upgrader_tracker",
   "version": "${version}",
   "name": "Upgrader Tracker",
-  "description": "Server-side companion for Upgrade Items: announces long-shot wins and tracks each player's profit and loss.",
+  "description": "Server-side companion for Upgrade Items: announces long-shot wins, tracks each player's profit and loss, and caps what the minimum-chance floor can pay out.",
   "license": "MIT",
   "environment": "server",
   "entrypoints": {

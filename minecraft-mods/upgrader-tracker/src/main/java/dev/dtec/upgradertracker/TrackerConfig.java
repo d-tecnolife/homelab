@@ -15,6 +15,12 @@ public final class TrackerConfig {
 	public double announceBelowChance = 0.2;
 	/** Scoreboard objective mirroring each player's net result; empty disables it. */
 	public String scoreboardObjective = "upgrader_net";
+	/**
+	 * Upgrader value up to which the minChance floor applies in full; above it the floor shrinks in
+	 * proportion, so a floor-propped roll is never worth more on average than one at this value.
+	 * 0 leaves Upgrade Items' floor alone.
+	 */
+	public double floorJackpotCap = 36000;
 
 	public static TrackerConfig load() {
 		Path path = FabricLoader.getInstance().getConfigDir().resolve("upgrader-tracker.json");

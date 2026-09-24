@@ -3,6 +3,7 @@
   "package": "dev.dtec.upgradertracker.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "UpgradeOddsMixin",
     "UpgraderMenuMixin"
   ],
   "injectors": {

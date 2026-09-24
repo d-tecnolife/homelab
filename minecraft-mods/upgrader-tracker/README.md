@@ -9,6 +9,11 @@ Upgrade Items' `UpgraderMenu` and:
   value), saved to `world/upgrader_tracker.json`;
 - mirrors each player's net to the `upgrader_net` scoreboard objective
   (`/scoreboard objectives setdisplay list upgrader_net` to show it in tab);
+- caps what Upgrade Items' `minChance` floor can pay out: the floor applies in
+  full to targets worth up to `floorJackpotCap` (default 36,000, ten diamond
+  blocks) and shrinks in proportion above it, so a 1-cobblestone roll at 62
+  diamond blocks is 0.016% instead of 0.1%. Rolls with fair odds above the
+  floor are untouched, and the menu shows the same chance that is rolled;
 - adds `/upgrader stats [player]`, `/upgrader top [net|staked|won|wins|spins]`
   and, for ops, `/upgrader reset <player|all>`.
 
@@ -22,15 +27,18 @@ the server copies into `/data/mods` on start.
 
 ```sh
 ./gradlew build
-cp build/libs/upgrader-tracker-*.jar ../../compose/minecraft/mods/
+cp build/libs/upgrader-tracker-*.jar ../../compose/minecraft/mods/upgrader-tracker.jar
 ```
 
-Remove the old jar from `compose/minecraft/mods/` when the version changes.
+The jar keeps one unversioned name because the server copies `/mods` into
+`/data/mods` without deleting anything there, so renamed jars would pile up
+(Fabric loads the newest version when it finds duplicates).
 
 ## Upgrade Items updates
 
-The mixin targets Upgrade Items 1.2.0 internals (`startUpgrade`,
-`applyResult`, and the `target`, `targetCount` and `pendingWin` fields). It is
+The mixins target Upgrade Items 1.2.0 internals (`UpgraderMenu.startUpgrade`,
+`applyResult`, the `target`, `targetCount` and `pendingWin` fields, and
+`UpgradeOdds.chance(double, double)`). They are
 not required, so if an update renames them the server still starts and logs a
 mixin error, and announcements and tracking stop until this is rebuilt against
 the new version (`upgrader_version` in `gradle.properties` is the Modrinth

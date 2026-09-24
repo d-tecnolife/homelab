@@ -1,4 +1,5 @@
 {
   "announceBelowChance": 0.2,
-  "scoreboardObjective": "upgrader_net"
+  "scoreboardObjective": "upgrader_net",
+  "floorJackpotCap": 36000
 }
