@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Chat, deaths, joins and leaves, advancements, admin commands and server restarts from the Minecraft server log.",
+  "description": "Chat, deaths, joins and leaves, advancements, admin commands, long-shot Upgrader wins and server restarts from the Minecraft server log.",
   "editable": true,
   "refresh": "30s",
   "schemaVersion": 41,
@@ -136,6 +136,15 @@
           },
           "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: (Done \\([0-9.]+s\\)!|Stopping server$)` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `⚙️ SERVER  {{.msg}}` |~ `(?i)${search:regex}`",
           "refId": "H",
+          "queryType": "range"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"minecraft\", log_type=\"server\"} |= \"[Server thread/INFO]: \" |~ `\\]: ✦ .+ upgraded .+ odds!$` | regexp `\\]: (\\[Not Secure\\] )?(?P<msg>.*)$` | line_format `🎰 UPGRADER  {{.msg}}` |~ `(?i)${search:regex}`",
+          "refId": "I",
           "queryType": "range"
         }
       ],
