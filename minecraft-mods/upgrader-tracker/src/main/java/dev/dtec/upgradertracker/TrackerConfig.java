@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import net.fabricmc.loader.api.FabricLoader;
 
 /** config/upgrader-tracker.json; written with defaults when missing. */
@@ -21,6 +23,12 @@ public final class TrackerConfig {
 	 * 0 leaves Upgrade Items' floor alone.
 	 */
 	public double floorJackpotCap = 36000;
+	/**
+	 * Item ids that can be staked in the Upgrader; anything else is refused. Keeping stakes to one
+	 * currency means other items' values only set what they pay out, never what they are worth to
+	 * gamble. Empty allows every item.
+	 */
+	public List<String> currencyItems = new ArrayList<>(List.of("minecraft:egg"));
 
 	public static TrackerConfig load() {
 		Path path = FabricLoader.getInstance().getConfigDir().resolve("upgrader-tracker.json");
@@ -39,6 +47,9 @@ public final class TrackerConfig {
 		}
 		if (config.scoreboardObjective == null) {
 			config.scoreboardObjective = "";
+		}
+		if (config.currencyItems == null) {
+			config.currencyItems = new ArrayList<>();
 		}
 		return config;
 	}

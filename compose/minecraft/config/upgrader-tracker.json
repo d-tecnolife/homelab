@@ -1,5 +1,8 @@
 {
   "announceBelowChance": 0.2,
   "scoreboardObjective": "upgrader_net",
-  "floorJackpotCap": 36000
+  "floorJackpotCap": 36000,
+  "currencyItems": [
+    "minecraft:egg"
+  ]
 }

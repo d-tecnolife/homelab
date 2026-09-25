@@ -1,12 +1,16 @@
 package dev.dtec.upgradertracker;
 
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerScoreboard;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,6 +27,7 @@ public final class UpgraderTracker implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("upgrader_tracker");
 
 	static TrackerConfig config = new TrackerConfig();
+	static Set<String> currency = Set.copyOf(config.currencyItems);
 	@Nullable static StatsStore stats;
 
 	@Override
@@ -30,8 +35,9 @@ public final class UpgraderTracker implements ModInitializer {
 		// Load before anything can tick a menu; the scoreboard only exists once the world has loaded.
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			config = TrackerConfig.load();
+			currency = Set.copyOf(config.currencyItems);
 			stats = StatsStore.load(server.getWorldPath(LevelResource.ROOT).resolve("upgrader_tracker.json"));
-			LOGGER.info("Tracking Upgrader rolls for {} players; announcing wins under {}; floor jackpot cap {}", stats.all().size(), percent(config.announceBelowChance), whole(config.floorJackpotCap));
+			LOGGER.info("Tracking Upgrader rolls for {} players; announcing wins under {}; floor jackpot cap {}; stakes limited to {}", stats.all().size(), percent(config.announceBelowChance), whole(config.floorJackpotCap), currency.isEmpty() ? "any item" : currency);
 		});
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			if (stats != null) {
@@ -122,6 +128,22 @@ public final class UpgraderTracker implements ModInitializer {
 	static String signed(double value) {
 		long rounded = Math.round(value);
 		return (rounded > 0 ? "+" : "") + String.format(Locale.ROOT, "%,d", rounded);
+	}
+
+	/** Whether the stack may be staked; everything is when no currency is configured. */
+	public static boolean isCurrency(ItemStack stack) {
+		return currency.isEmpty() || currency.contains(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+	}
+
+	/** Tells a player trying to stake something else what the Upgrader takes. */
+	public static void refuseStake(ServerPlayer player) {
+		String names = currency.stream()
+			.map(Identifier::tryParse)
+			.filter(id -> id != null && BuiltInRegistries.ITEM.containsKey(id))
+			.map(id -> BuiltInRegistries.ITEM.getValue(id).getDefaultInstance().getHoverName().getString())
+			.sorted()
+			.collect(Collectors.joining(", "));
+		player.sendOverlayMessage(Component.literal("The Upgrader only takes " + (names.isEmpty() ? String.join(", ", currency) : names)).withStyle(ChatFormatting.RED));
 	}
 
 	public static double floorJackpotCap() {

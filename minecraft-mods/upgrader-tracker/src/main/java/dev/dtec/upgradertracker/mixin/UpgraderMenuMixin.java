@@ -7,6 +7,8 @@ import net.execheinz.upgrader.value.ItemValues;
 import net.execheinz.upgrader.value.UpgradeOdds;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -22,7 +24,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Upgrade Items decides a roll in startUpgrade() and pays it out in applyResult() once the wheel
  * stops (or the menu closes mid-spin). Capture the stake when a spin starts and report the
- * outcome when it resolves, so announcements never spoil the wheel.
+ * outcome when it resolves, so announcements never spoil the wheel. Also refuses spins staking
+ * anything but the currency items and tells players who try to put something else in.
  */
 @Mixin(value = UpgraderMenu.class, remap = false)
 public abstract class UpgraderMenuMixin {
@@ -38,11 +41,37 @@ public abstract class UpgraderMenuMixin {
 	@Unique @Nullable private Roll upgraderTracker$roll;
 	@Unique @Nullable private Roll upgraderTracker$staged;
 
-	@Inject(method = "startUpgrade", at = @At("HEAD"))
+	@Inject(method = "clicked", at = @At("HEAD"))
+	private void upgraderTracker$explainRefusal(int slotId, int button, ContainerInput input, Player clicker, CallbackInfo ci) {
+		if (this.isSpinning() || !(clicker instanceof ServerPlayer serverPlayer)) {
+			return;
+		}
+		AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
+		// What the click would put into the input slot (slot 0).
+		ItemStack offered = ItemStack.EMPTY;
+		if (slotId == 0 && input == ContainerInput.PICKUP) {
+			offered = menu.getCarried();
+		} else if (slotId == 0 && input == ContainerInput.SWAP) {
+			offered = clicker.getInventory().getItem(button);
+		} else if (slotId > 0 && slotId < menu.slots.size() && input == ContainerInput.QUICK_MOVE) {
+			offered = menu.slots.get(slotId).getItem();
+		}
+		if (!offered.isEmpty() && !UpgraderTracker.isCurrency(offered)) {
+			UpgraderTracker.refuseStake(serverPlayer);
+		}
+	}
+
+	@Inject(method = "startUpgrade", at = @At("HEAD"), cancellable = true)
 	private void upgraderTracker$stage(ServerPlayer serverPlayer, CallbackInfo ci) {
 		this.upgraderTracker$staged = null;
 		ItemStack stack = this.getInputStack();
 		if (this.isSpinning() || stack.isEmpty() || this.target == null) {
+			return;
+		}
+		if (!UpgraderTracker.isCurrency(stack)) {
+			// The slot refuses these, but never spin one that got in some other way.
+			UpgraderTracker.refuseStake(serverPlayer);
+			ci.cancel();
 			return;
 		}
 		// Same inputs startUpgrade feeds UpgradeOdds, taken before it runs.

@@ -14,6 +14,11 @@ Upgrade Items' `UpgraderMenu` and:
   blocks) and shrinks in proportion above it, so a 1-cobblestone roll at 62
   diamond blocks is 0.016% instead of 0.1%. Rolls with fair odds above the
   floor are untouched, and the menu shows the same chance that is rolled;
+- only lets `currencyItems` (default `minecraft:egg`) be staked: anything else
+  won't go into the input slot and the player is told what the Upgrader takes.
+  With one currency, other items' values only set what they pay out, so they
+  can be repriced without anyone staking them for better odds. An empty list
+  allows every item;
 - adds `/upgrader stats [player]`, `/upgrader top [net|staked|won|wins|spins]`
   and, for ops, `/upgrader reset <player|all>`.
 
@@ -38,7 +43,8 @@ The jar keeps one unversioned name because the server copies `/mods` into
 
 The mixins target Upgrade Items 1.2.0 internals (`UpgraderMenu.startUpgrade`,
 `applyResult`, the `target`, `targetCount` and `pendingWin` fields, and
-`UpgradeOdds.chance(double, double)`). They are
+`UpgradeOdds.chance(double, double)`, and the input slot being the anonymous
+`UpgraderMenu$2`). They are
 not required, so if an update renames them the server still starts and logs a
 mixin error, and announcements and tracking stop until this is rebuilt against
 the new version (`upgrader_version` in `gradle.properties` is the Modrinth
