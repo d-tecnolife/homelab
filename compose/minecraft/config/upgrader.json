@@ -1,6 +1,6 @@
 {
   "houseEdge": 0.9,
-  "minChance": 0.001,
+  "minChance": 0.0,
   "maxChance": 0.9,
   "spinDurationTicks": 70,
   "valueOverrides": [
@@ -211,6 +211,8 @@
     "minecraft:deepslate_brick_slab=0.5",
     "minecraft:deepslate_tile_slab=0.5",
     "minecraft:diorite_slab=0.5",
+    "minecraft:egg=2.5",
+    "minecraft:elytra=3600",
     "minecraft:emerald=10",
     "minecraft:end_stone_brick_slab=0.5",
     "minecraft:experience_bottle=30",
@@ -604,7 +606,7 @@
     "wands:creative_wand",
     "waystones:ruined_sharestone"
   ],
-  "globalValueMultiplier": 1.0,
+  "globalValueMultiplier": 1.2,
   "valueMultipliers": [],
   "maxTargetCount": 64,
   "attemptLimit": 0,
