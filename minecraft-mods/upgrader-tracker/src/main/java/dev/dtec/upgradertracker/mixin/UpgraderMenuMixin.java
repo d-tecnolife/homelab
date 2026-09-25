@@ -19,13 +19,15 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Upgrade Items decides a roll in startUpgrade() and pays it out in applyResult() once the wheel
  * stops (or the menu closes mid-spin). Capture the stake when a spin starts and report the
  * outcome when it resolves, so announcements never spoil the wheel. Also refuses spins staking
- * anything but the currency items and tells players who try to put something else in.
+ * anything but the currency items and tells players who try to put something else in, and makes
+ * the menu show the chance that is actually rolled.
  */
 @Mixin(value = UpgraderMenu.class, remap = false)
 public abstract class UpgraderMenuMixin {
@@ -59,6 +61,20 @@ public abstract class UpgraderMenuMixin {
 		if (!offered.isEmpty() && !UpgraderTracker.isCurrency(offered)) {
 			UpgraderTracker.refuseStake(serverPlayer);
 		}
+	}
+
+	/**
+	 * syncToClient works the displayed chance out from values rounded to whole numbers, so a stack of
+	 * 64 blocks worth 1.35 each showed 67.5% while rolling 50%. Send the chance startUpgrade rolls.
+	 */
+	@ModifyArg(method = "syncToClient", at = @At(value = "INVOKE",
+		target = "Lnet/execheinz/upgrader/network/ClientboundUpgraderSyncPacket;<init>(Ljava/lang/String;IJJFI)V"), index = 4)
+	private float upgraderTracker$exactChance(float rounded) {
+		ItemStack stack = this.getInputStack();
+		if (stack.isEmpty() || this.target == null) {
+			return rounded;
+		}
+		return (float) UpgradeOdds.chance(this.player.level(), stack, this.target, this.clampCount(this.targetCount));
 	}
 
 	@Inject(method = "startUpgrade", at = @At("HEAD"), cancellable = true)

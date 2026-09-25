@@ -19,6 +19,9 @@ Upgrade Items' `UpgraderMenu` and:
   With one currency, other items' values only set what they pay out, so they
   can be repriced without anyone staking them for better odds. An empty list
   allows every item;
+- makes the menu show the chance that is rolled: Upgrade Items works the
+  displayed chance out from values rounded to whole numbers, which is far off
+  for cheap items (64 blocks worth 1.35 each showed 67.5% instead of 50%);
 - adds `/upgrader stats [player]`, `/upgrader top [net|staked|won|wins|spins]`
   and, for ops, `/upgrader reset <player|all>`.
 
@@ -42,7 +45,7 @@ The jar keeps one unversioned name because the server copies `/mods` into
 ## Upgrade Items updates
 
 The mixins target Upgrade Items 1.2.0 internals (`UpgraderMenu.startUpgrade`,
-`applyResult`, the `target`, `targetCount` and `pendingWin` fields, and
+`applyResult`, `syncToClient`'s `ClientboundUpgraderSyncPacket`, the `target`, `targetCount` and `pendingWin` fields, and
 `UpgradeOdds.chance(double, double)`, and the input slot being the anonymous
 `UpgraderMenu$2`). They are
 not required, so if an update renames them the server still starts and logs a
