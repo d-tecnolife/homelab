@@ -1,6 +1,11 @@
 services:
   minecraft:
-    image: itzg/minecraft-server:latest
+    # Pinned: the image re-resolves every Modrinth mod and its required
+    # dependencies on each start, and 2026.10 releases fail the whole start
+    # when a dependency has no release build (Detail Armor Bar requires
+    # EclipseUI, beta-only for 26.2), where 2026.9.2 skipped it. Bump
+    # deliberately and watch the first start.
+    image: itzg/minecraft-server:2026.9.2-java25
     container_name: minecraft
     restart: unless-stopped
     stop_grace_period: 2m
