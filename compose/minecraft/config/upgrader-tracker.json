@@ -3,6 +3,7 @@
   "scoreboardObjective": "upgrader_net",
   "floorJackpotCap": 36000,
   "currencyItems": [
-    "minecraft:egg"
+    "minecraft:egg",
+    "minecraft:ender_pearl"
   ]
 }
