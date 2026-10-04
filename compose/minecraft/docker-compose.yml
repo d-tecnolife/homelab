@@ -86,11 +86,14 @@ services:
       # when this variable has a value, so leaving it unset means in-game
       # /whitelist add|remove (or RCON) is what manages the list, and it
       # persists across restarts undisturbed.
-      # Ops are declared in ./ops.json and synchronized into /data on every
-      # start, so an in-game /op or /deop is reverted by the next restart:
-      # edit the file instead. Each entry sets its own level; 2 allows /tp,
-      # /gamemode and /give but not /op, /ban or /stop.
-      OPS_FILE: /ops.json
+      # Ops listed here are merged into /data/ops.json on every start at
+      # full op (op-permission-level 4): missing ones are added back, and ops
+      # given in-game with /op stay, since merging never removes anyone. To
+      # remove an op, take them off this list and /deop them. A file sync
+      # (OPS_FILE) would wipe in-game ops instead, and the image can't merge
+      # from a file.
+      OPS: ratcho19,RiceForSale,tohsaa,Hyonu
+      EXISTING_OPS_FILE: MERGE
       LOG_TIMESTAMP: "true"
       ENABLE_RCON: "true"
       RCON_PASSWORD: "${RCON_PASSWORD:?set RCON_PASSWORD}"
@@ -117,7 +120,6 @@ services:
       # upgrader-tracker.json: chance below which Upgrader wins are announced,
       # and the jackpot cap for the minimum-chance floor.
       - ./config:/config:ro
-      - ./ops.json:/ops.json:ro
       # Mods built in this repo (not on Modrinth), copied into /data/mods on
       # every start: upgrader-tracker (minecraft-mods/upgrader-tracker)
       # announces long-shot Upgrader wins and tracks each player's net
