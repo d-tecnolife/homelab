@@ -18,9 +18,11 @@
     # routes this host offers cannot drift from the ones the Tailscale ACL
     # approves (terraform/tailscale reads the
     # same list). Hand-copying it in both places let them disagree silently.
+    # The Proxmox host is added as a /32 so tailnet clients reach its web UI.
+    ops_tailscale_aliases: "{{ (lookup('file', playbook_dir + '/../../config/gateway.yaml') | from_yaml).aliases }}"
     ops_tailscale_subnets: >-
-      {{ (lookup('file', playbook_dir + '/../../config/gateway.yaml')
-          | from_yaml).aliases.homelab_networks['values'] }}
+      {{ ops_tailscale_aliases.homelab_networks['values']
+         + ops_tailscale_aliases.proxmox['values'] | map('regex_replace', '$', '/32') | list }}
 
   tasks:
     - name: Load the encrypted input

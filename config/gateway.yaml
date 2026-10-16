@@ -90,6 +90,9 @@ firewall:
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: homelab_networks, ports: [22], description: "Ops SSH administration" }
     # monitoring-agents.yml configures Proxmox over SSH from Ops.
     - { interface: infra, action: pass, protocol: tcp, source: ops, destination: proxmox, ports: [22], description: "Ops Proxmox administration" }
+    # Ops advertises the Proxmox host to the tailnet and source-NATs it, so
+    # tailnet clients reach the web UI as Ops.
+    - { interface: infra, action: pass, protocol: tcp, source: ops, destination: proxmox, ports: [8006], description: "Ops Proxmox web UI" }
     # One port only: OPNsense's rule model takes a single port, a range, or
     # a port alias, never a comma-joined list, and rejects anything else the
     # moment the rule is saved through its API. Declare HTTPS separately;

@@ -314,6 +314,17 @@
             direction: in
             ipprotocol: inet
             protocol: TCP
+            source_net: ops
+            destination_net: proxmox
+            destination_port: "8006"
+            description: Ops Proxmox web UI
+          - enabled: "1"
+            action: pass
+            quick: "1"
+            interface: lan
+            direction: in
+            ipprotocol: inet
+            protocol: TCP
             source_net: monitoring
             destination_net: proxmox
             destination_port: "9100"

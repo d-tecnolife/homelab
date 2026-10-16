@@ -15,7 +15,12 @@ locals {
   # actually configures them, and reused here. Hand-copying the list let the
   # subnet router advertise routes this policy had never approved.
   gateway_baseline = yamldecode(file("${path.module}/../../config/gateway.yaml"))
-  subnet_routes    = local.gateway_baseline.aliases.homelab_networks.values
+  # The Proxmox host is added as a /32 so tailnet clients reach its web UI;
+  # ansible/playbooks/ops-tailscale.yml advertises the same list.
+  subnet_routes = concat(
+    local.gateway_baseline.aliases.homelab_networks.values,
+    [for host in local.gateway_baseline.aliases.proxmox.values : "${host}/32"],
+  )
 
   # Ops is the subnet router (ansible/playbooks/ops-tailscale.yml), not
   # Gateway -- OPNsense's os-tailscale plugin hit two separate confirmed
